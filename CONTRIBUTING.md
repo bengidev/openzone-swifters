@@ -11,7 +11,7 @@ Thanks for your interest! Contributions of all kinds are welcome.
 5. **Push** and open a **Pull Request** describing the change and motivation
 
 ## Code Style
-- Swift 5.0, SwiftUI idioms
+- Swift 6.0 (strict concurrency), SwiftUI idioms
 - Prefer value types and small, composable views
 - Keep AI provider code behind an abstraction (no hard-coded vendor calls in views)
 

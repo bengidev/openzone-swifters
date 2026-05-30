@@ -3,7 +3,7 @@
 > Native mobile AI assistant for iOS — bring AI models to your pocket to help get work done.
 
 [![Platform](https://img.shields.io/badge/platform-iOS%2017.6%2B-blue.svg)](https://developer.apple.com/ios/)
-[![Swift](https://img.shields.io/badge/Swift-5.0-orange.svg)](https://swift.org)
+[![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-green.svg)](https://developer.apple.com/xcode/swiftui/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -21,7 +21,7 @@ OpenZone Swifters is a **native iOS AI assistant** built with SwiftUI and SwiftD
 
 | Layer        | Technology            |
 |--------------|-----------------------|
-| Language     | Swift 5.0             |
+| Language     | Swift 6.0             |
 | UI           | SwiftUI               |
 | Persistence  | SwiftData             |
 | Min Target   | iOS 17.6+             |
