@@ -28,7 +28,6 @@ OpenZone Swifters is a **native iOS AI assistant** built with SwiftUI and SwiftD
 | Min Target   | iOS 17.6+             |
 | App Category | Productivity          |
 | Concurrency  | Swift 6 strict + memory safety |
-| Bundle ID    | `io.github.bengidev.OpenZone` |
 
 ## 🚀 Getting Started
 
@@ -54,14 +53,6 @@ OpenZone/
 OpenZoneTests/            # Unit tests
 OpenZoneUITests/          # UI tests
 ```
-
-## 🗺️ Roadmap
-
-- [ ] AI provider abstraction layer (local + remote models)
-- [ ] Chat/conversation persistence via SwiftData
-- [ ] Streaming responses
-- [ ] Prompt templates / task presets
-- [ ] On-device model support (Core ML / Apple Intelligence)
 
 ## 🤝 Contributing
 
