@@ -11,7 +11,8 @@ Thanks for your interest! Contributions of all kinds are welcome.
 5. **Push** and open a **Pull Request** describing the change and motivation
 
 ## Code Style
-- Swift 6.0 (strict concurrency), SwiftUI idioms
+- Swift 6.0 — strict concurrency + `SWIFT_STRICT_MEMORY_SAFETY` enabled; resolve all data-race and memory-safety diagnostics before submitting
+- SwiftUI idioms
 - Prefer value types and small, composable views
 - Keep AI provider code behind an abstraction (no hard-coded vendor calls in views)
 

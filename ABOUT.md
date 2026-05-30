@@ -14,6 +14,10 @@ Built end-to-end with Apple's modern stack — **SwiftUI** for the interface and
 - **Local-first data** — SwiftData stores history and context on-device.
 - **Model-flexible** — pluggable AI provider layer for local (Core ML / Apple Intelligence) and remote models.
 - **Privacy-aware** — keep sensitive data on the device whenever possible.
+- **Safe by default** — Swift 6 with strict concurrency and strict memory safety enabled.
+
+## Category
+Classified as a **Productivity** app (`public.app-category.productivity`).
 
 ## Status
 Early stage. Scaffolded from a SwiftUI + SwiftData base; AI integration layer in active design.

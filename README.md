@@ -16,6 +16,7 @@ OpenZone Swifters is a **native iOS AI assistant** built with SwiftUI and SwiftD
 - 💾 **SwiftData persistence** — local-first storage for chats, history, and context
 - 🔒 **Privacy-aware** — designed to keep user data on-device where possible
 - ⚡ **Task-oriented** — focused on helping users finish work, not just chat
+- 🛡️ **Swift 6 strict memory safety** — built with strict concurrency and memory-safety checks enabled
 
 ## 🧱 Tech Stack
 
@@ -25,6 +26,8 @@ OpenZone Swifters is a **native iOS AI assistant** built with SwiftUI and SwiftD
 | UI           | SwiftUI               |
 | Persistence  | SwiftData             |
 | Min Target   | iOS 17.6+             |
+| App Category | Productivity          |
+| Concurrency  | Swift 6 strict + memory safety |
 | Bundle ID    | `io.github.bengidev.OpenZone` |
 
 ## 🚀 Getting Started
