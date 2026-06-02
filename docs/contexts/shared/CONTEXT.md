@@ -1,0 +1,19 @@
+# Shared App Primitives Context
+
+`OpenZone/Shared` contains app-wide theme and UI primitives that are safe for multiple features to reuse.
+
+## Language
+
+- **Shared primitive** — reusable, feature-neutral UI or theme code.
+- **Theme** — app-wide color scheme preference, palette, typography, and environment keys.
+- **UI primitive** — reusable visual building block such as a button style, badge, card chrome, or background pattern.
+
+## Architecture
+
+- Shared code must not import or reference feature code.
+- Shared code must not contain feature-specific copy, workflow state, persistence, networking, or TCA reducers.
+- Feature-specific UI remains inside `OpenZone/Features/<FeatureName>/Presenter`.
+
+## TCA boundary
+
+Shared UI can be used by TCA-backed feature views, but Shared should remain state-management agnostic unless a reusable component explicitly requires a binding or action closure.

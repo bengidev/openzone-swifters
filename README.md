@@ -7,7 +7,7 @@
 [![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-green.svg)](https://developer.apple.com/xcode/swiftui/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-OpenZone Swifters is a **native iOS AI assistant** built with SwiftUI and SwiftData. It integrates mobile-first UX with AI models so users can complete real tasks — drafting, summarizing, planning, Q&A, and more — directly from their device.
+OpenZone Swifters is a **native iOS AI assistant** built with SwiftUI, SwiftData, and The Composable Architecture (TCA). It integrates mobile-first UX with AI models so users can complete real tasks — drafting, summarizing, planning, Q&A, and more — directly from their device.
 
 ## ✨ Features
 
@@ -25,9 +25,10 @@ OpenZone Swifters is a **native iOS AI assistant** built with SwiftUI and SwiftD
 | Language     | Swift 6.0             |
 | UI           | SwiftUI               |
 | Persistence  | SwiftData             |
+| State         | The Composable Architecture 1.25.5 |
 | Min Target   | iOS 17.6+             |
 | App Category | Productivity          |
-| Concurrency  | Swift 6 strict + memory safety |
+| Concurrency  | Swift 6 strict concurrency + strict memory safety |
 
 ## 🚀 Getting Started
 
@@ -47,12 +48,24 @@ Select a simulator/device and press **⌘R**.
 
 ```
 OpenZone/
-├── OpenZoneApp.swift     # App entry, SwiftData ModelContainer
-├── ContentView.swift     # Root view
-├── Item.swift            # SwiftData @Model
-OpenZoneTests/            # Unit tests
-OpenZoneUITests/          # UI tests
+├── OpenZoneApp.swift          # App entry, routing, SwiftData ModelContainer
+├── ContentView.swift          # Temporary main app content after onboarding
+├── Item.swift                 # SwiftData @Model scaffold
+├── Features/
+│   ├── AppFeature.swift       # Root TCA reducer
+│   └── Onboarding/            # First-run onboarding feature
+│       ├── Application/       # TCA reducer, state, actions, orchestration
+│       ├── Domain/            # Onboarding pages and value types
+│       ├── Infrastructure/    # SwiftData progress persistence client
+│       └── Presenter/         # SwiftUI onboarding screens backed by StoreOf<OnboardingFeature>
+└── Shared/                    # App-wide theme and reusable UI primitives
+    ├── Theme/
+    └── UI/
+OpenZoneTests/                 # Unit tests
+OpenZoneUITests/               # UI tests
 ```
+
+See [docs/architecture/modules.md](docs/architecture/modules.md) for feature/shared ownership rules and the future internal-library path. See [docs/architecture/swift-6-strictness.md](docs/architecture/swift-6-strictness.md) for concurrency and memory-safety rules.
 
 ## 🤝 Contributing
 
