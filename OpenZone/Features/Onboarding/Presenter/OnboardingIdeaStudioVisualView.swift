@@ -23,13 +23,13 @@ struct OnboardingIdeaStudioVisualView: View {
                         onPromptSelected(index)
                     } label: {
                         Text(option.label)
-                            .font(OpenZoneTypography.monoXS)
-                            .monoTracking()
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .tracking(-0.24)
                             .foregroundStyle(index == selectedPromptIndex ? palette.controlStrongText : palette.textSecondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                             .background(
-                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
                                     .fill(index == selectedPromptIndex ? palette.controlStrong : palette.surfaceSubtle.opacity(0.4))
                             )
                     }
@@ -64,14 +64,15 @@ struct OnboardingIdeaStudioVisualView: View {
             .padding(13)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(palette.surfaceBase.opacity(palette.isDark ? 0.5 : 0.15))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .stroke(palette.lineSoft, lineWidth: 1)
             )
         }
+        .frame(maxHeight: .infinity, alignment: .top)
         .task(id: prompt) {
             await animateTyping()
         }
