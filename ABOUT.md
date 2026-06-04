@@ -22,6 +22,9 @@ Classified as a **Productivity** app (`public.app-category.productivity`).
 ## Status
 Early stage. Scaffolded from a SwiftUI + SwiftData base; AI integration layer in active design.
 
+## Documentation
+Product and engineering docs live in the repo: [README.md](README.md), [CONTEXT-MAP.md](CONTEXT-MAP.md), [docs/architecture/](docs/architecture/), and [AGENTS.md](AGENTS.md) for automated agent conventions.
+
 ## Author
 **Bambang Tri Rahmat Doni** ([@bengidev](https://github.com/bengidev))
 

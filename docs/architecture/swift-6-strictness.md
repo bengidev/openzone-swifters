@@ -1,5 +1,7 @@
 # Swift 6 Strictness
 
+Part of this repo's multi-context documentation. See [CONTEXT-MAP.md](../../CONTEXT-MAP.md) and [docs/agents/domain.md](../agents/domain.md). Architectural exceptions belong in `docs/adr/` when accepted.
+
 OpenZone is compiled in Swift 6 mode with strict concurrency and strict memory-safety diagnostics enabled. Treat these diagnostics as design feedback, not as noise to suppress.
 
 ## Build settings

@@ -1,5 +1,12 @@
 # Shared App Primitives Context
 
+| | |
+| --- | --- |
+| **Context** | Shared app primitives |
+| **Code** | `OpenZone/Shared/` |
+| **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
+| **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
+
 `OpenZone/Shared` contains app-wide theme and UI primitives that are safe for multiple features to reuse.
 
 ## Language

@@ -22,6 +22,7 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 ├── docs/architecture/modules.md        ← feature/shared/TCA rules
 ├── docs/architecture/swift-6-strictness.md ← Swift 6 concurrency/memory-safety rules
 ├── docs/contexts/
+│   ├── app/CONTEXT.md                 ← app shell glossary (when present)
 │   ├── shared/CONTEXT.md              ← shared UI/theme glossary
 │   └── onboarding/CONTEXT.md          ← onboarding glossary
 └── OpenZone/

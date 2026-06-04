@@ -1,5 +1,12 @@
 # Onboarding Context
 
+| | |
+| --- | --- |
+| **Context** | Onboarding feature |
+| **Code** | `OpenZone/Features/Onboarding/` |
+| **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
+| **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
+
 The onboarding feature owns the first-run experience. It teaches the user the core OpenZone concepts, persists completion, and then lets the app route back to the temporary main `ContentView`.
 
 ## Language

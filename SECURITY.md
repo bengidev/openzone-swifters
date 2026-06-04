@@ -6,7 +6,9 @@ OpenZone Swifters is in early development. Security updates apply to the latest 
 
 ## Reporting a Vulnerability
 
-If you discover a security issue, please report it privately before public disclosure.
+If you discover a security issue, please report it **privately** before public disclosure. Do **not** open a public [GitHub Issue](https://github.com/bengidev/openzone-swifters/issues) for security vulnerabilities.
+
+For non-security bugs and feature requests, use public GitHub Issues per [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md).
 
 Include:
 

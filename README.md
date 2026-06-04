@@ -67,9 +67,23 @@ OpenZoneUITests/               # UI tests
 
 See [docs/architecture/modules.md](docs/architecture/modules.md) for feature/shared ownership rules and the future internal-library path. See [docs/architecture/swift-6-strictness.md](docs/architecture/swift-6-strictness.md) for concurrency and memory-safety rules.
 
+## 📚 Documentation
+
+| Topic | Location |
+|-------|----------|
+| Doc index | [docs/README.md](docs/README.md) |
+| Contributing & issues | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Agent / skill configuration | [AGENTS.md](AGENTS.md) → [docs/agents/](docs/agents/) |
+| Domain glossaries (multi-context) | [CONTEXT-MAP.md](CONTEXT-MAP.md) → `docs/contexts/*/CONTEXT.md` |
+| Architecture decisions (ADRs) | `docs/adr/` (created as decisions are recorded) |
+| Module & TCA layout | [docs/architecture/modules.md](docs/architecture/modules.md) |
+| Swift 6 concurrency & safety | [docs/architecture/swift-6-strictness.md](docs/architecture/swift-6-strictness.md) |
+
+Issues and PRDs are tracked on [GitHub Issues](https://github.com/bengidev/openzone-swifters/issues). See [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md) for CLI conventions.
+
 ## 🤝 Contributing
 
-Contributions welcome. Open an issue or PR. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions welcome. Open an issue or PR on `bengidev/openzone-swifters`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📄 License
 
