@@ -10,7 +10,7 @@ struct OnboardingFeature {
         var isFinished = false
         var selectedPromptIndex = 0
         var queuedPromptCount = 2
-        var reasoningLevel = 0.62
+        var reasoningLevel = OnboardingDemoDefaults.reasoningLevel
         var pairingConfirmed = true
 
         var totalPages: Int { OnboardingPage.all.count }
@@ -56,15 +56,21 @@ struct OnboardingFeature {
                 return .none
 
             case .nextButtonTapped:
-                state.currentPage = min(state.currentPage + 1, state.totalPages - 1)
+                let nextPage = min(state.currentPage + 1, state.totalPages - 1)
+                state.currentPage = nextPage
+                state.applyDemoDefaults(forPageIndex: nextPage)
                 return .none
 
             case .previousButtonTapped:
-                state.currentPage = max(state.currentPage - 1, 0)
+                let previousPage = max(state.currentPage - 1, 0)
+                state.currentPage = previousPage
+                state.applyDemoDefaults(forPageIndex: previousPage)
                 return .none
 
             case let .pageSelected(index):
-                state.currentPage = min(max(index, 0), state.totalPages - 1)
+                let selectedPage = min(max(index, 0), state.totalPages - 1)
+                state.currentPage = selectedPage
+                state.applyDemoDefaults(forPageIndex: selectedPage)
                 return .none
 
             case .skipButtonTapped:
@@ -99,6 +105,20 @@ struct OnboardingFeature {
                 state.pairingConfirmed.toggle()
                 return .none
             }
+        }
+    }
+}
+
+private extension OnboardingFeature.State {
+    mutating func applyDemoDefaults(forPageIndex index: Int) {
+        let safeIndex = min(max(index, 0), OnboardingPage.all.count - 1)
+        switch OnboardingPage.all[safeIndex].type {
+        case .ideaStudio:
+            selectedPromptIndex = OnboardingDemoDefaults.selectedPromptIndex
+        case .reasoningControl:
+            reasoningLevel = OnboardingDemoDefaults.reasoningLevel
+        default:
+            break
         }
     }
 }
