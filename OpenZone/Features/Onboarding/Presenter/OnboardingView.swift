@@ -36,8 +36,8 @@ struct OnboardingView: View {
                 .ignoresSafeArea()
 
                 DiagonalHatchPattern(
-                    spacing: 12,
-                    opacity: palette.isDark ? 0.08 : 0.03
+                    spacing: 10,
+                    opacity: palette.isDark ? 0.10 : 0.04
                 )
                 .ignoresSafeArea()
 

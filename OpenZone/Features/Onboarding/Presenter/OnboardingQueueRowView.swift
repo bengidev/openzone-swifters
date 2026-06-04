@@ -26,7 +26,7 @@ struct OnboardingQueueRowView: View {
                 HStack(spacing: 8) {
                     Text(item.status.rawValue)
                         .font(.system(size: 8.5, weight: .semibold, design: .monospaced))
-                        .monoTracking()
+                        .tracking(-0.24)
                         .foregroundStyle(statusColor)
                     Text(item.title)
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
@@ -51,11 +51,11 @@ struct OnboardingQueueRowView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .fill(palette.surfaceSubtle.opacity(index == 0 ? 0.5 : 0.3))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .stroke(index == 0 ? palette.accentPrimary.opacity(0.34) : palette.lineSoft, lineWidth: 1)
         )
         .opacity(appeared ? 1 : 0)
