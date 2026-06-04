@@ -89,7 +89,7 @@ public struct OnboardingPage: Equatable, Sendable, Identifiable {
             type: .reasoningControl,
             indexLabel: "THK-04",
             eyebrow: "Reasoning dial",
-            headline: "Reasoning controls to tune how much thinking AI model uses",
+            headline: "Tune how much thinking the AI uses",
             body: "Choose faster answers, balanced planning, or deeper reasoning before the AI model commits compute to the task.",
             metric: "THINK BUDGET",
             command: "model set reasoning --level balanced",
