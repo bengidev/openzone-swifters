@@ -80,7 +80,7 @@ private struct OpenZoneRootView: View {
     var body: some View {
         Group {
             if store.onboarding.isFinished {
-                ContentView()
+                HomeView(store: store.scope(state: \.home, action: \.home))
             } else {
                 OnboardingView(
                     store: store.scope(state: \.onboarding, action: \.onboarding),
