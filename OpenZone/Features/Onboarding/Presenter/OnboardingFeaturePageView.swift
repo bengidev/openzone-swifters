@@ -25,17 +25,17 @@ struct OnboardingFeaturePageView: View {
                     Badge(title: page.eyebrow, systemImage: badgeSymbol, isActive: true)
                     Spacer(minLength: 8)
                     Text(page.indexLabel)
-                        .font(OpenZoneTypography.monoXS)
-                        .monoTracking()
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .tracking(-0.24)
                         .foregroundStyle(palette.accentPrimary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 7)
                         .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(palette.accentSoft)
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(palette.accentPrimary.opacity(palette.isDark ? 0.12 : 0.10))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
                                 .stroke(palette.accentPrimary.opacity(0.28), lineWidth: 1)
                         )
                 }
@@ -44,8 +44,8 @@ struct OnboardingFeaturePageView: View {
 
                 // Primary message — headline
                 Text(page.headline)
-                    .font(OpenZoneTypography.displayLG)
-                    .displayTracking()
+                    .font(.system(size: titleSize, weight: .regular))
+                    .tracking(-1.2)
                     .foregroundStyle(palette.textPrimary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.78)
@@ -64,7 +64,7 @@ struct OnboardingFeaturePageView: View {
                     .offset(y: appeared ? 0 : 8)
 
                 // Demonstration panel
-                CardChrome(cornerRadius: 12) {
+                CardChrome(cornerRadius: 6) {
                     ZStack {
                         palette.surfacePaper
 
@@ -75,8 +75,8 @@ struct OnboardingFeaturePageView: View {
                         )
 
                         DiagonalHatchPattern(
-                            spacing: 12,
-                            opacity: palette.isDark ? 0.08 : 0.03
+                            spacing: 10,
+                            opacity: palette.isDark ? 0.10 : 0.04
                         )
 
                         if page.type == .promptQueue {
@@ -112,21 +112,21 @@ struct OnboardingFeaturePageView: View {
                                         Text(store.queuedPromptCount >= OnboardingQueueItem.samples.count ? "RESET QUEUE" : "ADD FOLLOW-UP")
                                         Spacer()
                                         Text("⌘↩")
-                                            .font(OpenZoneTypography.monoXS)
-                                            .monoTracking()
+                                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                            .tracking(-0.24)
                                             .foregroundStyle(palette.textTertiary)
                                     }
                                     .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-                                    .monoTracking()
+                                    .tracking(-0.24)
                                     .foregroundStyle(palette.accentPrimary)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 10)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                            .fill(palette.accentSoft)
+                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                            .fill(palette.accentPrimary.opacity(0.11))
                                     )
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
                                             .stroke(palette.accentPrimary.opacity(0.28), lineWidth: 1)
                                     )
                                 }
@@ -143,6 +143,8 @@ struct OnboardingFeaturePageView: View {
                             VStack(spacing: 12) {
                                 terminalHeader
                                 OnboardingPageVisualFactory.make(page: page, store: store, appeared: appeared)
+                                    .frame(maxHeight: .infinity)
+                                    .layoutPriority(1)
                                 highlightFooter
                             }
                             .padding(14)
@@ -160,6 +162,10 @@ struct OnboardingFeaturePageView: View {
                 await runEntrance()
             }
         }
+    }
+
+    private var titleSize: CGFloat {
+        page.headline.count > 58 ? 27 : 30
     }
 
     private var badgeSymbol: String {
@@ -194,15 +200,15 @@ struct OnboardingFeaturePageView: View {
             }
 
             Text(page.metric)
-                .font(OpenZoneTypography.monoXS)
-                .monoTracking()
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .tracking(-0.24)
                 .foregroundStyle(palette.textSecondary)
 
             Spacer()
 
             Text("AGENTS / PROMPTS / MODELS / REVIEW")
                 .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                .monoTracking()
+                .tracking(-0.24)
                 .foregroundStyle(palette.textTertiary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.56)
@@ -210,11 +216,11 @@ struct OnboardingFeaturePageView: View {
         .padding(.horizontal, 11)
         .padding(.vertical, 9)
         .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .fill(palette.surfaceSubtle.opacity(0.5))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .stroke(palette.lineSoft, lineWidth: 1)
         )
     }
@@ -224,8 +230,8 @@ struct OnboardingFeaturePageView: View {
             ForEach(Array(page.highlights.enumerated()), id: \.element.id) { index, highlight in
                 HStack(spacing: 9) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(index == 0 ? palette.accentSoft : palette.surfaceSubtle.opacity(0.4))
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .fill(index == 0 ? palette.accentPrimary.opacity(0.12) : palette.surfaceSubtle.opacity(0.4))
                             .frame(width: 28, height: 28)
                         Image(systemName: highlight.symbol)
                             .font(.system(size: 12, weight: .semibold))
@@ -234,8 +240,8 @@ struct OnboardingFeaturePageView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(highlight.title.uppercased())
-                            .font(OpenZoneTypography.monoXS)
-                            .monoTracking()
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .tracking(-0.24)
                             .foregroundStyle(palette.textPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.65)
@@ -249,11 +255,11 @@ struct OnboardingFeaturePageView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(9)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(palette.surfacePaper)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .stroke(palette.lineSoft, lineWidth: 1)
                 )
                 .opacity(appeared ? 1 : 0)
