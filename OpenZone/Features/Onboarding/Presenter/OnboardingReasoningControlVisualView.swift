@@ -44,11 +44,7 @@ struct OnboardingReasoningControlVisualView: View {
                 Spacer(minLength: 4)
             }
 
-            // Slider
-            Slider(value: $reasoningLevel, in: 0...1)
-                .tint(palette.accentPrimary)
-                .accessibilityLabel("Reasoning level")
-                .accessibilityValue("\(percentage) percent")
+            OnboardingReasoningLevelSliderView(value: $reasoningLevel)
 
             // Presets — FAST / BALANCED / DEEP
             HStack(spacing: 7) {
@@ -73,6 +69,9 @@ struct OnboardingReasoningControlVisualView: View {
         }
         .padding(.horizontal, 4)
         .frame(maxHeight: .infinity, alignment: .center)
+        .onAppear {
+            reasoningLevel = OnboardingDemoDefaults.reasoningLevel
+        }
     }
 
     private var reasoningLabel: String {
