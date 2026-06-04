@@ -1,0 +1,140 @@
+import ComposableArchitecture
+import SwiftUI
+
+/// Root home screen — welcome state with composer, matching the OpenSpace home layout.
+struct HomeView: View {
+    @Bindable var store: StoreOf<HomeFeature>
+
+    @Environment(\.palette) private var palette
+    @FocusState private var isComposerFocused: Bool
+
+    private let sidebarSwipeActivationWidth: CGFloat = 34
+    private let sidebarSwipeThreshold: CGFloat = 64
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                palette.surfaceBase
+                    .ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    topBar
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            dismissComposerKeyboard()
+                        }
+
+                    KeyboardAwareWelcomeContent(
+                        store: store,
+                        isComposerFocused: $isComposerFocused,
+                        dismissKeyboard: dismissComposerKeyboard
+                    )
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityHidden(store.isSidebarVisible)
+            }
+            .contentShape(Rectangle())
+            .simultaneousGesture(sidebarSwipeGesture(in: proxy.size))
+        }
+    }
+
+    private var topBar: some View {
+        HStack {
+            Button(action: { store.send(.sidebarToggleTapped) }) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(palette.textPrimary)
+            }
+            .accessibilityLabel("Show sidebar")
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    private func dismissComposerKeyboard() {
+        isComposerFocused = false
+    }
+
+    private func sidebarSwipeGesture(in size: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 18, coordinateSpace: .local)
+            .onEnded { value in
+                let translation = value.translation
+                let mostlyHorizontal = abs(translation.width) > abs(translation.height) * 1.4
+                guard mostlyHorizontal else { return }
+
+                if store.isSidebarVisible {
+                    guard translation.width < -sidebarSwipeThreshold else { return }
+                    store.send(.sidebarDismissed)
+                    return
+                }
+
+                let startedAtLeadingEdge = value.startLocation.x <= sidebarSwipeActivationWidth
+                guard startedAtLeadingEdge, translation.width > sidebarSwipeThreshold else { return }
+                store.send(.sidebarToggleTapped)
+            }
+    }
+}
+
+private enum HomeScrollAnchor: Hashable {
+    case composer
+}
+
+private struct KeyboardAwareWelcomeContent: View {
+    @Bindable var store: StoreOf<HomeFeature>
+    let isComposerFocused: FocusState<Bool>.Binding
+    let dismissKeyboard: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        HomeWelcomeView(store: store)
+                            .frame(minHeight: welcomeMinHeight(for: proxy.size.height))
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                dismissKeyboard()
+                            }
+
+                        HomeComposerView(
+                            store: store,
+                            isComposerFocused: isComposerFocused
+                        )
+                        .id(HomeScrollAnchor.composer)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .scrollDisabled(!isComposerFocused.wrappedValue)
+                .scrollIndicators(isComposerFocused.wrappedValue ? .visible : .hidden)
+                .onChange(of: isComposerFocused.wrappedValue) { _, isFocused in
+                    guard isFocused else { return }
+                    scrollComposerIntoView(with: scrollProxy)
+                }
+            }
+        }
+    }
+
+    private func welcomeMinHeight(for availableHeight: CGFloat) -> CGFloat {
+        max(availableHeight - 170, 420)
+    }
+
+    private func scrollComposerIntoView(with proxy: ScrollViewProxy) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            withAnimation(.easeOut(duration: 0.22)) {
+                proxy.scrollTo(HomeScrollAnchor.composer, anchor: .bottom)
+            }
+        }
+    }
+}
+
+#Preview {
+    HomeView(
+        store: Store(initialState: HomeFeature.State()) {
+            HomeFeature()
+        }
+    )
+    .environment(\.palette, .resolve(.light))
+}
