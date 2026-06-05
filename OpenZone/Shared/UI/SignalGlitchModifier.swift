@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Subtle RGB shift overlay with sine wave offset — technical signal glitch effect.
+/// Subtle monochrome luminance shift overlay with sine wave offset — technical signal glitch effect.
 public struct SignalGlitchModifier: ViewModifier {
     let progress: Double
     let intensity: Double
@@ -12,9 +12,9 @@ public struct SignalGlitchModifier: ViewModifier {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color.red.opacity(0.06 * intensity),
+                                Color.white.opacity(0.07 * intensity),
                                 Color.clear,
-                                Color.blue.opacity(0.06 * intensity),
+                                Color.white.opacity(0.04 * intensity),
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
