@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// OpenZone design system palette — cool paper base, blue galaxy accent, graphite controls.
-/// Follows VISUAL_DESIGN_GUIDANCE.md for the "technical observatory" aesthetic.
+/// OpenZone design system palette — monochrome: neutral paper base, graphite accent, ink controls.
+/// Fully grayscale (hue-less) ramp; hierarchy carried by lightness and contrast.
 public struct OpenZonePalette: Sendable {
     public let isDark: Bool
 
@@ -15,7 +15,7 @@ public struct OpenZonePalette: Sendable {
     public let surfaceRaised: Color
     /// Secondary fills, quiet containers
     public let surfaceSubtle: Color
-    /// Very light accent wash for selected fields
+    /// Very light neutral wash for selected fields
     public let surfaceGalaxyTint: Color
 
     // MARK: - Text
@@ -29,7 +29,7 @@ public struct OpenZonePalette: Sendable {
     public let lineSoft: Color
     public let lineStrong: Color
 
-    // MARK: - Accent (blue galaxy)
+    // MARK: - Accent (graphite)
 
     /// Active state, progress, current step, command hint
     public let accentPrimary: Color
@@ -56,47 +56,47 @@ public struct OpenZonePalette: Sendable {
         if scheme == .dark {
             return OpenZonePalette(
                 isDark: true,
-                surfaceBase: Color(hex: "090D18"),
-                surfacePaper: Color(hex: "0D1424"),
-                surfaceRaised: Color(hex: "111827"),
-                surfaceSubtle: Color(hex: "162033"),
-                surfaceGalaxyTint: Color(hex: "172B57"),
-                textPrimary: Color(hex: "F4F7FB"),
-                textSecondary: Color(hex: "AAB5C6"),
-                textTertiary: Color(hex: "7E8AA0"),
-                lineSoft: Color(hex: "2B364A"),
-                lineStrong: Color(hex: "3F4E68"),
-                accentPrimary: Color(hex: "6FA0FF"),
-                accentDeep: Color(hex: "9DBDFF"),
-                accentSoft: Color(hex: "172B57"),
-                controlStrong: Color(hex: "F4F7FB"),
-                controlStrongText: Color(hex: "111318"),
-                success: Color(hex: "63E6BE"),
-                warning: Color(hex: "FFD166"),
-                danger: Color(hex: "FF8A8A")
+                surfaceBase: Color(hex: "0B0B0B"),
+                surfacePaper: Color(hex: "121212"),
+                surfaceRaised: Color(hex: "1A1A1A"),
+                surfaceSubtle: Color(hex: "242424"),
+                surfaceGalaxyTint: Color(hex: "2C2C2C"),
+                textPrimary: Color(hex: "F5F5F5"),
+                textSecondary: Color(hex: "B0B0B0"),
+                textTertiary: Color(hex: "7E7E7E"),
+                lineSoft: Color(hex: "2E2E2E"),
+                lineStrong: Color(hex: "484848"),
+                accentPrimary: Color(hex: "DADADA"),
+                accentDeep: Color(hex: "F4F4F4"),
+                accentSoft: Color(hex: "2C2C2C"),
+                controlStrong: Color(hex: "F5F5F5"),
+                controlStrongText: Color(hex: "121212"),
+                success: Color(hex: "B5B5B5"),
+                warning: Color(hex: "CECECE"),
+                danger: Color(hex: "EDEDED")
             )
         }
 
         return OpenZonePalette(
             isDark: false,
-            surfaceBase: Color(hex: "F7F9FD"),
-            surfacePaper: Color(hex: "F2F6FC"),
+            surfaceBase: Color(hex: "F7F7F7"),
+            surfacePaper: Color(hex: "F1F1F1"),
             surfaceRaised: Color(hex: "FFFFFF"),
-            surfaceSubtle: Color(hex: "EAF0FA"),
-            surfaceGalaxyTint: Color(hex: "DDE8FF"),
-            textPrimary: Color(hex: "111318"),
-            textSecondary: Color(hex: "687180"),
-            textTertiary: Color(hex: "9BA6B6"),
-            lineSoft: Color(hex: "D9E1EE"),
-            lineStrong: Color(hex: "B8C4D6"),
-            accentPrimary: Color(hex: "2F6BFF"),
-            accentDeep: Color(hex: "1239A6"),
-            accentSoft: Color(hex: "DDE8FF"),
-            controlStrong: Color(hex: "111318"),
+            surfaceSubtle: Color(hex: "EAEAEA"),
+            surfaceGalaxyTint: Color(hex: "E2E2E2"),
+            textPrimary: Color(hex: "141414"),
+            textSecondary: Color(hex: "6E6E6E"),
+            textTertiary: Color(hex: "9C9C9C"),
+            lineSoft: Color(hex: "E0E0E0"),
+            lineStrong: Color(hex: "BEBEBE"),
+            accentPrimary: Color(hex: "2B2B2B"),
+            accentDeep: Color(hex: "0F0F0F"),
+            accentSoft: Color(hex: "E2E2E2"),
+            controlStrong: Color(hex: "141414"),
             controlStrongText: Color(hex: "FFFFFF"),
-            success: Color(hex: "087F5B"),
-            warning: Color(hex: "9A6700"),
-            danger: Color(hex: "C92A2A")
+            success: Color(hex: "4A4A4A"),
+            warning: Color(hex: "333333"),
+            danger: Color(hex: "1A1A1A")
         )
     }
 }
