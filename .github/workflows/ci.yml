@@ -38,17 +38,26 @@ jobs:
         with:
           path: |
             ~/Library/Caches/org.swift.swiftpm
-            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
-          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+            SourcePackages
+            DerivedData
+          key: spm-${{ runner.os }}-${{ hashFiles('OpenZone.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: spm-${{ runner.os }}-
 
       - name: Install xcbeautify
         run: brew install xcbeautify
 
+      - name: Trust Swift macros (TCA and dependencies)
+        run: |
+          defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+          defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidatation -bool YES
+
       - name: Resolve packages
         run: |
           xcodebuild -resolvePackageDependencies \
-            -project "$PROJECT" -scheme "$SCHEME"
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -derivedDataPath DerivedData \
+            -clonedSourcePackagesDirPath SourcePackages
 
       - name: Pick iOS simulator
         id: sim
@@ -71,10 +80,13 @@ jobs:
           xcodebuild build-for-testing \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
             -configuration Debug \
+            -derivedDataPath DerivedData \
+            -clonedSourcePackagesDirPath SourcePackages \
+            -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
-            | xcbeautify
+            | xcbeautify --renderer github-actions
 
       - name: Run unit tests (UI tests excluded via scheme)
         run: |
@@ -82,11 +94,14 @@ jobs:
           xcodebuild test-without-building \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath DerivedData \
+            -clonedSourcePackagesDirPath SourcePackages \
             -only-testing:OpenZoneTests \
             -resultBundlePath TestResults.xcresult \
+            -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
-            | xcbeautify
+            | xcbeautify --renderer github-actions
 
       - name: Upload test results
         if: always()
