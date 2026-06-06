@@ -36,7 +36,7 @@ private struct HomeComposerPromptPanel: View {
     @State private var sendFeedbackTrigger = false
 
     private var canSend: Bool {
-        !store.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !store.isSending
+        !store.chat.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !store.chat.isSending
     }
 
     var body: some View {
@@ -44,8 +44,8 @@ private struct HomeComposerPromptPanel: View {
             TextField(
                 "Ask anything... @files, $skills, /commands",
                 text: Binding(
-                    get: { store.draftMessage },
-                    set: { store.send(.draftMessageChanged($0)) }
+                    get: { store.chat.draftMessage },
+                    set: { store.send(.chat(.draftMessageChanged($0))) }
                 ),
                 axis: .vertical
             )
@@ -91,7 +91,7 @@ private struct HomeComposerPromptPanel: View {
         guard canSend else { return }
         dismissKeyboard()
         sendFeedbackTrigger.toggle()
-        store.send(.sendMessageTapped)
+        store.send(.chat(.sendMessageTapped))
     }
 
     private func dismissKeyboard() {

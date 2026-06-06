@@ -1,13 +1,12 @@
 import ComposableArchitecture
 import Foundation
 
-/// TCA reducer for the post-onboarding home welcome screen and composer.
+/// TCA reducer for the post-onboarding home screen and composer.
 @Reducer
 struct HomeFeature {
     @ObservableState
     struct State: Equatable {
-        var draftMessage = ""
-        var isSending = false
+        var chat = ChatFeature.State()
         var isSidebarVisible = false
         var selectedModel: HomeComposerModelOption = .gpt54
         var reasoningLevel: HomeComposerReasoningLevel = .high
@@ -16,8 +15,7 @@ struct HomeFeature {
     }
 
     enum Action: Equatable {
-        case draftMessageChanged(String)
-        case sendMessageTapped
+        case chat(ChatFeature.Action)
         case microphoneTapped
         case attachmentTapped
         case sidebarToggleTapped
@@ -28,18 +26,12 @@ struct HomeFeature {
     }
 
     var body: some Reducer<State, Action> {
+        Scope(state: \.chat, action: \.chat) {
+            ChatFeature()
+        }
         Reduce { state, action in
             switch action {
-            case let .draftMessageChanged(message):
-                state.draftMessage = message
-                return .none
-
-            case .sendMessageTapped:
-                let trimmed = state.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty, !state.isSending else {
-                    return .none
-                }
-                state.draftMessage = ""
+            case .chat:
                 return .none
 
             case .microphoneTapped, .attachmentTapped:

@@ -11,6 +11,10 @@ struct HomeView: View {
     private let sidebarSwipeActivationWidth: CGFloat = 34
     private let sidebarSwipeThreshold: CGFloat = 64
 
+    private var showsWelcome: Bool {
+        store.chat.messages.isEmpty
+    }
+
     var body: some View {
         GeometryReader { proxy in
             ZStack {
@@ -24,17 +28,46 @@ struct HomeView: View {
                             dismissComposerKeyboard()
                         }
 
-                    KeyboardAwareWelcomeContent(
-                        store: store,
-                        isComposerFocused: $isComposerFocused,
-                        dismissKeyboard: dismissComposerKeyboard
-                    )
+                    if showsWelcome {
+                        KeyboardAwareWelcomeContent(
+                            store: store,
+                            isComposerFocused: $isComposerFocused,
+                            dismissKeyboard: dismissComposerKeyboard
+                        )
+                    } else {
+                        chatThreadContent
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityHidden(store.isSidebarVisible)
             }
             .contentShape(Rectangle())
             .simultaneousGesture(sidebarSwipeGesture(in: proxy.size))
+        }
+    }
+
+    private var chatThreadContent: some View {
+        VStack(spacing: 0) {
+            if let conversation = store.chat.conversation {
+                Text(conversation.title)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(palette.textPrimary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+            }
+
+            ChatThreadView(store: store.scope(state: \.chat, action: \.chat))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    dismissComposerKeyboard()
+                }
+
+            HomeComposerView(
+                store: store,
+                isComposerFocused: $isComposerFocused
+            )
         }
     }
 
