@@ -7,7 +7,7 @@
 | **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
 | **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
 
-`OpenZone/Shared` contains app-wide theme and UI primitives that are safe for multiple features to reuse.
+`OpenZone/Shared` contains app-wide primitives that are safe for multiple features to reuse: theme, UI, and cross-cutting infrastructure (persistence, networking, and other external integrations) exposed behind abstractions.
 
 ## Language
 
