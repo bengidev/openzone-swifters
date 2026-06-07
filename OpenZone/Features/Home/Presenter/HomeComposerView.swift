@@ -39,6 +39,7 @@ private struct HomeComposerPromptPanel: View {
         !store.chat.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !store.chat.isSending
             && store.hasAPIKey
+            && store.hasSelectedModel
     }
 
     var body: some View {
@@ -115,26 +116,26 @@ private struct HomeComposerContextRail: View {
         HStack(spacing: 8) {
             HStack(spacing: 8) {
                 HomeComposerMenuChip(
-                    title: store.selectedModel.title,
+                    title: store.selectedModelOption?.title ?? "Select model",
                     systemImage: "sparkles",
                     minWidth: 104,
                     dismissKeyboard: dismissKeyboard
                 ) {
                     Section("Model") {
-                        ForEach(HomeComposerModelOption.allCases) { model in
+                        ForEach(store.availableModels) { model in
                             Button {
                                 dismissKeyboard()
-                                store.send(.composerModelSelected(model))
+                                store.send(.composerModelSelected(model.id))
                             } label: {
                                 Label(
                                     model.title,
-                                    systemImage: store.selectedModel == model ? "checkmark" : "circle"
+                                    systemImage: store.selectedModelID == model.id ? "checkmark" : "circle"
                                 )
                             }
                         }
                     }
                 }
-                .accessibilityLabel("Model, \(store.selectedModel.title)")
+                .accessibilityLabel("Model, \(store.selectedModelOption?.title ?? "none selected")")
 
                 HomeComposerMenuChip(
                     title: store.reasoningLevel.title,
@@ -163,7 +164,8 @@ private struct HomeComposerContextRail: View {
             Spacer(minLength: 8)
 
             HStack(spacing: 8) {
-                if !store.selectedModel.availableSpeedModes.isEmpty {
+                if let speedModes = store.selectedModelOption?.availableSpeedModes,
+                   !speedModes.isEmpty {
                     HomeComposerMenuChip(
                         title: store.speedMode.title,
                         systemImage: store.speedMode.systemImage,
@@ -174,7 +176,7 @@ private struct HomeComposerContextRail: View {
                         dismissKeyboard: dismissKeyboard
                     ) {
                         Section("Speed") {
-                            ForEach(store.selectedModel.availableSpeedModes) { speedMode in
+                            ForEach(speedModes) { speedMode in
                                 Button {
                                     dismissKeyboard()
                                     store.send(.speedModeSelected(speedMode))

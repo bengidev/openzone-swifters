@@ -66,7 +66,6 @@ struct OpenAICompatibleStreamingClientTests {
 
     private func makeClient(secret: String? = "test-key") -> OpenAICompatibleStreamingClient {
         OpenAICompatibleStreamingClient(
-            provider: .openRouter,
             credentialProvider: ChatCredentialProvider { secret },
             urlSession: makeSession()
         )
@@ -76,6 +75,7 @@ struct OpenAICompatibleStreamingClientTests {
         ChatRequest(
             conversationID: UUID(),
             messages: [.text(role: .user, content: "Hello")],
+            provider: .openRouter,
             modelID: "meta-llama/llama-3.3-70b-instruct:free"
         )
     }

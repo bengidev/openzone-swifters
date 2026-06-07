@@ -16,22 +16,22 @@ import Foundation
 ///   - maps HTTP 401, non-2xx responses, mid-stream `error` objects, and
 ///     transport failures to `.error`.
 nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Sendable {
-    let provider: ChatProvider
     let credentialProvider: ChatCredentialProvider
     let urlSession: URLSession
 
     init(
-        provider: ChatProvider,
         credentialProvider: ChatCredentialProvider,
         urlSession: URLSession = .shared
     ) {
-        self.provider = provider
         self.credentialProvider = credentialProvider
         self.urlSession = urlSession
     }
 
     nonisolated func stream(request: ChatRequest) -> AsyncStream<ChatStreamingEvent> {
-        let provider = self.provider
+        // The provider is carried by the request (filled by the reducer from the
+        // preference store), so one client serves every provider without being
+        // reconstructed.
+        let provider = request.provider
         let credentialProvider = self.credentialProvider
         let urlSession = self.urlSession
 

@@ -8,6 +8,7 @@ nonisolated private enum ChatStreamingCancelID: Hashable, Sendable {
 @Reducer
 struct ChatFeature {
   @Dependency(ChatAPIClient.self) private var apiClient
+  @Dependency(ProviderPreferenceClient.self) private var providerPreference
   @Dependency(\.date.now) private var now
   @Dependency(\.uuid) private var uuid
 
@@ -21,7 +22,6 @@ struct ChatFeature {
     var currentPartialText = ""
     var currentPartialThinking = ""
     var streamErrorMessage: String?
-    var modelID = "mock-assistant"
 
     /// Stable identity of the in-flight reasoning row for the current turn.
     /// Reasoning deltas always merge into THIS row — even when they arrive
@@ -49,7 +49,13 @@ struct ChatFeature {
 
       case .sendMessageTapped:
         let content = state.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !content.isEmpty, !state.isSending else {
+        // Send is gated on a non-empty draft, no in-flight turn, AND a selected
+        // model. The preference store is the single source of truth for the
+        // model identity; with no model chosen we never construct a request.
+        let preference = providerPreference.preference()
+        guard !content.isEmpty,
+              !state.isSending,
+              let modelID = preference.modelID else {
           return .none
         }
 
@@ -87,7 +93,8 @@ struct ChatFeature {
         let request = ChatRequest(
           conversationID: conversationID,
           messages: state.messages,
-          modelID: state.modelID
+          provider: ChatProvider.resolve(id: preference.providerID),
+          modelID: modelID
         )
         let stream = apiClient.stream(request)
 
