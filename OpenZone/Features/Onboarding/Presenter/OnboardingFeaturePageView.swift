@@ -106,7 +106,9 @@ struct OnboardingFeaturePageView: View {
                                     }
                                 }
 
-                                Button(action: { _ = store.send(.addQueuedPromptButtonTapped) }) {
+                                Button {
+                                    _ = store.send(.addQueuedPromptButtonTapped)
+                                } label: {
                                     HStack(spacing: 8) {
                                         Image(systemName: "plus")
                                         Text(store.queuedPromptCount >= OnboardingQueueItem.samples.count ? "RESET QUEUE" : "ADD FOLLOW-UP")

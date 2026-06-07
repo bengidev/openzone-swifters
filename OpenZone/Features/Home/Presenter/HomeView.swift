@@ -79,7 +79,9 @@ struct HomeView: View {
 
     private var topBar: some View {
         HStack {
-            Button(action: { store.send(.sidebarToggleTapped) }) {
+            Button {
+                store.send(.sidebarToggleTapped)
+            } label: {
                 Image(systemName: "line.3.horizontal")
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(palette.textPrimary)
@@ -88,7 +90,9 @@ struct HomeView: View {
 
             Spacer()
 
-            Button(action: { store.send(.settingsButtonTapped) }) {
+            Button {
+                store.send(.settingsButtonTapped)
+            } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(palette.textPrimary)

@@ -112,19 +112,18 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  setup-tools:
-    name: Lint (optional)
+  lint:
+    name: Lint
     runs-on: macos-26
     timeout-minutes: 15
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: SwiftLint (if config present)
+      - name: SwiftLint
         run: |
-          if [ -f .swiftlint.yml ]; then
-            brew install swiftlint
-            swiftlint --strict
-          else
-            echo "No .swiftlint.yml — skipping."
+          if [ ! -f .swiftlint.yml ]; then
+            echo "::error::.swiftlint.yml is missing — lint is a required gate."
+            exit 1
           fi
+          brew install swiftlint
+          swiftlint --strict

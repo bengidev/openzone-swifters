@@ -60,7 +60,7 @@ extension ChatProvider {
         authScheme: .bearer,
         defaultHeaders: [
             "HTTP-Referer": "https://github.com/bengidev/openzone-swifters",
-            "X-Title": "OpenZone",
+            "X-Title": "OpenZone"
         ]
     )
 

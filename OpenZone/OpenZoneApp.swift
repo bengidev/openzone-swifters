@@ -30,7 +30,7 @@ struct OpenZoneApp: App {
     private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             Item.self,
-            OnboardingProgressEntity.self,
+            OnboardingProgressEntity.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

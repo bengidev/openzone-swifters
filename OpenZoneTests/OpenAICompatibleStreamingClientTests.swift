@@ -123,7 +123,7 @@ struct OpenAICompatibleStreamingClientTests {
             .thinkingDelta("Weighing "),
             .thinkingDelta("options."),
             .textDelta("Answer"),
-            .done,
+            .done
         ])
     }
 
