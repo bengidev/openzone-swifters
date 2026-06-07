@@ -323,7 +323,7 @@ struct HomeFeatureCatalogTests {
         var state = HomeFeature.State()
         state.catalogModels = [
             ChatModel(id: "a/free", displayName: "Free Model", isFree: true),
-            ChatModel(id: "b/paid", displayName: "Paid Model", isFree: false),
+            ChatModel(id: "b/paid", displayName: "Paid Model", isFree: false)
         ]
         state.appliedSearchQuery = ""
         state.modelFilterFreeOnly = false
@@ -339,7 +339,7 @@ struct HomeFeatureCatalogTests {
         var state = HomeFeature.State()
         state.catalogModels = [
             ChatModel(id: "openai/gpt-4o", displayName: "GPT-4o", isFree: false),
-            ChatModel(id: "meta-llama/llama-3.3-70b-instruct:free", displayName: "Llama 3.3 70B", isFree: true),
+            ChatModel(id: "meta-llama/llama-3.3-70b-instruct:free", displayName: "Llama 3.3 70B", isFree: true)
         ]
         state.appliedSearchQuery = "llama"
         #expect(state.filteredModels.count == 1)
@@ -399,8 +399,8 @@ struct HomeFeatureCatalogTests {
             state.modelSearchQuery = "llama"
         }
 
-        // Before the debounce window, appliedSearchQuery is still "".
-        #expect(store.state.appliedSearchQuery == "")
+        // Before the debounce window, appliedSearchQuery is still empty.
+        #expect(store.state.appliedSearchQuery.isEmpty)
 
         // Advance past the 300 ms window.
         await clock.advance(by: .milliseconds(300))

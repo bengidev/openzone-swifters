@@ -35,12 +35,6 @@ nonisolated struct CachedModelCatalog: Equatable, Sendable, Codable {
     /// When the catalog was fetched, used for staleness checks.
     var fetchedAt: Date
 
-    init(providerID: String, models: [ChatModel], fetchedAt: Date) {
-        self.providerID = providerID
-        self.models = models
-        self.fetchedAt = fetchedAt
-    }
-
     /// Whether the cache is older than `maxAge` relative to `now`.
     func isStale(maxAge: TimeInterval, now: Date) -> Bool {
         now.timeIntervalSince(fetchedAt) > maxAge

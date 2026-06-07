@@ -77,6 +77,6 @@ extension ChatModel {
             isFree: true,
             contextLength: 40_960,
             supportsReasoning: true
-        ),
+        )
     ]
 }
