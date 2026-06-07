@@ -2,10 +2,10 @@ import Foundation
 
 /// Resolves the provider API secret at request time.
 ///
-/// Slice 1 scope (issue #3): a DEBUG-only environment-supplied key is acceptable
-/// to prove the wire. Secure Keychain entry and a settings surface arrive in a
-/// later slice. The secret is resolved lazily per request and never captured at
-/// construction, so swapping the source later does not change the client.
+/// The secret is resolved lazily per request via the `resolve` closure and never
+/// captured at construction, so the streaming client always sees the current
+/// stored value — editing the key takes effect on the next send with no stale
+/// value, and the secret never lives in the request value itself.
 ///
 /// This is a Shared primitive; it names no chat domain types.
 nonisolated struct ChatCredentialProvider: Sendable {
@@ -18,16 +18,13 @@ nonisolated struct ChatCredentialProvider: Sendable {
 }
 
 extension ChatCredentialProvider {
-    /// Reads the key from the `OPENROUTER_API_KEY` environment variable.
+    /// Resolves the secret from a `CredentialStore` at request time.
     ///
-    /// In DEBUG this lets a developer prove the live wire by exporting the key
-    /// in the scheme's run environment. In release builds the env var is
-    /// normally absent, so `resolve()` returns `nil` and the send path reports a
-    /// missing-credential error rather than calling out with no auth.
-    static let environment = ChatCredentialProvider {
-        guard let key = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"],
-              !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else { return nil }
-        return key
+    /// The store is read on every `resolve()` call, so a key entered or updated
+    /// through Settings is picked up on the next send without reconstructing the
+    /// client. When no key is stored, `resolve()` returns `nil` and the send path
+    /// reports a missing-credential error rather than calling out with no auth.
+    static func keychain(_ store: some CredentialStore) -> ChatCredentialProvider {
+        ChatCredentialProvider { store.secret() }
     }
 }
