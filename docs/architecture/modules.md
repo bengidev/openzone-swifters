@@ -56,8 +56,9 @@ Shared contains app-wide primitives that are safe for more than one feature to r
 
 - `Theme/` — palette, theme preference, typography, color helpers, SwiftUI environment keys.
 - `UI/` — reusable visual primitives, patterns, and button styles.
+- Cross-cutting infrastructure — persistence, networking, and other external integrations, exposed behind abstractions (protocols / dependency clients) so features depend on the abstraction, not the concrete external implementation.
 
-Shared code must not import or reference feature code. If a component contains onboarding-specific copy, state, or workflow behavior, keep it in `Features/Onboarding` instead of `Shared`.
+Shared code must not import or reference feature code. If a component contains onboarding-specific copy, state, or workflow behavior, keep it in `Features/Onboarding` instead of `Shared`. Shared infrastructure must stay feature-neutral: it exposes generic capabilities (an HTTP/SSE client, a keychain store, a database adapter), never a feature's domain types or workflow.
 
 ## Why not marker enum files?
 
