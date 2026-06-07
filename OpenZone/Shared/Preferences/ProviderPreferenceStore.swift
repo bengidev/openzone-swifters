@@ -20,14 +20,41 @@ nonisolated struct ProviderPreference: Equatable, Sendable {
     }
 }
 
+// MARK: - Cached model catalog
+
+/// A provider model catalog cached with the moment it was fetched, so the
+/// catalog client can decide whether the cache is fresh or stale on read.
+///
+/// Pure value data persisted alongside the preference. Keyed by provider id so
+/// a cache fetched for one provider is never served for another.
+nonisolated struct CachedModelCatalog: Equatable, Sendable, Codable {
+    /// Provider the cached models belong to.
+    var providerID: String
+    /// The models returned by the provider at `fetchedAt`.
+    var models: [ChatModel]
+    /// When the catalog was fetched, used for staleness checks.
+    var fetchedAt: Date
+
+    init(providerID: String, models: [ChatModel], fetchedAt: Date) {
+        self.providerID = providerID
+        self.models = models
+        self.fetchedAt = fetchedAt
+    }
+
+    /// Whether the cache is older than `maxAge` relative to `now`.
+    func isStale(maxAge: TimeInterval, now: Date) -> Bool {
+        now.timeIntervalSince(fetchedAt) > maxAge
+    }
+}
+
 // MARK: - Store abstraction
 
-/// A minimal store for the provider/model preference.
+/// A minimal store for the provider/model preference and the cached catalog.
 ///
 /// This is the single source of truth for which provider and model the app
-/// sends with. The live adapter persists to `UserDefaults`; an in-memory double
-/// backs tests and previews. It names no chat domain types and is feature
-/// neutral.
+/// sends with, plus the timestamped model cache. The live adapter persists to
+/// `UserDefaults`; an in-memory double backs tests and previews. It names no
+/// chat domain types beyond the feature-neutral `ChatModel` value.
 ///
 /// The preference is read lazily (`preference()`), never cached by callers, so
 /// a change made in one surface takes effect on the next read with no stale
@@ -39,6 +66,10 @@ nonisolated protocol ProviderPreferenceStore: Sendable {
     func setProviderID(_ providerID: String?)
     /// Persists the selected model id.
     func setModelID(_ modelID: String?)
+    /// The cached model catalog, or `nil` when none has been stored.
+    func cachedCatalog() -> CachedModelCatalog?
+    /// Persists (or clears, when `nil`) the cached model catalog.
+    func setCachedCatalog(_ catalog: CachedModelCatalog?)
 }
 
 // MARK: - UserDefaults adapter
@@ -60,6 +91,7 @@ nonisolated struct UserDefaultsProviderPreferenceStore: ProviderPreferenceStore 
     private enum Key {
         static let providerID = "openzone.provider.selectedProviderID"
         static let modelID = "openzone.provider.selectedModelID"
+        static let cachedCatalog = "openzone.provider.cachedModelCatalog"
     }
 
     init(suiteName: String? = nil) {
@@ -93,6 +125,19 @@ nonisolated struct UserDefaultsProviderPreferenceStore: ProviderPreferenceStore 
         }
     }
 
+    func cachedCatalog() -> CachedModelCatalog? {
+        guard let data = defaults.data(forKey: Key.cachedCatalog) else { return nil }
+        return try? JSONDecoder().decode(CachedModelCatalog.self, from: data)
+    }
+
+    func setCachedCatalog(_ catalog: CachedModelCatalog?) {
+        guard let catalog, let data = try? JSONEncoder().encode(catalog) else {
+            defaults.removeObject(forKey: Key.cachedCatalog)
+            return
+        }
+        defaults.set(data, forKey: Key.cachedCatalog)
+    }
+
     /// Normalizes empty/whitespace strings to `nil` so a blank stored value is
     /// never treated as a real selection.
     private func nonEmpty(_ value: String?) -> String? {
@@ -110,9 +155,14 @@ nonisolated struct UserDefaultsProviderPreferenceStore: ProviderPreferenceStore 
 nonisolated final class InMemoryProviderPreferenceStore: ProviderPreferenceStore, @unchecked Sendable {
     private let lock = NSLock()
     private var stored: ProviderPreference
+    private var storedCatalog: CachedModelCatalog?
 
-    init(preference: ProviderPreference = ProviderPreference()) {
+    init(
+        preference: ProviderPreference = ProviderPreference(),
+        cachedCatalog: CachedModelCatalog? = nil
+    ) {
         self.stored = preference
+        self.storedCatalog = cachedCatalog
     }
 
     func preference() -> ProviderPreference {
@@ -132,6 +182,18 @@ nonisolated final class InMemoryProviderPreferenceStore: ProviderPreferenceStore
         defer { lock.unlock() }
         stored.modelID = modelID
     }
+
+    func cachedCatalog() -> CachedModelCatalog? {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedCatalog
+    }
+
+    func setCachedCatalog(_ catalog: CachedModelCatalog?) {
+        lock.lock()
+        defer { lock.unlock() }
+        storedCatalog = catalog
+    }
 }
 
 // MARK: - TCA dependency
@@ -144,6 +206,8 @@ nonisolated struct ProviderPreferenceClient: Sendable {
     var preference: @Sendable () -> ProviderPreference
     var setProviderID: @Sendable (String?) -> Void
     var setModelID: @Sendable (String?) -> Void
+    var cachedCatalog: @Sendable () -> CachedModelCatalog?
+    var setCachedCatalog: @Sendable (CachedModelCatalog?) -> Void
 }
 
 extension ProviderPreferenceClient {
@@ -151,7 +215,9 @@ extension ProviderPreferenceClient {
         ProviderPreferenceClient(
             preference: { store.preference() },
             setProviderID: { store.setProviderID($0) },
-            setModelID: { store.setModelID($0) }
+            setModelID: { store.setModelID($0) },
+            cachedCatalog: { store.cachedCatalog() },
+            setCachedCatalog: { store.setCachedCatalog($0) }
         )
     }
 }

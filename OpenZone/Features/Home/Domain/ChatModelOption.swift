@@ -1,71 +1,66 @@
 import Foundation
 
-/// A selectable chat model, presented in the composer.
+/// A selectable chat model as presented in the composer — a thin presentation
+/// wrapper over the shared `ChatModel` value type.
 ///
-/// Model identity is the dynamic string `id` (e.g.
-/// `"meta-llama/llama-3.3-70b-instruct:free"`), NOT a closed enum — any model a
-/// provider exposes can be offered by appending a value here, with no change to
-/// the request, reducer, or client. `title` and `availableSpeedModes` are
-/// presentation metadata only; the `id` is what the preference store persists
-/// and the request carries.
+/// Model identity is the wrapped model's string `id`; `title` mirrors its
+/// `displayName`. `availableSpeedModes` is composer-only presentation metadata.
+/// The `id` is what the preference store persists and the request carries.
 nonisolated struct ChatModelOption: Equatable, Identifiable, Sendable {
-    /// Dynamic model identifier sent on the wire and persisted as the selection.
-    let id: String
-    /// Human-facing label shown in the model chip and menu.
-    let title: String
+    /// The underlying shared model value (id, free flag, context length, reasoning).
+    let model: ChatModel
     /// Speed modes offered for this model in the composer rail.
     let availableSpeedModes: [HomeComposerSpeedMode]
 
+    var id: String { model.id }
+    var title: String { model.displayName }
+    var isFree: Bool { model.isFree }
+    var contextLength: Int? { model.contextLength }
+    var supportsReasoning: Bool { model.supportsReasoning }
+
+    init(
+        model: ChatModel,
+        availableSpeedModes: [HomeComposerSpeedMode] = HomeComposerSpeedMode.allCases
+    ) {
+        self.model = model
+        self.availableSpeedModes = availableSpeedModes
+    }
+
+    /// Convenience initializer kept for call-site compatibility with code and
+    /// tests that built options from id/title before the `ChatModel` wrapper.
     init(
         id: String,
         title: String,
         availableSpeedModes: [HomeComposerSpeedMode] = HomeComposerSpeedMode.allCases
     ) {
-        self.id = id
-        self.title = title
+        self.model = ChatModel(id: id, displayName: title)
         self.availableSpeedModes = availableSpeedModes
     }
 }
 
-/// The catalog of selectable models, scoped by provider id.
+/// The curated fallback catalog, scoped by provider id.
 ///
-/// This is presentation data: the set of models the composer offers for a given
-/// provider. It deliberately holds no model identity of its own beyond the
-/// dynamic string ids — retiring the old `HomeComposerModelOption` enum as the
-/// identity. A model unknown to the catalog (e.g. a persisted id that was later
-/// removed) resolves to `nil`, leaving the send gate closed until the user
-/// picks a known model.
+/// This is the always-available presentation data used before a live catalog
+/// is fetched (no key yet, offline, or first launch). The live catalog flows
+/// through `ModelCatalogClient` and is held in feature state; this type only
+/// provides the never-empty fallback and stale-id resolution.
 enum ChatModelCatalog {
-    /// Models offered for the given provider id. Unknown/absent providers fall
-    /// back to the default provider's catalog.
+    /// Curated fallback models offered for the given provider id. Unknown/absent
+    /// providers fall back to the default provider's list. Sourced from the
+    /// shared `ChatModel.curatedFallback` so there is one fallback definition.
     static func models(for providerID: String?) -> [ChatModelOption] {
         switch providerID ?? ChatProvider.default.id {
         case ChatProvider.openRouter.id:
-            return openRouterModels
+            return ChatModel.curatedFallback.map { ChatModelOption(model: $0) }
         default:
-            return openRouterModels
+            return ChatModel.curatedFallback.map { ChatModelOption(model: $0) }
         }
     }
 
     /// Resolves a stored model id to its presentation option for the provider,
-    /// or `nil` when the id is absent or not in the catalog.
+    /// or `nil` when the id is absent or not in the fallback catalog.
     static func option(for modelID: String?, providerID: String?) -> ChatModelOption? {
         guard let modelID else { return nil }
         return models(for: providerID).first { $0.id == modelID }
     }
-
-    private static let openRouterModels: [ChatModelOption] = [
-        ChatModelOption(
-            id: "meta-llama/llama-3.3-70b-instruct:free",
-            title: "Llama 3.3 70B"
-        ),
-        ChatModelOption(
-            id: "deepseek/deepseek-r1:free",
-            title: "DeepSeek R1"
-        ),
-        ChatModelOption(
-            id: "google/gemini-2.0-flash-exp:free",
-            title: "Gemini 2.0 Flash"
-        )
-    ]
 }
