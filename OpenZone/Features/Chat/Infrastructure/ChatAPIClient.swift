@@ -18,19 +18,21 @@ extension ChatAPIClient {
 extension ChatAPIClient: DependencyKey {
   /// Live path streams real model tokens over an OpenAI-compatible backend.
   ///
-  /// The secret is resolved at request time from the Keychain-backed
-  /// `CredentialStore`, so a key entered or updated in Settings takes effect on
-  /// the next send. When no key is stored the send path reports a missing-key
-  /// error instead of calling out unauthenticated. Test/preview keep the inline
-  /// mock so they never touch the network.
+  /// The provider descriptor now rides on each `ChatRequest` (filled by the
+  /// reducer from the preference store), so the live client is no longer
+  /// constructed against a fixed provider. The secret is resolved at request
+  /// time from the Keychain-backed `CredentialStore`, so a key entered or
+  /// updated in Settings takes effect on the next send. When no key is stored
+  /// the send path reports a missing-key error instead of calling out
+  /// unauthenticated. Test/preview replay a deterministic canned-event stub so
+  /// they never touch the network.
   static let liveValue = ChatAPIClient.wrap(
     OpenAICompatibleStreamingClient(
-      provider: .openRouter,
       credentialProvider: .keychain(KeychainCredentialStore.openRouter)
     )
   )
-  static let testValue = ChatAPIClient.wrap(ChatMockStreamingClient.fastClient())
-  static let previewValue = ChatAPIClient.wrap(ChatMockStreamingClient.fastClient())
+  static let testValue = ChatAPIClient.wrap(ChatCannedEventClient())
+  static let previewValue = ChatAPIClient.wrap(ChatCannedEventClient())
 }
 
 extension DependencyValues {

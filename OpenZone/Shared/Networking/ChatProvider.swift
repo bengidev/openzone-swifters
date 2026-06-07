@@ -63,4 +63,19 @@ extension ChatProvider {
             "X-Title": "OpenZone",
         ]
     )
+
+    /// Every provider the app knows how to address. Adding an OpenAI-compatible
+    /// backend is a value appended here, not a new client.
+    static let all: [ChatProvider] = [.openRouter]
+
+    /// The provider used when no preference has been stored yet.
+    static let `default`: ChatProvider = .openRouter
+
+    /// Resolves a stored provider id to its descriptor, falling back to the
+    /// default when the id is unknown or absent (e.g. a stale persisted id from
+    /// a removed provider).
+    static func resolve(id: String?) -> ChatProvider {
+        guard let id else { return .default }
+        return all.first { $0.id == id } ?? .default
+    }
 }
