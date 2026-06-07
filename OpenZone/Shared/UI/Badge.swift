@@ -4,7 +4,7 @@ import SwiftUI
 /// Uses mono text, optional icon, blue dot for active state.
 public struct Badge: View {
     let title: String
-    var systemImage: String? = nil
+    var systemImage: String?
     var isActive: Bool = false
 
     @Environment(\.palette) private var palette

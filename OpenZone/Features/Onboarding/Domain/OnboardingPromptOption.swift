@@ -14,6 +14,6 @@ public struct OnboardingPromptOption: Equatable, Sendable, Identifiable {
     public static let samples: [OnboardingPromptOption] = [
         OnboardingPromptOption(label: "ASK", prompt: "How should I structure the memory model for this workflow?"),
         OnboardingPromptOption(label: "WRITE", prompt: "Draft a concise interface view for the secure pairing step."),
-        OnboardingPromptOption(label: "EXPLORE", prompt: "Compare state actions for queued prompts and reasoning controls."),
+        OnboardingPromptOption(label: "EXPLORE", prompt: "Compare state actions for queued prompts and reasoning controls.")
     ]
 }

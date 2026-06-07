@@ -37,6 +37,6 @@ extension ChatCannedEventClient {
         .textDelta("Here is "),
         .thinkingDelta("(one more note) "),
         .textDelta("the answer."),
-        .done,
+        .done
     ]
 }

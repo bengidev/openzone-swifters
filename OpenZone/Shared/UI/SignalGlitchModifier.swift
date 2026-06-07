@@ -14,7 +14,7 @@ public struct SignalGlitchModifier: ViewModifier {
                             colors: [
                                 Color.white.opacity(0.07 * intensity),
                                 Color.clear,
-                                Color.white.opacity(0.04 * intensity),
+                                Color.white.opacity(0.04 * intensity)
                             ],
                             startPoint: .leading,
                             endPoint: .trailing

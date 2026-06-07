@@ -68,7 +68,7 @@ struct ChatReasoningStreamingTests {
             .textDelta("Answer "),
             .thinkingDelta("(extra note) "),  // late reasoning delta
             .textDelta("final."),
-            .done,
+            .done
         ])
         store.exhaustivity = .off
 
@@ -97,7 +97,7 @@ struct ChatReasoningStreamingTests {
         let store = makeStore(events: [
             .thinkingDelta("thinking…"),
             .textDelta("ok"),
-            .done,
+            .done
         ])
         store.exhaustivity = .off
 
@@ -119,7 +119,7 @@ struct ChatReasoningStreamingTests {
             .thinkingDelta("b"),
             .thinkingDelta("c"),
             .textDelta("answer"),
-            .done,
+            .done
         ])
         store.exhaustivity = .off
 

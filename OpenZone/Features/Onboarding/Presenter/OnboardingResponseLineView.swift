@@ -16,7 +16,7 @@ struct OnboardingResponseLineView: View {
                         colors: [
                             palette.accentPrimary.opacity(0.18),
                             palette.textPrimary.opacity(0.20),
-                            palette.textTertiary.opacity(0.12),
+                            palette.textTertiary.opacity(0.12)
                         ],
                         startPoint: .leading,
                         endPoint: .trailing

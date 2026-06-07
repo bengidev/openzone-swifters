@@ -1,0 +1,48 @@
+# SwiftLint configuration for OpenZone.
+#
+# Conservative baseline: enforces correctness and common-bug rules without
+# imposing noisy style churn on the existing codebase. Tighten over time.
+
+included:
+  - OpenZone
+  - OpenZoneTests
+  - OpenZoneUITests
+
+excluded:
+  - DerivedData
+  - SourcePackages
+  - .build
+
+# Rules that are more noise than signal for this project's current state.
+disabled_rules:
+  - todo                      # TODO/FIXME comments are allowed.
+  - line_length               # Not enforcing column limits yet.
+  - type_body_length
+  - file_length
+  - function_body_length
+  - cyclomatic_complexity
+  - nesting
+  - static_over_final_class   # XCTest/URLProtocol override `class func`s cannot
+                              # be `static`; this fires on framework overrides.
+
+# Opt-in rules worth having on a SwiftUI + TCA codebase.
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - first_where
+  - last_where
+  - contains_over_first_not_nil
+  - redundant_nil_coalescing
+  - toggle_bool
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  excluded:
+    - id
+    - up
+    - to
+    - x
+    - y
+    - m

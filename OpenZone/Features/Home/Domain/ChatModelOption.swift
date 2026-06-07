@@ -66,6 +66,6 @@ enum ChatModelCatalog {
         ChatModelOption(
             id: "google/gemini-2.0-flash-exp:free",
             title: "Gemini 2.0 Flash"
-        ),
+        )
     ]
 }

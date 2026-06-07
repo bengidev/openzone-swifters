@@ -24,6 +24,6 @@ public struct OnboardingQueueItem: Equatable, Sendable, Identifiable {
         OnboardingQueueItem(title: "Map onboarding state", detail: "Engine already owns current page", status: .running),
         OnboardingQueueItem(title: "Generate interface cards", detail: "No vertical scroll, compact content", status: .next),
         OnboardingQueueItem(title: "Persist completion", detail: "Storage writes local progress", status: .queued),
-        OnboardingQueueItem(title: "Review model budget", detail: "Reasoning slider updates the run", status: .ready),
+        OnboardingQueueItem(title: "Review model budget", detail: "Reasoning slider updates the run", status: .ready)
     ]
 }

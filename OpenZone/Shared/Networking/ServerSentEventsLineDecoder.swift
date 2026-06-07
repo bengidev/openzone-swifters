@@ -43,7 +43,7 @@ nonisolated struct ServerSentEventsLineDecoder: Sendable {
         while index < buffer.count {
             if buffer[index] == newline {
                 let lineBytes = buffer[lineStart..<index]
-                let rawLine = String(decoding: lineBytes, as: UTF8.self)
+                let rawLine = String(bytes: lineBytes, encoding: .utf8) ?? ""
                 if let event = Self.interpret(rawLine) {
                     events.append(event)
                 }

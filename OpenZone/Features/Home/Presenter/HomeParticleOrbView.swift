@@ -685,7 +685,7 @@ private enum ParticleOrbRenderer {
     }
 
     static func renderBlocks(tint: UIColor, blocks: [ParticleBlock]) -> CGImage {
-        renderImage { context in
+        renderImage { _ in
             for block in blocks {
                 let attributes: [NSAttributedString.Key: Any] = [
                     .font: UIFont.monospacedSystemFont(ofSize: block.size, weight: .regular),

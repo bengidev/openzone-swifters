@@ -51,7 +51,7 @@ public struct OnboardingPage: Equatable, Sendable, Identifiable {
             shaderIntensity: 0.78,
             highlights: [
                 OnboardingFeatureHighlight(title: "Local memory", detail: "Persists offline", symbol: "externaldrive.badge.checkmark"),
-                OnboardingFeatureHighlight(title: "Secure session", detail: "Rotates keys", symbol: "lock.shield"),
+                OnboardingFeatureHighlight(title: "Secure session", detail: "Rotates keys", symbol: "lock.shield")
             ]
         ),
         OnboardingPage(
@@ -66,7 +66,7 @@ public struct OnboardingPage: Equatable, Sendable, Identifiable {
             shaderIntensity: 0.55,
             highlights: [
                 OnboardingFeatureHighlight(title: "Design canvas", detail: "Native cards", symbol: "square.stack.3d.up"),
-                OnboardingFeatureHighlight(title: "AI assistance", detail: "Structured sessions", symbol: "sparkles"),
+                OnboardingFeatureHighlight(title: "AI assistance", detail: "Structured sessions", symbol: "sparkles")
             ]
         ),
         OnboardingPage(
@@ -81,7 +81,7 @@ public struct OnboardingPage: Equatable, Sendable, Identifiable {
             shaderIntensity: 0.66,
             highlights: [
                 OnboardingFeatureHighlight(title: "State engine", detail: "Explicit actions", symbol: "point.3.connected.trianglepath.dotted"),
-                OnboardingFeatureHighlight(title: "Run steering", detail: "Visible follow-ups", symbol: "arrow.triangle.branch"),
+                OnboardingFeatureHighlight(title: "Run steering", detail: "Visible follow-ups", symbol: "arrow.triangle.branch")
             ]
         ),
         OnboardingPage(
@@ -96,7 +96,7 @@ public struct OnboardingPage: Equatable, Sendable, Identifiable {
             shaderIntensity: 0.82,
             highlights: [
                 OnboardingFeatureHighlight(title: "Model controls", detail: "Adjust thinking", symbol: "slider.horizontal.3"),
-                OnboardingFeatureHighlight(title: "Human steering", detail: "User-set compute", symbol: "person.crop.circle.badge.checkmark"),
+                OnboardingFeatureHighlight(title: "Human steering", detail: "User-set compute", symbol: "person.crop.circle.badge.checkmark")
             ]
         ),
         OnboardingPage(
@@ -114,8 +114,8 @@ public struct OnboardingPage: Equatable, Sendable, Identifiable {
                 OnboardingFeatureHighlight(title: "Prompts", detail: "Structured input", symbol: "text.bubble"),
                 OnboardingFeatureHighlight(title: "Models", detail: "Adaptive compute", symbol: "cube"),
                 OnboardingFeatureHighlight(title: "Review", detail: "Iterative feedback", symbol: "checkmark.shield"),
-                OnboardingFeatureHighlight(title: "Ship", detail: "Deploy ready", symbol: "paperplane.fill"),
+                OnboardingFeatureHighlight(title: "Ship", detail: "Deploy ready", symbol: "paperplane.fill")
             ]
-        ),
+        )
     ]
 }
