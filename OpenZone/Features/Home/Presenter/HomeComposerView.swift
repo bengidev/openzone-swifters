@@ -36,11 +36,17 @@ private struct HomeComposerPromptPanel: View {
     @State private var sendFeedbackTrigger = false
 
     private var canSend: Bool {
-        !store.chat.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !store.chat.isSending
+        !store.chat.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !store.chat.isSending
+            && store.hasAPIKey
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if !store.hasAPIKey {
+                MissingAPIKeyHint { store.send(.settingsButtonTapped) }
+            }
+
             TextField(
                 "Ask anything... @files, $skills, /commands",
                 text: Binding(
@@ -383,6 +389,49 @@ private struct HomeComposerContextUsagePopover: View {
                 .stroke(palette.lineSoft.opacity(palette.isDark ? 0.45 : 0.65), lineWidth: 1)
         }
         .shadow(color: Color.black.opacity(0.12), radius: 14, x: 0, y: 8)
+    }
+}
+
+private struct MissingAPIKeyHint: View {
+    let openSettings: () -> Void
+
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Button(action: openSettings) {
+            HStack(spacing: 8) {
+                Image(systemName: "key.slash")
+                    .font(.system(size: 13, weight: .semibold))
+                    .accessibilityHidden(true)
+
+                Text("Add an API key in Settings to start sending")
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 6)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(palette.textSecondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(palette.surfaceSubtle.opacity(palette.isDark ? 0.5 : 0.8))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(palette.lineSoft.opacity(palette.isDark ? 0.45 : 0.6), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add an API key in Settings to start sending")
+        .accessibilityIdentifier("composer-missing-key-hint")
     }
 }
 

@@ -18,14 +18,15 @@ extension ChatAPIClient {
 extension ChatAPIClient: DependencyKey {
   /// Live path streams real model tokens over an OpenAI-compatible backend.
   ///
-  /// Slice 1 (issue #3): OpenRouter on a temporary hardcoded free model, with a
-  /// DEBUG env-supplied key (`OPENROUTER_API_KEY`). Secure Keychain entry and
-  /// model selection arrive in later slices. Test/preview keep the inline mock
-  /// so they never touch the network.
+  /// The secret is resolved at request time from the Keychain-backed
+  /// `CredentialStore`, so a key entered or updated in Settings takes effect on
+  /// the next send. When no key is stored the send path reports a missing-key
+  /// error instead of calling out unauthenticated. Test/preview keep the inline
+  /// mock so they never touch the network.
   static let liveValue = ChatAPIClient.wrap(
     OpenAICompatibleStreamingClient(
       provider: .openRouter,
-      credentialProvider: .environment
+      credentialProvider: .keychain(KeychainCredentialStore.openRouter)
     )
   )
   static let testValue = ChatAPIClient.wrap(ChatMockStreamingClient.fastClient())

@@ -44,6 +44,12 @@ struct HomeView: View {
             .contentShape(Rectangle())
             .simultaneousGesture(sidebarSwipeGesture(in: proxy.size))
         }
+        .onAppear { store.send(.onAppear) }
+        .sheet(
+            item: $store.scope(state: \.settings, action: \.settings)
+        ) { settingsStore in
+            SettingsView(store: settingsStore)
+        }
     }
 
     private var chatThreadContent: some View {
@@ -81,6 +87,14 @@ struct HomeView: View {
             .accessibilityLabel("Show sidebar")
 
             Spacer()
+
+            Button(action: { store.send(.settingsButtonTapped) }) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(palette.textPrimary)
+            }
+            .accessibilityLabel("Settings")
+            .accessibilityIdentifier("home-settings-button")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
