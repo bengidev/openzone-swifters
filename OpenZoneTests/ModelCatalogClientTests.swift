@@ -113,6 +113,38 @@ struct ProviderPreferenceCatalogCacheTests {
 
 // MARK: - ModelCatalogClient
 
+/// A separate URLProtocol stub used exclusively by `ModelCatalogClientTests`
+/// so it never shares static state with `StubURLProtocol` used by the
+/// streaming client tests. Both suites are `.serialized` but Swift Testing
+/// runs suites in parallel; separate classes keep each suite hermetic.
+nonisolated final class CatalogStubURLProtocol: URLProtocol, @unchecked Sendable {
+    struct Stub: Sendable {
+        var statusCode: Int
+        var body: Data
+        var headers: [String: String]
+    }
+
+    nonisolated(unsafe) static var stub: Stub?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let stub = Self.stub ?? Stub(statusCode: 200, body: Data(), headers: [:])
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: stub.statusCode,
+            httpVersion: "HTTP/1.1",
+            headerFields: stub.headers
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: stub.body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
 @Suite("ModelCatalogClient", .serialized)
 struct ModelCatalogClientTests {
 
@@ -123,13 +155,13 @@ struct ModelCatalogClientTests {
     }
 
     private func makeSession(responseJSON: String, statusCode: Int = 200) -> URLSession {
-        StubURLProtocol.stub = .init(
+        CatalogStubURLProtocol.stub = .init(
             statusCode: statusCode,
             body: Data(responseJSON.utf8),
             headers: ["Content-Type": "application/json"]
         )
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [StubURLProtocol.self]
+        config.protocolClasses = [CatalogStubURLProtocol.self]
         return URLSession(configuration: config)
     }
 
