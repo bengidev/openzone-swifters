@@ -118,11 +118,11 @@ struct SettingsView: View {
             Picker(
                 "Reasoning level",
                 selection: Binding(
-                    get: { store.reasoningLevel },
-                    set: { store.send(.reasoningLevelSelected($0)) }
+                    get: { store.reasoningModel },
+                    set: { store.send(.reasoningModelSelected($0)) }
                 )
             ) {
-                ForEach(ReasoningLevel.allCases) { level in
+                ForEach(AIProviderReasoningModel.allCases) { level in
                     Text(level.title).tag(level)
                 }
             }

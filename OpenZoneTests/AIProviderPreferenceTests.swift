@@ -7,7 +7,7 @@ import Testing
 /// Covers the Slice 3 single-source-of-truth wiring: the canned-event stub that
 /// replaced the deleted mocks, the UserDefaults-backed preference store, and the
 /// reducer's send-gate on a selected model.
-struct ProviderPreferenceTests {
+struct AIProviderPreferenceTests {
 
     // MARK: - Canned-event stub (mock replacement)
 
@@ -54,7 +54,7 @@ struct ProviderPreferenceTests {
 
     @Test("Preference store round-trips provider and model ids")
     func preferenceRoundTrips() {
-        let store = InMemoryProviderPreferenceStore()
+        let store = InMemoryAIProviderPreferenceStore()
         #expect(store.preference().providerID == nil)
         #expect(store.preference().modelID == nil)
 
@@ -72,18 +72,18 @@ struct ProviderPreferenceTests {
 
     @Test("Unknown or absent provider id resolves to the default provider")
     func providerResolutionFallsBack() {
-        #expect(ChatProvider.resolve(id: nil) == .default)
-        #expect(ChatProvider.resolve(id: "does-not-exist") == .default)
-        #expect(ChatProvider.resolve(id: ChatProvider.openRouter.id) == .openRouter)
+        #expect(AIProviderAPI.resolve(id: nil) == .default)
+        #expect(AIProviderAPI.resolve(id: "does-not-exist") == .default)
+        #expect(AIProviderAPI.resolve(id: AIProviderAPI.openRouter.id) == .openRouter)
     }
 
     // MARK: - Model catalog
 
     @Test("Model catalog resolves a known id and rejects an unknown one")
     func modelCatalogResolution() {
-        let known = ChatModelCatalog.models(for: ChatProvider.openRouter.id).first!
-        #expect(ChatModelCatalog.option(for: known.id, providerID: ChatProvider.openRouter.id) != nil)
-        #expect(ChatModelCatalog.option(for: "ghost-model", providerID: ChatProvider.openRouter.id) == nil)
+        let known = ChatModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
+        #expect(ChatModelCatalog.option(for: known.id, providerID: AIProviderAPI.openRouter.id) != nil)
+        #expect(ChatModelCatalog.option(for: "ghost-model", providerID: AIProviderAPI.openRouter.id) == nil)
         #expect(ChatModelCatalog.option(for: nil, providerID: nil) == nil)
     }
 }
@@ -95,15 +95,15 @@ struct ProviderPreferenceTests {
 struct ChatSendGatingTests {
 
     private func makeStore(
-        preference: ProviderPreference
+        preference: AIProviderPreference
     ) -> TestStoreOf<ChatFeature> {
         TestStore(initialState: ChatFeature.State()) {
             ChatFeature()
         } withDependencies: {
             $0.uuid = .incrementing
             $0.date = .constant(Date(timeIntervalSince1970: 0))
-            $0[ProviderPreferenceClient.self] = .wrap(
-                InMemoryProviderPreferenceStore(preference: preference)
+            $0[AIProviderPreferenceClient.self] = .wrap(
+                InMemoryAIProviderPreferenceStore(preference: preference)
             )
             $0[ChatAPIClient.self] = ChatAPIClient(stream: { _ in
                 AsyncStream { continuation in
@@ -117,7 +117,7 @@ struct ChatSendGatingTests {
 
     @Test("Send is a no-op when no model is selected")
     func sendBlockedWithoutModel() async {
-        let store = makeStore(preference: ProviderPreference(providerID: "openrouter", modelID: nil))
+        let store = makeStore(preference: AIProviderPreference(providerID: "openrouter", modelID: nil))
         store.exhaustivity = .off
 
         await store.send(.draftMessageChanged("Hello"))
@@ -131,7 +131,7 @@ struct ChatSendGatingTests {
     @Test("Send proceeds when a model is selected")
     func sendProceedsWithModel() async {
         let store = makeStore(
-            preference: ProviderPreference(
+            preference: AIProviderPreference(
                 providerID: "openrouter",
                 modelID: "meta-llama/llama-3.3-70b-instruct:free"
             )
@@ -156,36 +156,36 @@ struct HomeModelSelectionTests {
 
     @Test("Selecting a model persists it to the preference store and opens the model gate")
     func selectingModelPersists() async {
-        let backing = InMemoryProviderPreferenceStore()
+        let backing = InMemoryAIProviderPreferenceStore()
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[ProviderPreferenceClient.self] = .wrap(backing)
+            $0[AIProviderPreferenceClient.self] = .wrap(backing)
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore(secret: "sk-existing"))
         }
         store.exhaustivity = .off
 
         #expect(store.state.hasSelectedModel == false)
 
-        let model = ChatModelCatalog.models(for: ChatProvider.openRouter.id).first!
+        let model = ChatModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
         await store.send(.composerModelSelected(model.id))
 
         #expect(backing.preference().modelID == model.id)
-        #expect(backing.preference().providerID == ChatProvider.openRouter.id)
+        #expect(backing.preference().providerID == AIProviderAPI.openRouter.id)
         #expect(store.state.selectedModelID == model.id)
         #expect(store.state.hasSelectedModel == true)
     }
 
     @Test("onAppear seeds the selection from the stored preference")
     func onAppearSeedsFromPreference() async {
-        let known = ChatModelCatalog.models(for: ChatProvider.openRouter.id).first!
-        let backing = InMemoryProviderPreferenceStore(
-            preference: ProviderPreference(providerID: ChatProvider.openRouter.id, modelID: known.id)
+        let known = ChatModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
+        let backing = InMemoryAIProviderPreferenceStore(
+            preference: AIProviderPreference(providerID: AIProviderAPI.openRouter.id, modelID: known.id)
         )
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[ProviderPreferenceClient.self] = .wrap(backing)
+            $0[AIProviderPreferenceClient.self] = .wrap(backing)
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
         }
         store.exhaustivity = .off

@@ -8,7 +8,7 @@ import Foundation
 @Reducer
 struct SettingsFeature {
     @Dependency(CredentialStoreClient.self) private var credentialStore
-    @Dependency(ProviderPreferenceClient.self) private var providerPreference
+    @Dependency(AIProviderPreferenceClient.self) private var providerPreference
 
     @ObservableState
     struct State: Equatable, Sendable {
@@ -23,7 +23,7 @@ struct SettingsFeature {
 
         /// The persisted reasoning effort tier, mirrored from the preference
         /// store. Edited here and from the composer; both write the same store.
-        var reasoningLevel: ReasoningLevel = .high
+        var reasoningModel: AIProviderReasoningModel = .high
         /// Whether the currently selected model supports reasoning. Seeded by
         /// the parent when presenting the sheet; the reasoning control is shown
         /// only when this is true, matching the composer-side gate.
@@ -37,13 +37,13 @@ struct SettingsFeature {
             draftAPIKey: String = "",
             hasStoredKey: Bool = false,
             errorMessage: String? = nil,
-            reasoningLevel: ReasoningLevel = .high,
+            reasoningModel: AIProviderReasoningModel = .high,
             modelSupportsReasoning: Bool = false
         ) {
             self.draftAPIKey = draftAPIKey
             self.hasStoredKey = hasStoredKey
             self.errorMessage = errorMessage
-            self.reasoningLevel = reasoningLevel
+            self.reasoningModel = reasoningModel
             self.modelSupportsReasoning = modelSupportsReasoning
         }
     }
@@ -53,7 +53,7 @@ struct SettingsFeature {
         case onAppear
         case saveTapped
         case clearTapped
-        case reasoningLevelSelected(ReasoningLevel)
+        case reasoningModelSelected(AIProviderReasoningModel)
     }
 
     var body: some Reducer<State, Action> {
@@ -65,7 +65,7 @@ struct SettingsFeature {
 
             case .onAppear:
                 state.hasStoredKey = credentialStore.secret() != nil
-                state.reasoningLevel = providerPreference.preference().reasoningLevel
+                state.reasoningModel = providerPreference.preference().reasoningModel
                 return .none
 
             case .saveTapped:
@@ -92,11 +92,11 @@ struct SettingsFeature {
                 }
                 return .none
 
-            case let .reasoningLevelSelected(level):
+            case let .reasoningModelSelected(level):
                 // Persist to the shared single source of truth, then mirror it
                 // into local state so the control reflects the change at once.
-                providerPreference.setReasoningLevel(level)
-                state.reasoningLevel = level
+                providerPreference.setReasoningModel(level)
+                state.reasoningModel = level
                 return .none
             }
         }
