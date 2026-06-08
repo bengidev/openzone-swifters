@@ -9,6 +9,24 @@ struct ChatRequest: Equatable, Sendable {
     let provider: ChatProvider
     /// The dynamic model identifier (a free-form string, no longer an enum).
     let modelID: String
+    /// The reasoning effort to request, or `nil` to omit the reasoning
+    /// parameter entirely (the `off` tier, or a model with no reasoning
+    /// support). Filled by the reducer from the persisted preference.
+    let reasoningEffort: String?
+
+    init(
+        conversationID: UUID,
+        messages: [ChatMessage],
+        provider: ChatProvider,
+        modelID: String,
+        reasoningEffort: String? = nil
+    ) {
+        self.conversationID = conversationID
+        self.messages = messages
+        self.provider = provider
+        self.modelID = modelID
+        self.reasoningEffort = reasoningEffort
+    }
 }
 
 extension ChatRequest {

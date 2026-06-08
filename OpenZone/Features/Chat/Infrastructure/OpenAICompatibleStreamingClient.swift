@@ -133,7 +133,10 @@ nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Senda
         let payload = ChatCompletionsRequestBody(
             model: chatRequest.modelID,
             messages: Self.wireMessages(from: chatRequest.messages),
-            stream: true
+            stream: true,
+            reasoning: chatRequest.reasoningEffort.map {
+                ChatCompletionsRequestBody.Reasoning(effort: $0)
+            }
         )
         urlRequest.httpBody = try JSONEncoder().encode(payload)
         return urlRequest
@@ -224,9 +227,31 @@ nonisolated struct ChatCompletionsRequestBody: Encodable, Sendable {
         let content: String
     }
 
+    /// The reasoning controls object. OpenRouter (and compatible backends) take
+    /// `reasoning: { effort: "low" | "medium" | "high" }`. The whole object is
+    /// omitted from the request when reasoning is off, so an `off` selection
+    /// (or a model with no reasoning support) sends no reasoning parameter.
+    nonisolated struct Reasoning: Encodable, Sendable {
+        let effort: String
+    }
+
     let model: String
     let messages: [Message]
     let stream: Bool
+    /// `nil` => key omitted entirely from the encoded JSON.
+    let reasoning: Reasoning?
+
+    init(
+        model: String,
+        messages: [Message],
+        stream: Bool,
+        reasoning: Reasoning? = nil
+    ) {
+        self.model = model
+        self.messages = messages
+        self.stream = stream
+        self.reasoning = reasoning
+    }
 }
 
 /// One streamed SSE chunk (`chat.completion.chunk`), decoding only the fields

@@ -30,6 +30,9 @@ struct SettingsView: View {
                                 .accessibilityIdentifier("settings-error")
                         }
                         actions
+                        if store.modelSupportsReasoning {
+                            reasoningControl
+                        }
                         Spacer(minLength: 0)
                     }
                     .padding(20)
@@ -98,6 +101,33 @@ struct SettingsView: View {
                     .foregroundStyle(palette.textSecondary)
                     .accessibilityIdentifier("settings-key-stored")
             }
+        }
+    }
+
+    private var reasoningControl: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Reasoning")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(palette.textPrimary)
+
+            Text("Choose how much effort the model spends reasoning before it answers. Off sends no reasoning request.")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Picker(
+                "Reasoning level",
+                selection: Binding(
+                    get: { store.reasoningLevel },
+                    set: { store.send(.reasoningLevelSelected($0)) }
+                )
+            ) {
+                ForEach(ReasoningLevel.allCases) { level in
+                    Text(level.title).tag(level)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("settings-reasoning-picker")
         }
     }
 
