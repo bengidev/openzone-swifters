@@ -4,7 +4,7 @@ import Security
 
 /// A minimal secure store for a single provider secret.
 ///
-/// This is the Shared-layer abstraction behind which the live Keychain adapter
+/// Externals security abstraction behind which the live Keychain adapter
 /// and an in-memory test double both sit. It names no chat domain types and is
 /// feature-neutral: it stores, reads, and clears one opaque secret string.
 ///
@@ -28,6 +28,10 @@ nonisolated protocol CredentialStore: Sendable {
 /// A typed wrapper over a Keychain `OSStatus` failure.
 nonisolated struct KeychainError: Error, Equatable {
     let status: OSStatus
+
+    init(status: OSStatus) {
+        self.status = status
+    }
 }
 
 /// Live `CredentialStore` backed by a Keychain generic-password item.
@@ -43,6 +47,11 @@ nonisolated struct KeychainError: Error, Equatable {
 nonisolated struct KeychainCredentialStore: CredentialStore {
     let service: String
     let account: String
+
+    init(service: String, account: String) {
+        self.service = service
+        self.account = account
+    }
 
     func secret() -> String? {
         let query: [String: Any] = [
@@ -153,6 +162,16 @@ nonisolated struct CredentialStoreClient: Sendable {
     var secret: @Sendable () -> String?
     var save: @Sendable (String) throws -> Void
     var clear: @Sendable () throws -> Void
+
+    init(
+        secret: @escaping @Sendable () -> String?,
+        save: @escaping @Sendable (String) throws -> Void,
+        clear: @escaping @Sendable () throws -> Void
+    ) {
+        self.secret = secret
+        self.save = save
+        self.clear = clear
+    }
 }
 
 extension CredentialStoreClient {

@@ -27,10 +27,10 @@ struct ChatReasoningStreamingTests {
             $0.date = .constant(Date(timeIntervalSince1970: 0))
             // A model must be selected for the send gate to open; seed the
             // preference store with a provider + model.
-            $0[ProviderPreferenceClient.self] = .wrap(
-                InMemoryProviderPreferenceStore(
-                    preference: ProviderPreference(
-                        providerID: ChatProvider.openRouter.id,
+            $0[AIProviderPreferenceClient.self] = .wrap(
+                InMemoryAIProviderPreferenceStore(
+                    preference: AIProviderPreference(
+                        providerID: AIProviderAPI.openRouter.id,
                         modelID: "meta-llama/llama-3.3-70b-instruct:free"
                     )
                 )

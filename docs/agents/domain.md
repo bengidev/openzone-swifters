@@ -26,7 +26,8 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 │   ├── shared/CONTEXT.md              ← shared UI/theme glossary
 │   └── onboarding/CONTEXT.md          ← onboarding glossary
 └── OpenZone/
-    ├── Shared/                        ← shared app primitives
+    ├── Externals/                       ← external integrations (Networking, Preference, Security)
+    ├── Shared/                        ← theme + UI primitives (Theme/, UI/)
     └── Features/Onboarding/           ← onboarding feature code
 ```
 

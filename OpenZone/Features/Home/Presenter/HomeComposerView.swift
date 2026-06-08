@@ -126,7 +126,7 @@ private struct HomeComposerContextRail: View {
 
                 if store.selectedModelOption?.supportsReasoning == true {
                     HomeComposerMenuChip(
-                        title: store.reasoningLevel.title,
+                        title: store.reasoningModel.title,
                         systemImage: "circle.hexagongrid",
                         minWidth: 92,
                         dismissKeyboard: dismissKeyboard
@@ -135,17 +135,17 @@ private struct HomeComposerContextRail: View {
                             ForEach(HomeComposerReasoningLevel.allCases) { level in
                                 Button {
                                     dismissKeyboard()
-                                    store.send(.reasoningLevelSelected(level))
+                                    store.send(.reasoningModelSelected(level))
                                 } label: {
                                     Label(
                                         level.title,
-                                        systemImage: store.reasoningLevel == level ? "checkmark" : "circle"
+                                        systemImage: store.reasoningModel == level ? "checkmark" : "circle"
                                     )
                                 }
                             }
                         }
                     }
-                    .accessibilityLabel("Reasoning, \(store.reasoningLevel.title)")
+                    .accessibilityLabel("Reasoning, \(store.reasoningModel.title)")
                 }
             }
             .layoutPriority(1)

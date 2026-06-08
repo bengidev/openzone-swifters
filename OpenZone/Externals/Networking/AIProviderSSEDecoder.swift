@@ -1,8 +1,6 @@
 import Foundation
 
-/// A generic Server-Sent-Events line decoder.
-///
-/// This is a Shared networking primitive: it knows nothing about chat, models,
+/// Externals networking primitive: it knows nothing about chat, models,
 /// or any feature vocabulary. It buffers raw bytes arriving across arbitrary
 /// network chunk boundaries, splits them into complete lines on `\n`, and
 /// interprets each line under the SSE wire rules:
@@ -16,7 +14,7 @@ import Foundation
 /// Partial lines are retained in the buffer until their terminating newline
 /// arrives, so a multi-byte UTF-8 sequence or a half-delivered JSON object is
 /// never decoded prematurely.
-nonisolated struct ServerSentEventsLineDecoder: Sendable {
+nonisolated struct AIProviderSSEDecoder: Sendable {
     /// The OpenAI/OpenRouter stream-termination sentinel.
     static let doneSentinel = "[DONE]"
 

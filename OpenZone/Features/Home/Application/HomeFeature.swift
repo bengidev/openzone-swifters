@@ -5,8 +5,9 @@ import Foundation
 @Reducer
 struct HomeFeature {
     @Dependency(CredentialStoreClient.self) private var credentialStore
-    @Dependency(ProviderPreferenceClient.self) private var providerPreference
+    @Dependency(AIProviderPreferenceClient.self) private var providerPreference
     @Dependency(ModelCatalogClient.self) private var modelCatalog
+    @Dependency(ModelCatalogCachePreferenceClient.self) private var modelCatalogCachePreference
     @Dependency(ChatHistoryClient.self) private var chatHistory
     @Dependency(\.continuousClock) private var clock
 
@@ -37,12 +38,12 @@ struct HomeFeature {
 
         /// The selected provider id, mirrored from the preference store. Defaults
         /// to the catalog default until the user (or a stored preference) sets it.
-        var selectedProviderID: String = ChatProvider.default.id
+        var selectedProviderID: String = AIProviderAPI.default.id
         /// The selected dynamic model id, mirrored from the preference store.
         /// `nil` until a model is chosen; the send gate stays closed while nil.
         var selectedModelID: String?
 
-        var reasoningLevel: HomeComposerReasoningLevel = .high
+        var reasoningModel: HomeComposerReasoningLevel = .high
         var speedMode: HomeComposerSpeedMode = .standard
         var contextUsage = HomeComposerContextUsage(usedTokens: 107_000, tokenLimit: 258_000)
 
@@ -127,7 +128,7 @@ struct HomeFeature {
         case conversationRenamed(id: UUID, title: String)
         case conversationDeleted(UUID)
         case composerModelSelected(String)
-        case reasoningLevelSelected(HomeComposerReasoningLevel)
+        case reasoningModelSelected(HomeComposerReasoningLevel)
         case speedModeSelected(HomeComposerSpeedMode)
         case onAppear
         case catalogLoaded([ChatModel])
@@ -245,10 +246,10 @@ struct HomeFeature {
                 }
                 return .none
 
-            case let .reasoningLevelSelected(level):
+            case let .reasoningModelSelected(level):
                 // Persist to the single source of truth, then mirror into state.
-                providerPreference.setReasoningLevel(level)
-                state.reasoningLevel = level
+                providerPreference.setReasoningModel(level)
+                state.reasoningModel = level
                 return .none
 
             case let .speedModeSelected(speedMode):
@@ -260,18 +261,18 @@ struct HomeFeature {
                 // Seed the selection from the single source of truth so the
                 // composer reflects any previously stored provider/model.
                 let preference = providerPreference.preference()
-                state.selectedProviderID = preference.providerID ?? ChatProvider.default.id
+                state.selectedProviderID = preference.providerID ?? AIProviderAPI.default.id
                 state.selectedModelID = preference.modelID
-                state.reasoningLevel = preference.reasoningLevel
+                state.reasoningModel = preference.reasoningModel
 
                 // Load the model catalog. The effect resolves the provider and
                 // secret at call time so the result is always up to date.
-                let provider = ChatProvider.resolve(id: state.selectedProviderID)
+                let provider = AIProviderAPI.resolve(id: state.selectedProviderID)
                 let secret = credentialStore.secret()
-                let preferenceClient = providerPreference
+                let cachePreference = modelCatalogCachePreference
                 let catalogClient = modelCatalog
                 return .run { send in
-                    let models = await catalogClient.listModels(provider, secret, preferenceClient, .shared)
+                    let models = await catalogClient.listModels(provider, secret, cachePreference, .shared)
                     await send(.catalogLoaded(models))
                 }
 
@@ -311,15 +312,15 @@ struct HomeFeature {
             case .settingsButtonTapped:
                 state.settings = SettingsFeature.State(
                     hasStoredKey: credentialStore.secret() != nil,
-                    reasoningLevel: state.reasoningLevel,
+                    reasoningModel: state.reasoningModel,
                     modelSupportsReasoning: state.selectedModelOption?.supportsReasoning == true
                 )
                 return .none
 
-            case .settings(.presented(.reasoningLevelSelected)):
+            case .settings(.presented(.reasoningModelSelected)):
                 // The sheet wrote the level to the shared store; re-read it so
                 // the composer chip reflects the change immediately on dismiss.
-                state.reasoningLevel = providerPreference.preference().reasoningLevel
+                state.reasoningModel = providerPreference.preference().reasoningModel
                 return .none
 
             case .settings(.presented(.saveTapped)),

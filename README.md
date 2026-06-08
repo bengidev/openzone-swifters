@@ -58,9 +58,10 @@ OpenZone/
 │       ├── Domain/            # Onboarding pages and value types
 │       ├── Infrastructure/    # SwiftData progress persistence client
 │       └── Presenter/         # SwiftUI onboarding screens backed by StoreOf<OnboardingFeature>
-└── Shared/                    # App-wide theme and reusable UI primitives
-    ├── Theme/
-    └── UI/
+├── Externals/                 # External integrations (Networking, Preference, Security)
+└── Shared/                    # Theme + UI primitives only
+    ├── Theme/                 # Palette, typography, app theme preference
+    └── UI/                    # Buttons, badges, patterns, backgrounds
 OpenZoneTests/                 # Unit tests
 OpenZoneUITests/               # UI tests
 ```

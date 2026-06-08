@@ -1,7 +1,7 @@
 import Foundation
 
-/// A model entry from a provider catalog — the shared value type that flows
-/// from the infrastructure layer through the feature layer to the UI.
+/// A model entry from the provider catalog — chat domain value that flows
+/// from infrastructure through features to the UI.
 ///
 /// Identity is the string `id` (e.g. `"meta-llama/llama-3.3-70b-instruct:free"`).
 /// `isFree`, `contextLength`, and `supportsReasoning` are presentation/filter

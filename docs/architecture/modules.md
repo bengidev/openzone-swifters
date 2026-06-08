@@ -17,12 +17,25 @@ OpenZone/
 ├── Item.swift
 ├── Features/
 │   ├── AppFeature.swift
+│   ├── Chat/
+│   │   ├── Domain/           # ChatModel, messages, requests
+│   │   ├── Application/
+│   │   ├── Infrastructure/   # streaming client, history
+│   │   └── Presenter/
+│   ├── Home/
+│   │   ├── Domain/
+│   │   ├── Application/
+│   │   ├── Infrastructure/   # ModelCatalogClient, catalog cache preference
+│   │   └── Presenter/
 │   └── Onboarding/
 │       ├── Application/
-│       │   └── OnboardingFeature.swift
 │       ├── Domain/
 │       ├── Infrastructure/
 │       └── Presenter/
+├── Externals/                # External integrations (internal module)
+│   ├── Networking/
+│   ├── Preference/
+│   └── Security/
 └── Shared/
     ├── Theme/
     └── UI/
@@ -45,20 +58,29 @@ A feature owns one product workflow. It may contain:
 
 - `Domain/` — value types, enums, feature language, pure rules.
 - `Application/` — TCA reducers, `@ObservableState`, actions, and use-case orchestration.
-- `Infrastructure/` — persistence, system adapters, external clients.
+- `Infrastructure/` — persistence, system adapters, external clients scoped to the feature workflow.
 - `Presenter/` — SwiftUI views that render the feature from a TCA store.
 
-Feature code may depend on `OpenZone/Shared`, Swift standard libraries, Apple frameworks, TCA, and its own feature folders. Feature code must not depend on another feature directly unless a clear integration boundary is introduced.
+Feature code may depend on `OpenZone/Externals`, `OpenZone/Shared`, Swift standard libraries, Apple frameworks, TCA, and its own feature folders. Feature code must not depend on another feature directly unless a clear integration boundary is introduced.
+
+### `OpenZone/Externals/`
+
+Externals contains feature-neutral adapters for systems outside the app:
+
+- `Networking/` — `AIProviderAPI`, `AIProviderCredentialAPI`, `AIProviderSSEDecoder`.
+- `Preference/` — `AIProviderPreference`, `AIProviderReasoningModel`, `AIProviderPreferenceStore`, and `AIProviderPreferenceClient`.
+- `Security/` — `CredentialStore` and `CredentialStoreClient`.
+
+Externals must not reference feature UI or reducers. Chat domain types (e.g. `ChatModel`) belong in `Features/Chat/Domain/`. Home-scoped orchestration (e.g. `ModelCatalogClient`) belongs in `Features/Home/Infrastructure/`. Chat streaming (`OpenAICompatibleStreamingClient`) stays in `Features/Chat/Infrastructure/` because it combines provider wire behavior with chat domain types.
 
 ### `OpenZone/Shared/`
 
-Shared contains app-wide primitives that are safe for more than one feature to reuse:
+Shared contains app-wide UI primitives that are safe for more than one feature to reuse:
 
 - `Theme/` — palette, theme preference, typography, color helpers, SwiftUI environment keys.
 - `UI/` — reusable visual primitives, patterns, and button styles.
-- Cross-cutting infrastructure — persistence, networking, and other external integrations, exposed behind abstractions (protocols / dependency clients) so features depend on the abstraction, not the concrete external implementation.
 
-Shared code must not import or reference feature code. If a component contains onboarding-specific copy, state, or workflow behavior, keep it in `Features/Onboarding` instead of `Shared`. Shared infrastructure must stay feature-neutral: it exposes generic capabilities (an HTTP/SSE client, a keychain store, a database adapter), never a feature's domain types or workflow.
+Shared code must not import or reference feature code. If a component contains onboarding-specific copy, state, or workflow behavior, keep it in `Features/<FeatureName>` instead of `Shared`.
 
 ## Why not marker enum files?
 
@@ -68,9 +90,10 @@ Do not add empty `enum SharedModule {}` or `enum FeatureModules {}` files just t
 
 If module boundaries need compiler enforcement, promote these folders in this order:
 
-1. Create an internal `OpenZoneShared` Swift Package or Xcode framework target from `OpenZone/Shared`.
-2. Create an internal `OnboardingFeature` target from `OpenZone/Features/Onboarding`.
-3. Make `OnboardingFeature` depend on `OpenZoneShared` and TCA.
-4. Make the app target depend on `OpenZoneShared` and `OnboardingFeature`.
+1. Promote `OpenZone/Externals/` to an internal Xcode framework or Swift Package.
+2. Promote `OpenZone/Shared/` (Theme + UI) to an internal `OpenZoneShared` library.
+3. Promote `OpenZone/Features/<FeatureName>/` to feature targets.
+4. Wire dependencies: features → `Externals`, `OpenZoneShared`, TCA.
+5. Make the app target depend on the feature libraries.
 
 Keep those libraries private to this repo unless a feature becomes reusable across multiple apps. Remote packages add versioning, CI, and cross-repo coordination overhead, so they should be introduced only when reuse justifies it.

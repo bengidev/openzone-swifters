@@ -7,7 +7,15 @@
 | **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
 | **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
 
-`OpenZone/Shared` contains app-wide primitives that are safe for multiple features to reuse: theme, UI, and cross-cutting infrastructure (persistence, networking, and other external integrations) exposed behind abstractions.
+`OpenZone/Shared` contains app-wide theme and UI primitives that are safe for multiple features to reuse.
+
+```text
+OpenZone/Shared/
+├── Theme/    # palette, typography, color helpers, environment keys
+└── UI/       # button styles, badges, patterns, backgrounds
+```
+
+External integrations live in `OpenZone/Externals/` — see [Externals context](../externals/CONTEXT.md).
 
 ## Language
 
@@ -18,7 +26,7 @@
 ## Architecture
 
 - Shared code must not import or reference feature code.
-- Shared code must not contain feature-specific copy, workflow state, persistence, networking, or TCA reducers.
+- Shared code must not contain feature-specific copy, workflow state, or TCA reducers.
 - Feature-specific UI remains inside `OpenZone/Features/<FeatureName>/Presenter`.
 
 ## TCA boundary

@@ -34,15 +34,15 @@ struct ChatModelTests {
     }
 }
 
-// MARK: - CachedModelCatalog
+// MARK: - ModelCatalogCachePreference
 
-@Suite("CachedModelCatalog")
-struct CachedModelCatalogTests {
+@Suite("ModelCatalogCachePreference")
+struct ModelCatalogCachePreferenceTests {
 
     @Test("Fresh cache is not stale")
     func freshCacheIsNotStale() {
         let now = Date()
-        let cache = CachedModelCatalog(
+        let cache = ModelCatalogCachePreference(
             providerID: "openrouter",
             models: ChatModel.curatedFallback,
             fetchedAt: now
@@ -53,7 +53,7 @@ struct CachedModelCatalogTests {
     @Test("Cache older than TTL is stale")
     func oldCacheIsStale() {
         let now = Date()
-        let cache = CachedModelCatalog(
+        let cache = ModelCatalogCachePreference(
             providerID: "openrouter",
             models: ChatModel.curatedFallback,
             fetchedAt: now.addingTimeInterval(-7200)
@@ -61,34 +61,34 @@ struct CachedModelCatalogTests {
         #expect(cache.isStale(maxAge: 3600, now: now))
     }
 
-    @Test("CachedModelCatalog round-trips through Codable")
+    @Test("ModelCatalogCachePreference round-trips through Codable")
     func cachedCatalogCodable() throws {
-        let cache = CachedModelCatalog(
+        let cache = ModelCatalogCachePreference(
             providerID: "openrouter",
             models: ChatModel.curatedFallback,
             fetchedAt: Date(timeIntervalSince1970: 0)
         )
         let data = try JSONEncoder().encode(cache)
-        let decoded = try JSONDecoder().decode(CachedModelCatalog.self, from: data)
+        let decoded = try JSONDecoder().decode(ModelCatalogCachePreference.self, from: data)
         #expect(decoded == cache)
     }
 }
 
-// MARK: - InMemoryProviderPreferenceStore cache methods
+// MARK: - Model catalog cache preference store
 
-@Suite("ProviderPreferenceStore catalog cache")
-struct ProviderPreferenceCatalogCacheTests {
+@Suite("ModelCatalogCachePreferenceStore")
+struct ModelCatalogCachePreferenceStoreTests {
 
     @Test("Cache is nil by default")
     func defaultCacheIsNil() {
-        let store = InMemoryProviderPreferenceStore()
+        let store = InMemoryModelCatalogCachePreferenceStore()
         #expect(store.cachedCatalog() == nil)
     }
 
     @Test("Set and get catalog round-trips")
     func setCatalogRoundTrips() {
-        let store = InMemoryProviderPreferenceStore()
-        let catalog = CachedModelCatalog(
+        let store = InMemoryModelCatalogCachePreferenceStore()
+        let catalog = ModelCatalogCachePreference(
             providerID: "openrouter",
             models: ChatModel.curatedFallback,
             fetchedAt: Date(timeIntervalSince1970: 0)
@@ -99,8 +99,8 @@ struct ProviderPreferenceCatalogCacheTests {
 
     @Test("Setting nil clears the catalog")
     func clearCatalog() {
-        let store = InMemoryProviderPreferenceStore()
-        let catalog = CachedModelCatalog(
+        let store = InMemoryModelCatalogCachePreferenceStore()
+        let catalog = ModelCatalogCachePreference(
             providerID: "openrouter",
             models: ChatModel.curatedFallback,
             fetchedAt: Date(timeIntervalSince1970: 0)
@@ -148,10 +148,10 @@ nonisolated final class CatalogStubURLProtocol: URLProtocol, @unchecked Sendable
 @Suite("ModelCatalogClient", .serialized)
 struct ModelCatalogClientTests {
 
-    private func makePreference(
-        cached: CachedModelCatalog? = nil
-    ) -> ProviderPreferenceClient {
-        .wrap(InMemoryProviderPreferenceStore(cachedCatalog: cached))
+    private func makeCachePreference(
+        cached: ModelCatalogCachePreference? = nil
+    ) -> ModelCatalogCachePreferenceClient {
+        .wrap(InMemoryModelCatalogCachePreferenceStore(cachedCatalog: cached))
     }
 
     private func makeSession(responseJSON: String, statusCode: Int = 200) -> URLSession {
@@ -170,7 +170,7 @@ struct ModelCatalogClientTests {
     @Test("Returns curated fallback when no secret is provided")
     func noKeyReturnsFallback() async {
         let client = ModelCatalogClient.live
-        let result = await client.listModels(.openRouter, nil, makePreference(), .shared)
+        let result = await client.listModels(.openRouter, nil, makeCachePreference(), .shared)
         #expect(result == ChatModel.curatedFallback)
     }
 
@@ -198,12 +198,12 @@ struct ModelCatalogClientTests {
             ]
         }
         """
-        let preferenceStore = InMemoryProviderPreferenceStore()
-        let preferenceClient = ProviderPreferenceClient.wrap(preferenceStore)
+        let cacheStore = InMemoryModelCatalogCachePreferenceStore()
+        let cacheClient = ModelCatalogCachePreferenceClient.wrap(cacheStore)
         let session = makeSession(responseJSON: json)
 
         let client = ModelCatalogClient.live
-        let result = await client.listModels(.openRouter, "sk-test", preferenceClient, session)
+        let result = await client.listModels(.openRouter, "sk-test", cacheClient, session)
 
         // Both models should be present.
         #expect(result.contains { $0.id == "openai/gpt-4o" })
@@ -218,9 +218,9 @@ struct ModelCatalogClientTests {
         #expect(paidModel?.isFree == false)
 
         // Cache was written.
-        #expect(preferenceStore.cachedCatalog() != nil)
-        #expect(preferenceStore.cachedCatalog()?.providerID == "openrouter")
-        #expect(preferenceStore.cachedCatalog()?.models.count == result.count)
+        #expect(cacheStore.cachedCatalog() != nil)
+        #expect(cacheStore.cachedCatalog()?.providerID == "openrouter")
+        #expect(cacheStore.cachedCatalog()?.models.count == result.count)
     }
 
     @Test("Returns cached catalog when fresh, skipping the network")
@@ -228,7 +228,7 @@ struct ModelCatalogClientTests {
         let cachedModels = [
             ChatModel(id: "cached/model-a", displayName: "Cached A", isFree: true)
         ]
-        let cache = CachedModelCatalog(
+        let cache = ModelCatalogCachePreference(
             providerID: "openrouter",
             models: cachedModels,
             fetchedAt: Date()  // Just fetched — not stale.
@@ -240,7 +240,7 @@ struct ModelCatalogClientTests {
 
         let client = ModelCatalogClient.live
         let result = await client.listModels(
-            .openRouter, "sk-test", makePreference(cached: cache), session
+            .openRouter, "sk-test", makeCachePreference(cached: cache), session
         )
 
         // Should return cached models, not the network ones.
@@ -252,7 +252,7 @@ struct ModelCatalogClientTests {
         let staleModels = [
             ChatModel(id: "stale/model", displayName: "Stale", isFree: true)
         ]
-        let staleCache = CachedModelCatalog(
+        let staleCache = ModelCatalogCachePreference(
             providerID: "openrouter",
             models: staleModels,
             // Fetched 2 hours ago — stale against the 1-hour TTL.
@@ -266,7 +266,7 @@ struct ModelCatalogClientTests {
 
         let client = ModelCatalogClient.live
         let result = await client.listModels(
-            .openRouter, "sk-test", makePreference(cached: staleCache), session
+            .openRouter, "sk-test", makeCachePreference(cached: staleCache), session
         )
 
         // Should have bypassed the stale cache and returned the fresh network result.
@@ -279,7 +279,7 @@ struct ModelCatalogClientTests {
         // Empty body + 500 → fetch throws → should return curated fallback.
         let session = makeSession(responseJSON: "", statusCode: 500)
         let client = ModelCatalogClient.live
-        let result = await client.listModels(.openRouter, "sk-test", makePreference(), session)
+        let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
         #expect(result == ChatModel.curatedFallback)
     }
 
@@ -288,7 +288,7 @@ struct ModelCatalogClientTests {
         let staleModels = [
             ChatModel(id: "stale/model", displayName: "Stale", isFree: true)
         ]
-        let staleCache = CachedModelCatalog(
+        let staleCache = ModelCatalogCachePreference(
             providerID: "openrouter",
             models: staleModels,
             fetchedAt: Date().addingTimeInterval(-7200)
@@ -297,7 +297,7 @@ struct ModelCatalogClientTests {
         let client = ModelCatalogClient.live
 
         let result = await client.listModels(
-            .openRouter, "sk-test", makePreference(cached: staleCache), session
+            .openRouter, "sk-test", makeCachePreference(cached: staleCache), session
         )
         // Should serve the stale cache rather than the curated fallback.
         #expect(result == staleModels)
@@ -315,7 +315,7 @@ struct ModelCatalogClientTests {
         """
         let session = makeSession(responseJSON: json)
         let client = ModelCatalogClient.live
-        let result = await client.listModels(.openRouter, "sk-test", makePreference(), session)
+        let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
 
         let r1 = result.first { $0.id == "deepseek/deepseek-r1:free" }
         let llama = result.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
@@ -339,7 +339,7 @@ struct HomeFeatureCatalogTests {
             HomeFeature()
         } withDependencies: {
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore(secret: "sk-test"))
-            $0[ProviderPreferenceClient.self] = .wrap(InMemoryProviderPreferenceStore())
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
             $0[ModelCatalogClient.self] = ModelCatalogClient { _, _, _, _ in expectedModels }
         }
         store.exhaustivity = .off
@@ -400,7 +400,7 @@ struct HomeFeatureCatalogTests {
             HomeFeature()
         } withDependencies: {
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
-            $0[ProviderPreferenceClient.self] = .wrap(InMemoryProviderPreferenceStore())
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
             $0[ModelCatalogClient.self] = ModelCatalogClient { _, _, _, _ in [] }
             $0.continuousClock = ImmediateClock()
         }
@@ -422,7 +422,7 @@ struct HomeFeatureCatalogTests {
             HomeFeature()
         } withDependencies: {
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
-            $0[ProviderPreferenceClient.self] = .wrap(InMemoryProviderPreferenceStore())
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
             $0[ModelCatalogClient.self] = ModelCatalogClient { _, _, _, _ in [] }
             $0.continuousClock = clock
         }

@@ -57,10 +57,10 @@ struct CredentialStoreTests {
         #expect(backing.secret() == nil)
     }
 
-    @Test("ChatCredentialProvider.keychain resolves the store at call time")
+    @Test("AIProviderCredentialAPI.keychain resolves the store at call time")
     func providerResolvesLazily() throws {
         let store = InMemoryCredentialStore()
-        let provider = ChatCredentialProvider.keychain(store)
+        let provider = AIProviderCredentialAPI.keychain(store)
 
         // No key yet -> resolves to nil.
         #expect(provider.resolve() == nil)
