@@ -49,8 +49,8 @@ enum ChatModelCatalog {
     /// providers fall back to the default provider's list. Sourced from the
     /// shared `ChatModel.curatedFallback` so there is one fallback definition.
     static func models(for providerID: String?) -> [ChatModelOption] {
-        switch providerID ?? ChatProvider.default.id {
-        case ChatProvider.openRouter.id:
+        switch providerID ?? AIProviderAPI.default.id {
+        case AIProviderAPI.openRouter.id:
             return ChatModel.curatedFallback.map { ChatModelOption(model: $0) }
         default:
             return ChatModel.curatedFallback.map { ChatModelOption(model: $0) }
