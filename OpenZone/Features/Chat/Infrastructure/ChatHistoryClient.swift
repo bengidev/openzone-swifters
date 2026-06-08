@@ -20,6 +20,10 @@ struct ChatHistoryClient: Sendable {
     var appendMessage: @Sendable (_ conversationID: UUID, _ message: ChatMessage) async throws -> Void
     /// Delete a conversation and its messages.
     var deleteConversation: @Sendable (_ conversationID: UUID) async throws -> Void
+    /// Pin or unpin a conversation, floating it to the top of history.
+    var setPinned: @Sendable (_ conversationID: UUID, _ isPinned: Bool) async throws -> Void
+    /// Rename a conversation's title.
+    var renameConversation: @Sendable (_ conversationID: UUID, _ title: String) async throws -> Void
 }
 
 extension ChatHistoryClient: DependencyKey {
@@ -34,7 +38,9 @@ extension ChatHistoryClient: DependencyKey {
             loadMessages: { _ in [] },
             saveConversation: { _ in },
             appendMessage: { _, _ in },
-            deleteConversation: { _ in }
+            deleteConversation: { _ in },
+            setPinned: { _, _ in },
+            renameConversation: { _, _ in }
         )
     }
 
@@ -64,7 +70,15 @@ extension ChatHistoryClient {
                 let descriptor = FetchDescriptor<ChatConversationEntity>(
                     sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
                 )
-                return try context.fetch(descriptor).map(Self.conversation(from:))
+                // Pinned conversations float to the top; within each group the
+                // most-recently-updated comes first. Sectioning by recency is a
+                // presentation concern handled in the view, not here.
+                return try context.fetch(descriptor)
+                    .map(Self.conversation(from:))
+                    .sorted { lhs, rhs in
+                        if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+                        return lhs.updatedAt > rhs.updatedAt
+                    }
             },
             loadMessages: { @MainActor conversationID in
                 let context = ModelContext(modelContainer)
@@ -120,6 +134,24 @@ extension ChatHistoryClient {
                 }
                 context.delete(entity)
                 try context.save()
+            },
+            setPinned: { @MainActor conversationID, isPinned in
+                let context = ModelContext(modelContainer)
+                guard let entity = try Self.fetchConversation(conversationID, in: context) else {
+                    return
+                }
+                entity.isPinned = isPinned
+                try context.save()
+            },
+            renameConversation: { @MainActor conversationID, title in
+                let context = ModelContext(modelContainer)
+                guard let entity = try Self.fetchConversation(conversationID, in: context) else {
+                    return
+                }
+                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                entity.title = trimmed
+                try context.save()
             }
         )
     }
@@ -143,7 +175,8 @@ extension ChatHistoryClient {
             id: entity.id,
             title: entity.title,
             createdAt: entity.createdAt,
-            updatedAt: entity.updatedAt
+            updatedAt: entity.updatedAt,
+            isPinned: entity.isPinned
         )
     }
 

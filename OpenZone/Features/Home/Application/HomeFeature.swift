@@ -21,6 +21,20 @@ struct HomeFeature {
         /// most-recently-updated first. Loaded when the sidebar opens.
         var conversations: [ChatConversation] = []
 
+        /// Live text in the sidebar history search field. Filters the history
+        /// list by title, case-insensitively. Empty means show everything.
+        var historySearchQuery: String = ""
+
+        /// Conversations after applying the history search filter. Pinned-first
+        /// ordering from the client is preserved; sectioning happens in the view.
+        var filteredConversations: [ChatConversation] {
+            let query = historySearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !query.isEmpty else { return conversations }
+            return conversations.filter {
+                $0.title.localizedCaseInsensitiveContains(query)
+            }
+        }
+
         /// The selected provider id, mirrored from the preference store. Defaults
         /// to the catalog default until the user (or a stored preference) sets it.
         var selectedProviderID: String = ChatProvider.default.id
@@ -108,6 +122,10 @@ struct HomeFeature {
         case sidebarDismissed
         case conversationsLoaded([ChatConversation])
         case conversationSelected(ChatConversation)
+        case historySearchQueryChanged(String)
+        case conversationPinToggled(ChatConversation)
+        case conversationRenamed(id: UUID, title: String)
+        case conversationDeleted(UUID)
         case composerModelSelected(String)
         case reasoningLevelSelected(HomeComposerReasoningLevel)
         case speedModeSelected(HomeComposerSpeedMode)
@@ -158,6 +176,60 @@ struct HomeFeature {
                 // streaming reducer for the next turn.
                 state.isSidebarVisible = false
                 return .send(.chat(.reopenConversation(conversation)))
+
+            case let .historySearchQueryChanged(query):
+                // Filtering is synchronous over the already-loaded list, so the
+                // field just mirrors into state; `filteredConversations` derives
+                // the visible set. No debounce needed for a local title filter.
+                state.historySearchQuery = query
+                return .none
+
+            case let .conversationPinToggled(conversation):
+                // Optimistically flip the flag in state so the row reorders
+                // immediately, then persist and reload to get the authoritative
+                // pinned-first ordering back from the client.
+                let history = self.chatHistory
+                let newValue = !conversation.isPinned
+                let id = conversation.id
+                return .run { send in
+                    try? await history.setPinned(id, newValue)
+                    let conversations = (try? await history.listConversations()) ?? []
+                    await send(.conversationsLoaded(conversations))
+                }
+
+            case let .conversationRenamed(id, title):
+                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return .none }
+                let history = self.chatHistory
+                // Keep the open conversation's title in sync if it was renamed.
+                if state.chat.conversation?.id == id {
+                    state.chat.conversation?.title = trimmed
+                }
+                return .run { send in
+                    try? await history.renameConversation(id, trimmed)
+                    let conversations = (try? await history.listConversations()) ?? []
+                    await send(.conversationsLoaded(conversations))
+                }
+
+            case let .conversationDeleted(id):
+                let history = self.chatHistory
+                // If the deleted conversation is the one on screen, clear the
+                // active chat so the user isn't left viewing a gone thread.
+                if state.chat.conversation?.id == id {
+                    return .merge(
+                        .send(.chat(.clearActiveConversation)),
+                        .run { send in
+                            try? await history.deleteConversation(id)
+                            let conversations = (try? await history.listConversations()) ?? []
+                            await send(.conversationsLoaded(conversations))
+                        }
+                    )
+                }
+                return .run { send in
+                    try? await history.deleteConversation(id)
+                    let conversations = (try? await history.listConversations()) ?? []
+                    await send(.conversationsLoaded(conversations))
+                }
 
             case let .composerModelSelected(modelID):
                 // The preference store is the single source of truth: persist the
