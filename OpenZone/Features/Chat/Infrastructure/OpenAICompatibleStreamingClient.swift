@@ -2,7 +2,7 @@ import Foundation
 
 /// An OpenAI-compatible, provider-agnostic streaming chat client.
 ///
-/// Parameterized by a `ChatProvider` descriptor plus a `ChatCredentialProvider`,
+/// Parameterized by a `AIProviderAPI` descriptor plus a `AIProviderCredentialAPI`,
 /// this single client serves OpenRouter and any other OpenAI-shaped backend. It
 /// conforms to the existing `ChatAPIClientProtocol` seam, so the reducer and UI
 /// never learn which provider is behind them.
@@ -10,17 +10,17 @@ import Foundation
 /// Wire behavior:
 ///   - POSTs an OpenAI `chat/completions` request with `stream: true`;
 ///   - resolves the secret at request time (never captured at construction);
-///   - decodes the SSE byte stream with the generic `ServerSentEventsLineDecoder`;
+///   - decodes the SSE byte stream with the generic `AIProviderSSEDecoder`;
 ///   - maps `choices[].delta.content` to `.textDelta`, `delta.reasoning` (and
 ///     `reasoning_content`) to `.thinkingDelta`, the `[DONE]` sentinel to `.done`;
 ///   - maps HTTP 401, non-2xx responses, mid-stream `error` objects, and
 ///     transport failures to `.error`.
 nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Sendable {
-    let credentialProvider: ChatCredentialProvider
+    let credentialProvider: AIProviderCredentialAPI
     let urlSession: URLSession
 
     init(
-        credentialProvider: ChatCredentialProvider,
+        credentialProvider: AIProviderCredentialAPI,
         urlSession: URLSession = .shared
     ) {
         self.credentialProvider = credentialProvider
@@ -63,7 +63,7 @@ nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Senda
                         return
                     }
 
-                    var decoder = ServerSentEventsLineDecoder()
+                    var decoder = AIProviderSSEDecoder()
                     var didEmitDone = false
 
                     for try await line in bytes.lines {
@@ -112,7 +112,7 @@ nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Senda
     // MARK: - Request construction
 
     static func makeURLRequest(
-        provider: ChatProvider,
+        provider: AIProviderAPI,
         secret: String,
         chatRequest: ChatRequest
     ) throws -> URLRequest {

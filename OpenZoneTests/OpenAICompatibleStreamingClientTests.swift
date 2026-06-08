@@ -66,7 +66,7 @@ struct OpenAICompatibleStreamingClientTests {
 
     private func makeClient(secret: String? = "test-key") -> OpenAICompatibleStreamingClient {
         OpenAICompatibleStreamingClient(
-            credentialProvider: ChatCredentialProvider { secret },
+            credentialProvider: AIProviderCredentialAPI { secret },
             urlSession: makeSession()
         )
     }

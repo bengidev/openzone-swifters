@@ -7,8 +7,8 @@ import Foundation
 /// stored value — editing the key takes effect on the next send with no stale
 /// value, and the secret never lives in the request value itself.
 ///
-/// This is a Shared primitive; it names no chat domain types.
-nonisolated struct ChatCredentialProvider: Sendable {
+/// Externals networking primitive; it names no chat domain types.
+nonisolated struct AIProviderCredentialAPI: Sendable {
     /// Returns the current secret, or `nil` when none is available.
     var resolve: @Sendable () -> String?
 
@@ -17,14 +17,14 @@ nonisolated struct ChatCredentialProvider: Sendable {
     }
 }
 
-extension ChatCredentialProvider {
+extension AIProviderCredentialAPI {
     /// Resolves the secret from a `CredentialStore` at request time.
     ///
     /// The store is read on every `resolve()` call, so a key entered or updated
     /// through Settings is picked up on the next send without reconstructing the
     /// client. When no key is stored, `resolve()` returns `nil` and the send path
     /// reports a missing-credential error rather than calling out with no auth.
-    static func keychain(_ store: some CredentialStore) -> ChatCredentialProvider {
-        ChatCredentialProvider { store.secret() }
+    static func keychain(_ store: some CredentialStore) -> AIProviderCredentialAPI {
+        AIProviderCredentialAPI { store.secret() }
     }
 }

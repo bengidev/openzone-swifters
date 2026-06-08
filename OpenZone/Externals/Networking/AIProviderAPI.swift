@@ -8,9 +8,9 @@ import Foundation
 /// parameterized by this descriptor, so adding another OpenAI-compatible
 /// backend is a value, not a new client.
 ///
-/// Lives in Shared because it is feature-neutral infrastructure configuration;
+/// Lives in `Externals/Networking` as feature-neutral infrastructure configuration;
 /// it names no chat domain types.
-nonisolated struct ChatProvider: Equatable, Sendable {
+nonisolated struct AIProviderAPI: Equatable, Sendable {
     /// How the credential is presented on the wire.
     enum AuthScheme: Equatable, Sendable {
         /// `Authorization: Bearer <token>`.
@@ -55,11 +55,11 @@ nonisolated struct ChatProvider: Equatable, Sendable {
     }
 }
 
-extension ChatProvider {
+extension AIProviderAPI {
     /// OpenRouter, configured with bearer auth and recommended attribution
     /// headers. The attribution headers identify the app to OpenRouter and are
     /// safe to commit (they carry no secret).
-    static let openRouter = ChatProvider(
+    static let openRouter = AIProviderAPI(
         id: "openrouter",
         displayName: "OpenRouter",
         baseURL: URL(string: "https://openrouter.ai/api/v1")!,
@@ -72,15 +72,15 @@ extension ChatProvider {
 
     /// Every provider the app knows how to address. Adding an OpenAI-compatible
     /// backend is a value appended here, not a new client.
-    static let all: [ChatProvider] = [.openRouter]
+    static let all: [AIProviderAPI] = [.openRouter]
 
     /// The provider used when no preference has been stored yet.
-    static let `default`: ChatProvider = .openRouter
+    static let `default`: AIProviderAPI = .openRouter
 
     /// Resolves a stored provider id to its descriptor, falling back to the
     /// default when the id is unknown or absent (e.g. a stale persisted id from
     /// a removed provider).
-    static func resolve(id: String?) -> ChatProvider {
+    static func resolve(id: String?) -> AIProviderAPI {
         guard let id else { return .default }
         return all.first { $0.id == id } ?? .default
     }
