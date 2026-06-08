@@ -9,6 +9,7 @@ nonisolated private enum ChatStreamingCancelID: Hashable, Sendable {
 struct ChatFeature {
   @Dependency(ChatAPIClient.self) private var apiClient
   @Dependency(ProviderPreferenceClient.self) private var providerPreference
+  @Dependency(ChatHistoryClient.self) private var history
   @Dependency(\.date.now) private var now
   @Dependency(\.uuid) private var uuid
 
@@ -38,6 +39,11 @@ struct ChatFeature {
     case streamingEvent(ChatStreamingEvent)
     case streamFailed(String)
     case streamCompleted
+    /// Reopen a persisted conversation from the sidebar. Cancels any in-flight
+    /// stream, swaps in the selected conversation, and triggers a message load.
+    case reopenConversation(ChatConversation)
+    /// Restored messages for a reopened conversation are folded into state.
+    case messagesRestored([ChatMessage])
   }
 
   var body: some Reducer<State, Action> {
@@ -99,12 +105,27 @@ struct ChatFeature {
         )
         let stream = apiClient.stream(request)
 
-        return .run { send in
-          for await event in stream {
-            await send(.streamingEvent(event))
+        // Persist at the turn boundary: the conversation metadata and the user
+        // message are durable the moment send fires. The assistant message is
+        // persisted later, once, in `.done` — never per-delta and never on a
+        // failed/killed turn. We merge the persistence effect with streaming so
+        // a write never blocks token delivery.
+        let conversationToPersist = state.conversation
+        let history = self.history
+        return .merge(
+          .run { _ in
+            if let conversation = conversationToPersist {
+              try? await history.saveConversation(conversation)
+              try? await history.appendMessage(conversation.id, userMessage)
+            }
+          },
+          .run { send in
+            for await event in stream {
+              await send(.streamingEvent(event))
+            }
           }
-        }
-        .cancellable(id: ChatStreamingCancelID.streaming, cancelInFlight: true)
+          .cancellable(id: ChatStreamingCancelID.streaming, cancelInFlight: true)
+        )
 
       case let .streamingEvent(event):
         switch event {
@@ -175,13 +196,43 @@ struct ChatFeature {
             textMessage.isComplete = true
             state.messages[index] = .text(textMessage)
           }
+
+          // Persist the assistant's finalized output exactly once, at the turn
+          // boundary. Only completed rows are written — a failed/killed turn
+          // routes through `.error` and never reaches here, so partial
+          // assistant text is never persisted. The user message was already
+          // durable from the send path.
+          let conversationID = state.conversation?.id
+          let updatedConversation = state.conversation
+          let finalizedMessages: [ChatMessage] = [
+            state.streamingThinkingID,
+            state.streamingAnswerID
+          ]
+          .compactMap { id in
+            guard let id else { return nil }
+            return state.messages.first(where: { $0.id == id })
+          }
+          let history = self.history
+
           state.currentPartialText = ""
           state.currentPartialThinking = ""
           state.streamingThinkingID = nil
           state.streamingAnswerID = nil
           state.streamingStatus = .done
           state.isSending = false
-          return .send(.streamCompleted)
+
+          return .merge(
+            .run { _ in
+              guard let conversationID else { return }
+              if let updatedConversation {
+                try? await history.saveConversation(updatedConversation)
+              }
+              for message in finalizedMessages {
+                try? await history.appendMessage(conversationID, message)
+              }
+            },
+            .send(.streamCompleted)
+          )
 
         case let .error(streamError):
           state.streamingStatus = .failed
@@ -197,6 +248,36 @@ struct ChatFeature {
         return .none
 
       case .streamCompleted, .streamFailed:
+        return .none
+
+      case let .reopenConversation(conversation):
+        // Swap in the selected conversation and clear all transient streaming
+        // state. Any in-flight stream is cancelled so a reopened conversation
+        // never receives deltas belonging to the previous one. Messages are
+        // loaded asynchronously and folded in via `.messagesRestored`.
+        state.conversation = conversation
+        state.messages = []
+        state.draftMessage = ""
+        state.isSending = false
+        state.streamingStatus = .idle
+        state.currentPartialText = ""
+        state.currentPartialThinking = ""
+        state.streamErrorMessage = nil
+        state.streamingThinkingID = nil
+        state.streamingAnswerID = nil
+
+        let history = self.history
+        let conversationID = conversation.id
+        return .concatenate(
+          .cancel(id: ChatStreamingCancelID.streaming),
+          .run { send in
+            let restored = (try? await history.loadMessages(conversationID)) ?? []
+            await send(.messagesRestored(restored))
+          }
+        )
+
+      case let .messagesRestored(messages):
+        state.messages = messages
         return .none
       }
     }

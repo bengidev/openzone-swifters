@@ -22,15 +22,25 @@ struct OpenZoneApp: App {
         self.modelContainer = modelContainer
         _store = State(
             initialValue: Store(initialState: AppFeature.State()) {
-                AppFeature(onboardingPersistence: .live(modelContainer: modelContainer))
+                AppFeature(
+                    onboardingPersistence: .live(modelContainer: modelContainer),
+                    chatHistory: .live(modelContainer: modelContainer)
+                )
             }
         )
     }
 
     private static func makeModelContainer() -> ModelContainer {
+        // Schema is extended additively: the two chat-history entities are
+        // added and the dead template stub (`Item`) is dropped. SwiftData
+        // performs a lightweight automatic migration of the existing on-disk
+        // store on first launch — adding the new entities and ignoring the
+        // removed one — which is exercised by the migration test against a
+        // pre-populated store.
         let schema = Schema([
-            Item.self,
-            OnboardingProgressEntity.self
+            OnboardingProgressEntity.self,
+            ChatConversationEntity.self,
+            ChatMessageEntity.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

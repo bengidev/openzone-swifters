@@ -40,6 +40,8 @@ struct HomeView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityHidden(store.isSidebarVisible)
+
+                ChatHistorySidebarView(store: store)
             }
             .contentShape(Rectangle())
             .simultaneousGesture(sidebarSwipeGesture(in: proxy.size))
