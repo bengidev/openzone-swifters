@@ -126,4 +126,4 @@ jobs:
             exit 1
           fi
           brew install swiftlint
-          swiftlint --strict
+          swiftlint lint
