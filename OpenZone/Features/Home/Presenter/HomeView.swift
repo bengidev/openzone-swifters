@@ -78,6 +78,9 @@ struct HomeView: View {
                     dismissComposerKeyboard()
                 }
 
+            ChatErrorBannerView(store: store.scope(state: \.chat, action: \.chat))
+                .animation(.easeInOut(duration: 0.2), value: store.chat.streamingStatus)
+
             HomeComposerView(
                 store: store,
                 isComposerFocused: $isComposerFocused
