@@ -7,6 +7,7 @@ struct HomeFeature {
     @Dependency(CredentialStoreClient.self) private var credentialStore
     @Dependency(ProviderPreferenceClient.self) private var providerPreference
     @Dependency(ModelCatalogClient.self) private var modelCatalog
+    @Dependency(ChatHistoryClient.self) private var chatHistory
     @Dependency(\.continuousClock) private var clock
 
     private nonisolated enum CancelID: Hashable, Sendable { case searchDebounce }
@@ -15,6 +16,10 @@ struct HomeFeature {
     struct State: Equatable {
         var chat = ChatFeature.State()
         var isSidebarVisible = false
+
+        /// Persisted conversation history shown in the sidebar drawer,
+        /// most-recently-updated first. Loaded when the sidebar opens.
+        var conversations: [ChatConversation] = []
 
         /// The selected provider id, mirrored from the preference store. Defaults
         /// to the catalog default until the user (or a stored preference) sets it.
@@ -101,6 +106,8 @@ struct HomeFeature {
         case attachmentTapped
         case sidebarToggleTapped
         case sidebarDismissed
+        case conversationsLoaded([ChatConversation])
+        case conversationSelected(ChatConversation)
         case composerModelSelected(String)
         case reasoningLevelSelected(HomeComposerReasoningLevel)
         case speedModeSelected(HomeComposerSpeedMode)
@@ -128,11 +135,29 @@ struct HomeFeature {
 
             case .sidebarToggleTapped:
                 state.isSidebarVisible.toggle()
-                return .none
+                // Refresh the history list each time the drawer opens so newly
+                // persisted conversations appear without an app relaunch.
+                guard state.isSidebarVisible else { return .none }
+                let history = self.chatHistory
+                return .run { send in
+                    let conversations = (try? await history.listConversations()) ?? []
+                    await send(.conversationsLoaded(conversations))
+                }
 
             case .sidebarDismissed:
                 state.isSidebarVisible = false
                 return .none
+
+            case let .conversationsLoaded(conversations):
+                state.conversations = conversations
+                return .none
+
+            case let .conversationSelected(conversation):
+                // Close the drawer and hand off to the chat reducer, which
+                // restores the persisted messages and continues in the same
+                // streaming reducer for the next turn.
+                state.isSidebarVisible = false
+                return .send(.chat(.reopenConversation(conversation)))
 
             case let .composerModelSelected(modelID):
                 // The preference store is the single source of truth: persist the

@@ -24,9 +24,14 @@ struct AppFeature {
     }
 
     let onboardingPersistence: OnboardingPersistenceClient
+    let chatHistory: ChatHistoryClient
 
-    init(onboardingPersistence: OnboardingPersistenceClient = .preview) {
+    init(
+        onboardingPersistence: OnboardingPersistenceClient = .preview,
+        chatHistory: ChatHistoryClient = .testValue
+    ) {
         self.onboardingPersistence = onboardingPersistence
+        self.chatHistory = chatHistory
     }
 
     var body: some Reducer<State, Action> {
@@ -36,5 +41,6 @@ struct AppFeature {
         Scope(state: \.home, action: \.home) {
             HomeFeature()
         }
+        .dependency(\.chatHistoryClient, chatHistory)
     }
 }
