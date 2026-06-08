@@ -24,4 +24,4 @@ The app shell owns entry-point wiring, global routing, SwiftData `ModelContainer
 ## Boundaries
 
 - Do not put feature-specific domain language or reducers in the shell beyond `AppFeature` orchestration.
-- Shared UI comes from `OpenZone/Shared`; feature UI from each feature's `Presenter/`.
+- Shared theme and UI come from `OpenZone/Shared` (`Theme/`, `UI/`); external adapters from `OpenZone/Externals/`; feature UI from each feature's `Presenter/`.
