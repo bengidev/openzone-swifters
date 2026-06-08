@@ -30,7 +30,7 @@ struct ChatHistoryReducerTests {
     private func appendedKinds(_ recorder: Recorder) async -> [String] {
         await recorder.appended.map {
             switch $0.message {
-            case .text(let p): return p.role == .user ? "user" : "assistant"
+            case .text(let payload): return payload.role == .user ? "user" : "assistant"
             case .thinking: return "thinking"
             case .system: return "system"
             }
