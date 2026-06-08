@@ -149,6 +149,8 @@ struct HomeFeature {
                 return .none
 
             case let .reasoningLevelSelected(level):
+                // Persist to the single source of truth, then mirror into state.
+                providerPreference.setReasoningLevel(level)
                 state.reasoningLevel = level
                 return .none
 
@@ -163,6 +165,7 @@ struct HomeFeature {
                 let preference = providerPreference.preference()
                 state.selectedProviderID = preference.providerID ?? ChatProvider.default.id
                 state.selectedModelID = preference.modelID
+                state.reasoningLevel = preference.reasoningLevel
 
                 // Load the model catalog. The effect resolves the provider and
                 // secret at call time so the result is always up to date.
@@ -209,7 +212,17 @@ struct HomeFeature {
                 return .none
 
             case .settingsButtonTapped:
-                state.settings = SettingsFeature.State(hasStoredKey: credentialStore.secret() != nil)
+                state.settings = SettingsFeature.State(
+                    hasStoredKey: credentialStore.secret() != nil,
+                    reasoningLevel: state.reasoningLevel,
+                    modelSupportsReasoning: state.selectedModelOption?.supportsReasoning == true
+                )
+                return .none
+
+            case .settings(.presented(.reasoningLevelSelected)):
+                // The sheet wrote the level to the shared store; re-read it so
+                // the composer chip reflects the change immediately on dismiss.
+                state.reasoningLevel = providerPreference.preference().reasoningLevel
                 return .none
 
             case .settings(.presented(.saveTapped)),

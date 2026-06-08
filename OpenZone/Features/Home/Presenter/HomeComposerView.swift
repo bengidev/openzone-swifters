@@ -124,27 +124,29 @@ private struct HomeComposerContextRail: View {
                 }
                 .accessibilityLabel("Model, \(store.selectedModelOption?.title ?? "none selected")")
 
-                HomeComposerMenuChip(
-                    title: store.reasoningLevel.title,
-                    systemImage: "circle.hexagongrid",
-                    minWidth: 92,
-                    dismissKeyboard: dismissKeyboard
-                ) {
-                    Section("Reasoning") {
-                        ForEach(HomeComposerReasoningLevel.allCases) { level in
-                            Button {
-                                dismissKeyboard()
-                                store.send(.reasoningLevelSelected(level))
-                            } label: {
-                                Label(
-                                    level.title,
-                                    systemImage: store.reasoningLevel == level ? "checkmark" : "circle"
-                                )
+                if store.selectedModelOption?.supportsReasoning == true {
+                    HomeComposerMenuChip(
+                        title: store.reasoningLevel.title,
+                        systemImage: "circle.hexagongrid",
+                        minWidth: 92,
+                        dismissKeyboard: dismissKeyboard
+                    ) {
+                        Section("Reasoning") {
+                            ForEach(HomeComposerReasoningLevel.allCases) { level in
+                                Button {
+                                    dismissKeyboard()
+                                    store.send(.reasoningLevelSelected(level))
+                                } label: {
+                                    Label(
+                                        level.title,
+                                        systemImage: store.reasoningLevel == level ? "checkmark" : "circle"
+                                    )
+                                }
                             }
                         }
                     }
+                    .accessibilityLabel("Reasoning, \(store.reasoningLevel.title)")
                 }
-                .accessibilityLabel("Reasoning, \(store.reasoningLevel.title)")
             }
             .layoutPriority(1)
 

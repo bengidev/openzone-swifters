@@ -94,7 +94,8 @@ struct ChatFeature {
           conversationID: conversationID,
           messages: state.messages,
           provider: ChatProvider.resolve(id: preference.providerID),
-          modelID: modelID
+          modelID: modelID,
+          reasoningEffort: preference.reasoningLevel.effort
         )
         let stream = apiClient.stream(request)
 

@@ -13,10 +13,18 @@ nonisolated struct ProviderPreference: Equatable, Sendable {
     /// Dynamic model identifier (e.g. `"meta-llama/llama-3.3-70b-instruct:free"`).
     /// `nil` until a model is selected; send is gated until this is set.
     var modelID: String?
+    /// Persisted reasoning effort tier. Defaults to `.high` so a capable model
+    /// reasons by default; persists across launches once the user changes it.
+    var reasoningLevel: ReasoningLevel
 
-    init(providerID: String? = nil, modelID: String? = nil) {
+    init(
+        providerID: String? = nil,
+        modelID: String? = nil,
+        reasoningLevel: ReasoningLevel = .high
+    ) {
         self.providerID = providerID
         self.modelID = modelID
+        self.reasoningLevel = reasoningLevel
     }
 }
 
@@ -60,6 +68,8 @@ nonisolated protocol ProviderPreferenceStore: Sendable {
     func setProviderID(_ providerID: String?)
     /// Persists the selected model id.
     func setModelID(_ modelID: String?)
+    /// Persists the selected reasoning effort tier.
+    func setReasoningLevel(_ level: ReasoningLevel)
     /// The cached model catalog, or `nil` when none has been stored.
     func cachedCatalog() -> CachedModelCatalog?
     /// Persists (or clears, when `nil`) the cached model catalog.
@@ -85,6 +95,7 @@ nonisolated struct UserDefaultsProviderPreferenceStore: ProviderPreferenceStore 
     private enum Key {
         static let providerID = "openzone.provider.selectedProviderID"
         static let modelID = "openzone.provider.selectedModelID"
+        static let reasoningLevel = "openzone.provider.reasoningLevel"
         static let cachedCatalog = "openzone.provider.cachedModelCatalog"
     }
 
@@ -99,7 +110,9 @@ nonisolated struct UserDefaultsProviderPreferenceStore: ProviderPreferenceStore 
     func preference() -> ProviderPreference {
         ProviderPreference(
             providerID: nonEmpty(defaults.string(forKey: Key.providerID)),
-            modelID: nonEmpty(defaults.string(forKey: Key.modelID))
+            modelID: nonEmpty(defaults.string(forKey: Key.modelID)),
+            reasoningLevel: ReasoningLevel(rawValue: defaults.string(forKey: Key.reasoningLevel) ?? "")
+                ?? .high
         )
     }
 
@@ -117,6 +130,10 @@ nonisolated struct UserDefaultsProviderPreferenceStore: ProviderPreferenceStore 
         } else {
             defaults.removeObject(forKey: Key.modelID)
         }
+    }
+
+    func setReasoningLevel(_ level: ReasoningLevel) {
+        defaults.set(level.rawValue, forKey: Key.reasoningLevel)
     }
 
     func cachedCatalog() -> CachedModelCatalog? {
@@ -177,6 +194,12 @@ nonisolated final class InMemoryProviderPreferenceStore: ProviderPreferenceStore
         stored.modelID = modelID
     }
 
+    func setReasoningLevel(_ level: ReasoningLevel) {
+        lock.lock()
+        defer { lock.unlock() }
+        stored.reasoningLevel = level
+    }
+
     func cachedCatalog() -> CachedModelCatalog? {
         lock.lock()
         defer { lock.unlock() }
@@ -200,6 +223,7 @@ nonisolated struct ProviderPreferenceClient: Sendable {
     var preference: @Sendable () -> ProviderPreference
     var setProviderID: @Sendable (String?) -> Void
     var setModelID: @Sendable (String?) -> Void
+    var setReasoningLevel: @Sendable (ReasoningLevel) -> Void
     var cachedCatalog: @Sendable () -> CachedModelCatalog?
     var setCachedCatalog: @Sendable (CachedModelCatalog?) -> Void
 }
@@ -210,6 +234,7 @@ extension ProviderPreferenceClient {
             preference: { store.preference() },
             setProviderID: { store.setProviderID($0) },
             setModelID: { store.setModelID($0) },
+            setReasoningLevel: { store.setReasoningLevel($0) },
             cachedCatalog: { store.cachedCatalog() },
             setCachedCatalog: { store.setCachedCatalog($0) }
         )

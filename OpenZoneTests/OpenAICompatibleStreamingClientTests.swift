@@ -240,4 +240,45 @@ struct OpenAICompatibleStreamingClientTests {
         #expect(messages?.first?["role"] as? String == "user")
         #expect(messages?.first?["content"] as? String == "Hello")
     }
+
+    // MARK: - Reasoning effort (Slice 5)
+
+    private func reasoningRequest(effort: String?) -> ChatRequest {
+        ChatRequest(
+            conversationID: UUID(),
+            messages: [.text(role: .user, content: "Hello")],
+            provider: .openRouter,
+            modelID: "deepseek/deepseek-r1:free",
+            reasoningEffort: effort
+        )
+    }
+
+    private func bodyJSON(for request: ChatRequest) async -> [String: Any]? {
+        let sse = "data: [DONE]\n\n"
+        StubURLProtocol.stub = .init(statusCode: 200, body: Data(sse.utf8), headers: [:])
+        _ = await collect(makeClient().stream(request: request))
+        guard let body = StubURLProtocol.lastRequestBody else { return nil }
+        return try? JSONSerialization.jsonObject(with: body) as? [String: Any]
+    }
+
+    @Test("A selected effort emits reasoning.effort on the wire")
+    func emitsReasoningEffort() async {
+        guard let json = await bodyJSON(for: reasoningRequest(effort: "high")) else {
+            Issue.record("Expected a JSON request body")
+            return
+        }
+        let reasoning = json["reasoning"] as? [String: Any]
+        #expect(reasoning?["effort"] as? String == "high")
+    }
+
+    @Test("No selected effort omits the reasoning parameter entirely")
+    func omitsReasoningWhenNil() async {
+        guard let json = await bodyJSON(for: reasoningRequest(effort: nil)) else {
+            Issue.record("Expected a JSON request body")
+            return
+        }
+        #expect(json["reasoning"] == nil)
+        #expect(json["model"] as? String == "deepseek/deepseek-r1:free")
+        #expect(json["stream"] as? Bool == true)
+    }
 }
