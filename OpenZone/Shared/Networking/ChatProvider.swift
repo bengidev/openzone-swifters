@@ -47,6 +47,12 @@ nonisolated struct ChatProvider: Equatable, Sendable {
     var chatCompletionsURL: URL {
         baseURL.appendingPathComponent("chat/completions")
     }
+
+    /// The models-catalog endpoint derived from the base URL. OpenAI-compatible
+    /// backends expose the catalog at `GET {base}/models`.
+    var modelsURL: URL {
+        baseURL.appendingPathComponent("models")
+    }
 }
 
 extension ChatProvider {

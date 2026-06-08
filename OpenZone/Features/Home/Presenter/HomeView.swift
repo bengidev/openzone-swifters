@@ -50,6 +50,12 @@ struct HomeView: View {
         ) { settingsStore in
             SettingsView(store: settingsStore)
         }
+        .sheet(isPresented: Binding(
+            get: { store.isModelPopupPresented },
+            set: { store.send(.modelPopupPresented($0)) }
+        )) {
+            HomeModelPopupView(store: store)
+        }
     }
 
     private var chatThreadContent: some View {

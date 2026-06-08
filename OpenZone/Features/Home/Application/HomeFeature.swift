@@ -6,6 +6,10 @@ import Foundation
 struct HomeFeature {
     @Dependency(CredentialStoreClient.self) private var credentialStore
     @Dependency(ProviderPreferenceClient.self) private var providerPreference
+    @Dependency(ModelCatalogClient.self) private var modelCatalog
+    @Dependency(\.continuousClock) private var clock
+
+    private nonisolated enum CancelID: Hashable, Sendable { case searchDebounce }
 
     @ObservableState
     struct State: Equatable {
@@ -29,18 +33,59 @@ struct HomeFeature {
         /// Settings sheet reports a change.
         var hasAPIKey = false
 
+        /// The live catalog loaded by `ModelCatalogClient`. Falls back to the
+        /// curated list (via `availableModels`) when empty.
+        var catalogModels: [ChatModel] = []
+
+        /// Whether the model popup is currently presented.
+        var isModelPopupPresented = false
+
+        /// The raw text in the model search field (bound to the text field,
+        /// updated on every keystroke).
+        var modelSearchQuery: String = ""
+        /// The debounced query that actually drives `filteredModels`. Updated
+        /// 300 ms after the user stops typing.
+        var appliedSearchQuery: String = ""
+
+        /// Whether the free-tier filter is active in the model popup.
+        var modelFilterFreeOnly: Bool = false
+
         /// Presented Settings sheet, when non-nil.
         @Presents var settings: SettingsFeature.State?
 
-        /// The presentation option for the current selection, or `nil` when no
-        /// model is selected or the stored id is not in the catalog.
+        /// The presentation option for the current selection, resolved first
+        /// from the live catalog, then from the curated fallback.
         var selectedModelOption: ChatModelOption? {
-            ChatModelCatalog.option(for: selectedModelID, providerID: selectedProviderID)
+            guard let selectedModelID else { return nil }
+            // Prefer live catalog entry so the richer metadata is shown.
+            if let live = catalogModels.first(where: { $0.id == selectedModelID }) {
+                return ChatModelOption(model: live)
+            }
+            return ChatModelCatalog.option(for: selectedModelID, providerID: selectedProviderID)
         }
 
-        /// Models offered for the current provider, shown in the composer menu.
+        /// Models offered for the current provider, shown in the composer popup.
+        /// Uses the live catalog when available, curated fallback otherwise.
         var availableModels: [ChatModelOption] {
-            ChatModelCatalog.models(for: selectedProviderID)
+            let source = catalogModels.isEmpty
+                ? ChatModel.curatedFallback
+                : catalogModels
+            return source.map { ChatModelOption(model: $0) }
+        }
+
+        /// Subset of `availableModels` filtered by the current popup search
+        /// query and free-only toggle.
+        var filteredModels: [ChatModelOption] {
+            var result = availableModels
+            if modelFilterFreeOnly {
+                result = result.filter { $0.isFree }
+            }
+            let query = appliedSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !query.isEmpty else { return result }
+            return result.filter {
+                $0.title.localizedCaseInsensitiveContains(query)
+                    || $0.id.localizedCaseInsensitiveContains(query)
+            }
         }
 
         /// Whether a model has been selected. Send is gated on this in addition
@@ -60,6 +105,11 @@ struct HomeFeature {
         case reasoningLevelSelected(HomeComposerReasoningLevel)
         case speedModeSelected(HomeComposerSpeedMode)
         case onAppear
+        case catalogLoaded([ChatModel])
+        case modelPopupPresented(Bool)
+        case modelSearchQueryChanged(String)
+        case searchQueryDebounced(String)
+        case modelFilterFreeOnlyChanged(Bool)
         case settingsButtonTapped
         case settings(PresentationAction<SettingsFeature.Action>)
     }
@@ -91,6 +141,7 @@ struct HomeFeature {
                 providerPreference.setProviderID(state.selectedProviderID)
                 providerPreference.setModelID(modelID)
                 state.selectedModelID = modelID
+                state.isModelPopupPresented = false
                 if let option = state.selectedModelOption,
                    !option.availableSpeedModes.contains(state.speedMode) {
                     state.speedMode = .standard
@@ -112,6 +163,49 @@ struct HomeFeature {
                 let preference = providerPreference.preference()
                 state.selectedProviderID = preference.providerID ?? ChatProvider.default.id
                 state.selectedModelID = preference.modelID
+
+                // Load the model catalog. The effect resolves the provider and
+                // secret at call time so the result is always up to date.
+                let provider = ChatProvider.resolve(id: state.selectedProviderID)
+                let secret = credentialStore.secret()
+                let preferenceClient = providerPreference
+                let catalogClient = modelCatalog
+                return .run { send in
+                    let models = await catalogClient.listModels(provider, secret, preferenceClient, .shared)
+                    await send(.catalogLoaded(models))
+                }
+
+            case let .catalogLoaded(models):
+                state.catalogModels = models
+                return .none
+
+            case let .modelPopupPresented(isPresented):
+                state.isModelPopupPresented = isPresented
+                if isPresented {
+                    // Reset search/filter whenever the popup opens.
+                    state.modelSearchQuery = ""
+                    state.appliedSearchQuery = ""
+                    state.modelFilterFreeOnly = false
+                }
+                return .none
+
+            case let .modelSearchQueryChanged(query):
+                // Update the field binding immediately for responsive input,
+                // then schedule a debounced commit to `appliedSearchQuery` so
+                // the filtered list only recomputes after the user pauses.
+                state.modelSearchQuery = query
+                return .run { [clock] send in
+                    try await clock.sleep(for: .milliseconds(300))
+                    await send(.searchQueryDebounced(query))
+                }
+                .cancellable(id: CancelID.searchDebounce, cancelInFlight: true)
+
+            case let .searchQueryDebounced(query):
+                state.appliedSearchQuery = query
+                return .none
+
+            case let .modelFilterFreeOnlyChanged(freeOnly):
+                state.modelFilterFreeOnly = freeOnly
                 return .none
 
             case .settingsButtonTapped:

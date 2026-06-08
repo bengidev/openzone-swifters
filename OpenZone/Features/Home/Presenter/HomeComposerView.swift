@@ -115,25 +115,12 @@ private struct HomeComposerContextRail: View {
     var body: some View {
         HStack(spacing: 8) {
             HStack(spacing: 8) {
-                HomeComposerMenuChip(
+                HomeComposerModelButton(
                     title: store.selectedModelOption?.title ?? "Select model",
-                    systemImage: "sparkles",
-                    minWidth: 104,
                     dismissKeyboard: dismissKeyboard
                 ) {
-                    Section("Model") {
-                        ForEach(store.availableModels) { model in
-                            Button {
-                                dismissKeyboard()
-                                store.send(.composerModelSelected(model.id))
-                            } label: {
-                                Label(
-                                    model.title,
-                                    systemImage: store.selectedModelID == model.id ? "checkmark" : "circle"
-                                )
-                            }
-                        }
-                    }
+                    dismissKeyboard()
+                    store.send(.modelPopupPresented(true))
                 }
                 .accessibilityLabel("Model, \(store.selectedModelOption?.title ?? "none selected")")
 
@@ -502,5 +489,46 @@ private struct HomeComposerGlassChrome: ViewModifier {
 private extension View {
     func homeComposerGlass(cornerRadius: CGFloat, shadowOpacity: Double) -> some View {
         modifier(HomeComposerGlassChrome(cornerRadius: cornerRadius, shadowOpacity: shadowOpacity))
+    }
+}
+
+/// A plain button that visually matches `HomeComposerMenuChip` but fires a
+/// tap action instead of presenting a menu — used for the model chip which
+/// opens the full-screen model popup.
+private struct HomeComposerModelButton: View {
+    let title: String
+    let dismissKeyboard: () -> Void
+    let action: () -> Void
+
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 12, weight: .semibold))
+                    .accessibilityHidden(true)
+
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(palette.textSecondary)
+            .frame(minWidth: 104)
+            .frame(height: 30)
+            .padding(.horizontal, 10)
+            .homeComposerGlass(cornerRadius: 16, shadowOpacity: 0.06)
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                dismissKeyboard()
+            }
+        )
     }
 }
