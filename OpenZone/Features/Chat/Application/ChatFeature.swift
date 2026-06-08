@@ -49,6 +49,9 @@ struct ChatFeature {
     case reopenConversation(ChatConversation)
     /// Restored messages for a reopened conversation are folded into state.
     case messagesRestored([ChatMessage])
+    /// Clear the active conversation and message thread (e.g. the open
+    /// conversation was deleted from history). Cancels any in-flight stream.
+    case clearActiveConversation
   }
 
   var body: some Reducer<State, Action> {
@@ -327,6 +330,19 @@ struct ChatFeature {
       case let .messagesRestored(messages):
         state.messages = messages
         return .none
+
+      case .clearActiveConversation:
+        state.conversation = nil
+        state.messages = []
+        state.draftMessage = ""
+        state.isSending = false
+        state.streamingStatus = .idle
+        state.currentPartialText = ""
+        state.currentPartialThinking = ""
+        state.streamErrorMessage = nil
+        state.streamingThinkingID = nil
+        state.streamingAnswerID = nil
+        return .cancel(id: ChatStreamingCancelID.streaming)
       }
     }
   }

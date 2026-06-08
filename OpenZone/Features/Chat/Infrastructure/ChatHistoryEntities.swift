@@ -21,6 +21,9 @@ final class ChatConversationEntity {
     var title: String
     var createdAt: Date
     var updatedAt: Date
+    /// Whether the user pinned this conversation to the top of history.
+    /// Additive field — defaults to false so existing stores migrate cleanly.
+    var isPinned: Bool = false
 
     /// Owned messages. Deleting a conversation cascades to its messages so the
     /// store never accumulates orphaned rows.
@@ -32,12 +35,14 @@ final class ChatConversationEntity {
         title: String,
         createdAt: Date,
         updatedAt: Date,
+        isPinned: Bool = false,
         messages: [ChatMessageEntity] = []
     ) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.isPinned = isPinned
         self.messages = messages
     }
 }
