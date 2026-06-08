@@ -39,6 +39,11 @@ struct ChatFeature {
     case streamingEvent(ChatStreamingEvent)
     case streamFailed(String)
     case streamCompleted
+    /// User tapped Retry on the failure banner — re-issue the request for the
+    /// last user message without appending a new one.
+    case retryTapped
+    /// User dismissed the failure banner.
+    case errorDismissed
     /// Reopen a persisted conversation from the sidebar. Cancels any in-flight
     /// stream, swaps in the selected conversation, and triggers a message load.
     case reopenConversation(ChatConversation)
@@ -249,6 +254,49 @@ struct ChatFeature {
 
       case .streamCompleted, .streamFailed:
         return .none
+
+      case .errorDismissed:
+        state.streamErrorMessage = nil
+        if state.streamingStatus == .failed {
+          state.streamingStatus = .idle
+        }
+        return .none
+
+      case .retryTapped:
+        // Re-issue the request for the conversation as it already stands — the
+        // last user message is still in `state.messages` from the failed turn,
+        // so we do NOT append a new one. Send remains gated on a selected model.
+        let preference = providerPreference.preference()
+        guard !state.isSending,
+              let modelID = preference.modelID,
+              !state.messages.isEmpty else {
+          return .none
+        }
+
+        state.isSending = true
+        state.streamingStatus = .running
+        state.currentPartialText = ""
+        state.currentPartialThinking = ""
+        state.streamErrorMessage = nil
+        state.streamingThinkingID = nil
+        state.streamingAnswerID = nil
+
+        let conversationID = state.conversation?.id ?? uuid()
+        let request = ChatRequest(
+          conversationID: conversationID,
+          messages: state.messages,
+          provider: ChatProvider.resolve(id: preference.providerID),
+          modelID: modelID,
+          reasoningEffort: preference.reasoningLevel.effort
+        )
+        let stream = apiClient.stream(request)
+
+        return .run { send in
+          for await event in stream {
+            await send(.streamingEvent(event))
+          }
+        }
+        .cancellable(id: ChatStreamingCancelID.streaming, cancelInFlight: true)
 
       case let .reopenConversation(conversation):
         // Swap in the selected conversation and clear all transient streaming
