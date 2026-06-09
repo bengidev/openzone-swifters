@@ -5,10 +5,13 @@ import SwiftUI
 /// Pinned section followed by recency buckets (Today, Yesterday, Previous 7
 /// Days, Previous 30 Days, Older). A search field filters by title; each row
 /// offers a long-press menu to rename, pin/unpin, or delete. Tapping a row
-/// hands off to `HomeFeature`, which reopens the conversation in the chat
-/// reducer. All colors are sourced from the shared palette.
+/// dismisses the drawer and reports selection to the parent via delegate.
+/// All colors are sourced from the shared palette.
 struct ChatHistorySidebarView: View {
-    @Bindable var store: StoreOf<HomeFeature>
+    @Bindable var store: StoreOf<ChatHistoryFeature>
+
+    /// The open conversation id, supplied by the parent for row highlighting.
+    var activeConversationID: UUID?
 
     @Environment(\.palette) private var palette
 
@@ -172,7 +175,8 @@ struct ChatHistorySidebarView: View {
                     Section {
                         ForEach(section.conversations) { conversation in
                             Button {
-                                store.send(.conversationSelected(conversation))
+                                store.send(.sidebarDismissed)
+                                store.send(.delegate(.conversationSelected(conversation)))
                             } label: {
                                 conversationRow(conversation)
                             }
@@ -224,7 +228,7 @@ struct ChatHistorySidebarView: View {
     }
 
     private func conversationRow(_ conversation: ChatConversation) -> some View {
-        let isActive = store.chat.conversation?.id == conversation.id
+        let isActive = activeConversationID == conversation.id
         return HStack(spacing: 8) {
             if conversation.isPinned {
                 Image(systemName: "pin.fill")

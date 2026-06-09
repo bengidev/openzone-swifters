@@ -35,54 +35,68 @@ struct HomeFeatureCredentialTests {
         #expect(store.state.hasAPIKey == true)
     }
 
-    @Test("Tapping settings presents the sheet seeded with stored state")
-    func settingsButtonPresentsSheet() async {
+    @Test("Tapping settings emits a delegate action")
+    func settingsButtonEmitsDelegate() async {
         let store = makeStore(backing: InMemoryCredentialStore(secret: "sk-existing"))
         store.exhaustivity = .off
 
         await store.send(.settingsButtonTapped)
-        #expect(store.state.settings != nil)
-        #expect(store.state.settings?.hasStoredKey == true)
+        await store.receive(\.delegate.openSettings)
     }
 
-    @Test("Saving a key in the sheet opens the send gate")
-    func saveInSheetOpensGate() async {
+    @Test("credentialStoreChanged refreshes the send gate")
+    func credentialStoreChangedRefreshesGate() async {
         let backing = InMemoryCredentialStore()
-        let store = TestStore(
-            initialState: HomeFeature.State(
-                settings: SettingsFeature.State(draftAPIKey: "sk-new")
-            )
-        ) {
-            HomeFeature()
-        } withDependencies: {
-            $0[CredentialStoreClient.self] = .wrap(backing)
-        }
-        store.exhaustivity = .off
-
-        await store.send(.onAppear)
-        #expect(store.state.hasAPIKey == false)
-
-        // The user saves from the open sheet; the parent re-reads the credential
-        // source and opens the send gate.
-        await store.send(.settings(.presented(.saveTapped)))
-
-        #expect(backing.secret() == "sk-new")
-        #expect(store.state.hasAPIKey == true)
-    }
-
-    @Test("Clearing the key in the sheet closes the send gate")
-    func clearInSheetClosesGate() async {
-        let backing = InMemoryCredentialStore(secret: "sk-existing")
         let store = makeStore(backing: backing)
         store.exhaustivity = .off
 
         await store.send(.onAppear)
-        #expect(store.state.hasAPIKey == true)
-
-        await store.send(.settingsButtonTapped)
-        await store.send(.settings(.presented(.clearTapped)))
-
-        #expect(backing.secret() == nil)
         #expect(store.state.hasAPIKey == false)
+
+        try? backing.save(secret: "sk-new")
+        await store.send(.credentialStoreChanged)
+        #expect(store.state.hasAPIKey == true)
+    }
+}
+
+@MainActor
+@Suite("AppFeature Settings Integration")
+struct AppFeatureSettingsTests {
+    @Test("Home settings delegate presents the shell-owned sheet")
+    func settingsDelegatePresentsSheet() async {
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore(secret: "sk-existing"))
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+        }
+        store.exhaustivity = .off
+
+        await store.send(.home(.settingsButtonTapped))
+        await store.receive(\.home.delegate.openSettings)
+        #expect(store.state.settings != nil)
+        #expect(store.state.settings?.hasStoredKey == true)
+    }
+
+    @Test("Saving a key in Settings refreshes the home send gate")
+    func saveInSettingsOpensGate() async {
+        let backing = InMemoryCredentialStore()
+        var state = AppFeature.State()
+        state.settings = SettingsFeature.State(draftAPIKey: "sk-new")
+        let store = TestStore(initialState: state) {
+            AppFeature()
+        } withDependencies: {
+            $0[CredentialStoreClient.self] = .wrap(backing)
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+        }
+        store.exhaustivity = .off
+
+        await store.send(.home(.onAppear))
+        #expect(store.state.home.hasAPIKey == false)
+
+        await store.send(.settings(.presented(.saveTapped)))
+        await store.receive(\.home.credentialStoreChanged)
+        #expect(backing.secret() == "sk-new")
+        #expect(store.state.home.hasAPIKey == true)
     }
 }

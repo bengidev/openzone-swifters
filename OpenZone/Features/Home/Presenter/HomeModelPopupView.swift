@@ -3,9 +3,9 @@ import SwiftUI
 
 /// Full-screen sheet presenting the live model catalog with debounced search
 /// and a free-tier filter. Selecting a model writes to the preference store
-/// (via `HomeFeature`) and dismisses the sheet.
+/// (via `ModelCatalogFeature`) and dismisses the sheet.
 struct HomeModelPopupView: View {
-    @Bindable var store: StoreOf<HomeFeature>
+    @Bindable var store: StoreOf<ModelCatalogFeature>
 
     @Environment(\.palette) private var palette
     @Environment(\.dismiss) private var dismiss
@@ -129,7 +129,7 @@ struct HomeModelPopupView: View {
                                 isSelected: store.selectedModelID == option.id,
                                 palette: palette
                             ) {
-                                store.send(.composerModelSelected(option.id))
+                                store.send(.modelSelected(option.id))
                                 dismiss()
                             }
 

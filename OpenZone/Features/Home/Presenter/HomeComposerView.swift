@@ -39,7 +39,7 @@ private struct HomeComposerPromptPanel: View {
         !store.chat.draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !store.chat.isSending
             && store.hasAPIKey
-            && store.hasSelectedModel
+            && store.catalog.hasSelectedModel
     }
 
     var body: some View {
@@ -116,17 +116,17 @@ private struct HomeComposerContextRail: View {
         HStack(spacing: 8) {
             HStack(spacing: 8) {
                 HomeComposerModelButton(
-                    title: store.selectedModelOption?.title ?? "Select model",
+                    title: store.catalog.selectedModelOption?.title ?? "Select model",
                     dismissKeyboard: dismissKeyboard
                 ) {
                     dismissKeyboard()
-                    store.send(.modelPopupPresented(true))
+                    store.send(.catalog(.modelPopupPresented(true)))
                 }
-                .accessibilityLabel("Model, \(store.selectedModelOption?.title ?? "none selected")")
+                .accessibilityLabel("Model, \(store.catalog.selectedModelOption?.title ?? "none selected")")
 
-                if store.selectedModelOption?.supportsReasoning == true {
+                if store.catalog.selectedModelOption?.supportsReasoning == true {
                     HomeComposerMenuChip(
-                        title: store.reasoningModel.title,
+                        title: store.composer.reasoningModel.title,
                         systemImage: "circle.hexagongrid",
                         minWidth: 92,
                         dismissKeyboard: dismissKeyboard
@@ -135,17 +135,17 @@ private struct HomeComposerContextRail: View {
                             ForEach(HomeComposerReasoningLevel.allCases) { level in
                                 Button {
                                     dismissKeyboard()
-                                    store.send(.reasoningModelSelected(level))
+                                    store.send(.composer(.reasoningModelSelected(level)))
                                 } label: {
                                     Label(
                                         level.title,
-                                        systemImage: store.reasoningModel == level ? "checkmark" : "circle"
+                                        systemImage: store.composer.reasoningModel == level ? "checkmark" : "circle"
                                     )
                                 }
                             }
                         }
                     }
-                    .accessibilityLabel("Reasoning, \(store.reasoningModel.title)")
+                    .accessibilityLabel("Reasoning, \(store.composer.reasoningModel.title)")
                 }
             }
             .layoutPriority(1)
@@ -153,14 +153,14 @@ private struct HomeComposerContextRail: View {
             Spacer(minLength: 8)
 
             HStack(spacing: 8) {
-                if let speedModes = store.selectedModelOption?.availableSpeedModes,
+                if let speedModes = store.catalog.selectedModelOption?.availableSpeedModes,
                    !speedModes.isEmpty {
                     HomeComposerMenuChip(
-                        title: store.speedMode.title,
-                        systemImage: store.speedMode.systemImage,
+                        title: store.composer.speedMode.title,
+                        systemImage: store.composer.speedMode.systemImage,
                         displaysTitle: false,
                         displaysChevron: false,
-                        isSignal: store.speedMode == .fast,
+                        isSignal: store.composer.speedMode == .fast,
                         minWidth: 38,
                         dismissKeyboard: dismissKeyboard
                     ) {
@@ -168,18 +168,18 @@ private struct HomeComposerContextRail: View {
                             ForEach(speedModes) { speedMode in
                                 Button {
                                     dismissKeyboard()
-                                    store.send(.speedModeSelected(speedMode))
+                                    store.send(.composer(.speedModeSelected(speedMode)))
                                 } label: {
                                     Label(speedMode.title, systemImage: speedMode.systemImage)
                                 }
                             }
                         }
                     }
-                    .accessibilityLabel("Speed, \(store.speedMode.title)")
+                    .accessibilityLabel("Speed, \(store.composer.speedMode.title)")
                 }
 
                 HomeComposerContextUsageButton(
-                    usage: store.contextUsage,
+                    usage: store.composer.contextUsage,
                     isPresented: $isContextUsagePresented,
                     dismissKeyboard: dismissKeyboard
                 )
@@ -188,7 +188,7 @@ private struct HomeComposerContextRail: View {
         .padding(.horizontal, 2)
         .overlay(alignment: .bottomTrailing) {
             if isContextUsagePresented {
-                HomeComposerContextUsagePopover(usage: store.contextUsage)
+                HomeComposerContextUsagePopover(usage: store.composer.contextUsage)
                     .offset(x: -2, y: -46)
                     .transition(.opacity)
                     .zIndex(2)

@@ -31,12 +31,6 @@ struct OpenZoneApp: App {
     }
 
     private static func makeModelContainer() -> ModelContainer {
-        // Schema is extended additively: the two chat-history entities are
-        // added and the dead template stub (`Item`) is dropped. SwiftData
-        // performs a lightweight automatic migration of the existing on-disk
-        // store on first launch — adding the new entities and ignoring the
-        // removed one — which is exercised by the migration test against a
-        // pre-populated store.
         let schema = Schema([
             OnboardingProgressEntity.self,
             ChatConversationEntity.self,
@@ -77,27 +71,32 @@ struct OpenZoneApp: App {
             .task {
                 _ = store.send(.onboarding(.onAppear))
             }
+            .sheet(item: $store.scope(state: \.settings, action: \.settings)) { settingsStore in
+                SettingsView(store: settingsStore)
+            }
         }
         .modelContainer(modelContainer)
     }
 }
 
-/// Routes first-time users through onboarding, then shows the app shell.
+/// Routes first-time users through onboarding, then shows the home workspace.
+/// Route state is owned by AppFeature; this view is a thin presenter.
 private struct OpenZoneRootView: View {
     let store: StoreOf<AppFeature>
     let onThemeToggle: () -> Void
 
     var body: some View {
         Group {
-            if store.onboarding.isFinished {
-                HomeView(store: store.scope(state: \.home, action: \.home))
-            } else {
+            switch store.route {
+            case .onboarding:
                 OnboardingView(
                     store: store.scope(state: \.onboarding, action: \.onboarding),
                     onThemeToggle: onThemeToggle
                 )
+            case .home:
+                HomeView(store: store.scope(state: \.home, action: \.home))
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: store.onboarding.isFinished)
+        .animation(.easeInOut(duration: 0.3), value: store.route)
     }
 }

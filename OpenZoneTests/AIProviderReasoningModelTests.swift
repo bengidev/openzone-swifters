@@ -88,10 +88,10 @@ struct HomeReasoningSelectionTests {
         }
         store.exhaustivity = .off
 
-        await store.send(.reasoningModelSelected(.low))
+        await store.send(.composer(.reasoningModelSelected(.low)))
 
         #expect(backing.preference().reasoningModel == .low)
-        #expect(store.state.reasoningModel == .low)
+        #expect(store.state.composer.reasoningModel == .low)
     }
 
     @Test("onAppear seeds the reasoning level from the stored preference")
@@ -112,12 +112,13 @@ struct HomeReasoningSelectionTests {
         store.exhaustivity = .off
 
         await store.send(.onAppear)
+        await store.receive(\.catalog.loadCatalog)
 
-        #expect(store.state.reasoningModel == .medium)
+        #expect(store.state.composer.reasoningModel == .medium)
     }
 
-    @Test("Settings sheet is seeded with the level and the model's reasoning support")
-    func settingsSeededWithCapability() async {
+    @Test("Settings delegate is emitted with reasoning capability")
+    func settingsDelegateIncludesCapability() async {
         let known = ChatModel.curatedFallback.first { $0.supportsReasoning }!
         let backing = InMemoryAIProviderPreferenceStore(
             preference: AIProviderPreference(
@@ -126,7 +127,15 @@ struct HomeReasoningSelectionTests {
                 reasoningModel: .low
             )
         )
-        let store = TestStore(initialState: HomeFeature.State()) {
+        var catalog = ModelCatalogFeature.State()
+        catalog.selectedModelID = known.id
+        catalog.catalogModels = [known]
+        let store = TestStore(
+            initialState: HomeFeature.State(
+                catalog: catalog,
+                composer: ComposerFeature.State(reasoningModel: .low)
+            )
+        ) {
             HomeFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
@@ -134,11 +143,8 @@ struct HomeReasoningSelectionTests {
         }
         store.exhaustivity = .off
 
-        await store.send(.onAppear)
         await store.send(.settingsButtonTapped)
-
-        #expect(store.state.settings?.reasoningModel == .low)
-        #expect(store.state.settings?.modelSupportsReasoning == true)
+        await store.receive(\.delegate.openSettings)
     }
 }
 

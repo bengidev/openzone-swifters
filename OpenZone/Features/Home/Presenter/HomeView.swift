@@ -39,24 +39,24 @@ struct HomeView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .accessibilityHidden(store.isSidebarVisible)
+                .accessibilityHidden(store.history.isSidebarVisible)
 
-                ChatHistorySidebarView(store: store)
+                ChatHistorySidebarView(
+                    store: store.scope(state: \.history, action: \.history),
+                    activeConversationID: store.chat.conversation?.id
+                )
             }
             .contentShape(Rectangle())
             .simultaneousGesture(sidebarSwipeGesture(in: proxy.size))
         }
         .onAppear { store.send(.onAppear) }
-        .sheet(
-            item: $store.scope(state: \.settings, action: \.settings)
-        ) { settingsStore in
-            SettingsView(store: settingsStore)
-        }
         .sheet(isPresented: Binding(
-            get: { store.isModelPopupPresented },
-            set: { store.send(.modelPopupPresented($0)) }
+            get: { store.catalog.isModelPopupPresented },
+            set: { store.send(.catalog(.modelPopupPresented($0))) }
         )) {
-            HomeModelPopupView(store: store)
+            HomeModelPopupView(
+                store: store.scope(state: \.catalog, action: \.catalog)
+            )
         }
     }
 
@@ -91,7 +91,7 @@ struct HomeView: View {
     private var topBar: some View {
         HStack {
             Button {
-                store.send(.sidebarToggleTapped)
+                store.send(.history(.sidebarToggleTapped))
             } label: {
                 Image(systemName: "line.3.horizontal")
                     .font(.system(size: 22, weight: .medium))
@@ -126,15 +126,15 @@ struct HomeView: View {
                 let mostlyHorizontal = abs(translation.width) > abs(translation.height) * 1.4
                 guard mostlyHorizontal else { return }
 
-                if store.isSidebarVisible {
+                if store.history.isSidebarVisible {
                     guard translation.width < -sidebarSwipeThreshold else { return }
-                    store.send(.sidebarDismissed)
+                    store.send(.history(.sidebarDismissed))
                     return
                 }
 
                 let startedAtLeadingEdge = value.startLocation.x <= sidebarSwipeActivationWidth
                 guard startedAtLeadingEdge, translation.width > sidebarSwipeThreshold else { return }
-                store.send(.sidebarToggleTapped)
+                store.send(.history(.sidebarToggleTapped))
             }
     }
 }

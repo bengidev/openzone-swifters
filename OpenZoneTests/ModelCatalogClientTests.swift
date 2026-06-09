@@ -345,46 +345,47 @@ struct HomeFeatureCatalogTests {
         store.exhaustivity = .off
 
         await store.send(.onAppear)
-        await store.receive(\.catalogLoaded) { state in
-            state.catalogModels = expectedModels
+        await store.receive(\.catalog.loadCatalog)
+        await store.receive(\.catalog.catalogLoaded) { state in
+            state.catalog.catalogModels = expectedModels
         }
     }
 
     @Test("filteredModels uses catalog when available")
     func filteredModelsUsesCatalog() async {
         var state = HomeFeature.State()
-        state.catalogModels = [
+        state.catalog.catalogModels = [
             ChatModel(id: "a/free", displayName: "Free Model", isFree: true),
             ChatModel(id: "b/paid", displayName: "Paid Model", isFree: false)
         ]
-        state.appliedSearchQuery = ""
-        state.modelFilterFreeOnly = false
-        #expect(state.filteredModels.count == 2)
+        state.catalog.appliedSearchQuery = ""
+        state.catalog.modelFilterFreeOnly = false
+        #expect(state.catalog.filteredModels.count == 2)
 
-        state.modelFilterFreeOnly = true
-        #expect(state.filteredModels.count == 1)
-        #expect(state.filteredModels.first?.id == "a/free")
+        state.catalog.modelFilterFreeOnly = true
+        #expect(state.catalog.filteredModels.count == 1)
+        #expect(state.catalog.filteredModels.first?.id == "a/free")
     }
 
     @Test("Search query filters by title and id")
     func searchQueryFilters() {
         var state = HomeFeature.State()
-        state.catalogModels = [
+        state.catalog.catalogModels = [
             ChatModel(id: "openai/gpt-4o", displayName: "GPT-4o", isFree: false),
             ChatModel(id: "meta-llama/llama-3.3-70b-instruct:free", displayName: "Llama 3.3 70B", isFree: true)
         ]
-        state.appliedSearchQuery = "llama"
-        #expect(state.filteredModels.count == 1)
-        #expect(state.filteredModels.first?.id == "meta-llama/llama-3.3-70b-instruct:free")
+        state.catalog.appliedSearchQuery = "llama"
+        #expect(state.catalog.filteredModels.count == 1)
+        #expect(state.catalog.filteredModels.first?.id == "meta-llama/llama-3.3-70b-instruct:free")
     }
 
     @Test("Empty catalog falls back to curated list in filteredModels")
     func emptyCatalogFallsBackToCurated() {
         var state = HomeFeature.State()
-        state.catalogModels = []
-        state.appliedSearchQuery = ""
-        state.modelFilterFreeOnly = false
-        #expect(state.filteredModels.count == ChatModel.curatedFallback.count)
+        state.catalog.catalogModels = []
+        state.catalog.appliedSearchQuery = ""
+        state.catalog.modelFilterFreeOnly = false
+        #expect(state.catalog.filteredModels.count == ChatModel.curatedFallback.count)
     }
 
     @Test("modelPopupPresented resets search state")
@@ -392,9 +393,9 @@ struct HomeFeatureCatalogTests {
         // Seed state that already has a search query and filter, so the reset
         // behavior is observable without triggering the debounce effect.
         var initial = HomeFeature.State()
-        initial.modelSearchQuery = "gpt"
-        initial.appliedSearchQuery = "gpt"
-        initial.modelFilterFreeOnly = true
+        initial.catalog.modelSearchQuery = "gpt"
+        initial.catalog.appliedSearchQuery = "gpt"
+        initial.catalog.modelFilterFreeOnly = true
 
         let store = TestStore(initialState: initial) {
             HomeFeature()
@@ -406,12 +407,11 @@ struct HomeFeatureCatalogTests {
         }
         store.exhaustivity = .off
 
-        // Opening the popup resets search query and filter.
-        await store.send(.modelPopupPresented(true)) { state in
-            state.modelSearchQuery = ""
-            state.appliedSearchQuery = ""
-            state.modelFilterFreeOnly = false
-            state.isModelPopupPresented = true
+        await store.send(.catalog(.modelPopupPresented(true))) { state in
+            state.catalog.modelSearchQuery = ""
+            state.catalog.appliedSearchQuery = ""
+            state.catalog.modelFilterFreeOnly = false
+            state.catalog.isModelPopupPresented = true
         }
     }
 
@@ -427,17 +427,15 @@ struct HomeFeatureCatalogTests {
             $0.continuousClock = clock
         }
 
-        await store.send(.modelSearchQueryChanged("llama")) { state in
-            state.modelSearchQuery = "llama"
+        await store.send(.catalog(.modelSearchQueryChanged("llama"))) { state in
+            state.catalog.modelSearchQuery = "llama"
         }
 
-        // Before the debounce window, appliedSearchQuery is still empty.
-        #expect(store.state.appliedSearchQuery.isEmpty)
+        #expect(store.state.catalog.appliedSearchQuery.isEmpty)
 
-        // Advance past the 300 ms window.
         await clock.advance(by: .milliseconds(300))
-        await store.receive(\.searchQueryDebounced) { state in
-            state.appliedSearchQuery = "llama"
+        await store.receive(\.catalog.searchQueryDebounced) { state in
+            state.catalog.appliedSearchQuery = "llama"
         }
     }
 }

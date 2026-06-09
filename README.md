@@ -48,16 +48,27 @@ Select a simulator/device and press **⌘R**.
 
 ```
 OpenZone/
-├── OpenZoneApp.swift          # App entry, routing, SwiftData ModelContainer
-├── ContentView.swift          # Temporary main app content after onboarding
-├── Item.swift                 # SwiftData @Model scaffold
+├── OpenZoneApp.swift          # App entry, AppRoute routing, SwiftData ModelContainer
 ├── Features/
-│   ├── AppFeature.swift       # Root TCA reducer
-│   └── Onboarding/            # First-run onboarding feature
-│       ├── Application/       # TCA reducer, state, actions, orchestration
-│       ├── Domain/            # Onboarding pages and value types
-│       ├── Infrastructure/    # SwiftData progress persistence client
-│       └── Presenter/         # SwiftUI onboarding screens backed by StoreOf<OnboardingFeature>
+│   ├── AppFeature.swift       # Root TCA reducer (onboarding, home, Settings sheet)
+│   ├── Chat/                  # Thread, streaming, chat history persistence
+│   │   ├── Domain/
+│   │   ├── Application/       # ChatFeature, ChatTurnEngine
+│   │   ├── Infrastructure/
+│   │   └── Presenter/
+│   ├── Home/                  # Post-onboarding workspace (composer, catalog, sidebar)
+│   │   ├── Domain/
+│   │   ├── Application/       # HomeFeature + ChatHistory, ModelCatalog, Composer child reducers
+│   │   ├── Infrastructure/
+│   │   └── Presenter/         # HomeView and workspace chrome
+│   ├── Onboarding/            # First-run onboarding feature
+│   │   ├── Application/
+│   │   ├── Domain/
+│   │   ├── Infrastructure/
+│   │   └── Presenter/
+│   └── Settings/              # API key settings sheet (composed at AppFeature level)
+│       ├── Application/
+│       └── Presenter/
 ├── Externals/                 # External integrations (Networking, Preference, Security)
 └── Shared/                    # Theme + UI primitives only
     ├── Theme/                 # Palette, typography, app theme preference

@@ -10,6 +10,9 @@ This repo uses a **multi-context** domain-doc layout (see [docs/agents/domain.md
 | External integrations | `OpenZone/Externals/` | `docs/contexts/externals/CONTEXT.md` | `docs/adr/` |
 | Shared app primitives | `OpenZone/Shared/` | `docs/contexts/shared/CONTEXT.md` | `docs/adr/` |
 | Onboarding feature | `OpenZone/Features/Onboarding/` | `docs/contexts/onboarding/CONTEXT.md` | `docs/adr/` |
+| Chat feature | `OpenZone/Features/Chat/` | `docs/contexts/chat/CONTEXT.md` | `docs/adr/` |
+| Home feature | `OpenZone/Features/Home/` | `docs/contexts/home/CONTEXT.md` | `docs/adr/` |
+| Settings feature | `OpenZone/Features/Settings/` | `docs/contexts/settings/CONTEXT.md` | `docs/adr/` |
 
 ## Reading rules
 

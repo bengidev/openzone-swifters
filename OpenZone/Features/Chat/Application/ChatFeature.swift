@@ -136,75 +136,20 @@ struct ChatFeature {
         )
 
       case let .streamingEvent(event):
-        switch event {
-        case let .thinkingDelta(delta):
-          state.currentPartialThinking += delta
-          state.streamingStatus = .running
+        var turnState = state.turnState
+        let outcome = ChatTurnEngine.apply(
+          event: event,
+          to: &turnState,
+          now: now,
+          makeID: { uuid() }
+        )
+        state.apply(turnState)
 
-          // Merge into the turn's reasoning row by stable ID — never by "last
-          // index". A reasoning delta that arrives after answer text began must
-          // still land in the original reasoning row, not spawn a new one.
-          if let thinkingID = state.streamingThinkingID,
-             let index = state.messages.firstIndex(where: { $0.id == thinkingID }),
-             case .thinking(var thinkingMessage) = state.messages[index] {
-            thinkingMessage.content = state.currentPartialThinking
-            thinkingMessage.isComplete = false
-            state.messages[index] = .thinking(thinkingMessage)
-          } else {
-            let newID = uuid()
-            state.streamingThinkingID = newID
-            state.messages.append(
-              .thinking(
-                id: newID,
-                content: state.currentPartialThinking,
-                isComplete: false,
-                timestamp: now
-              )
-            )
-          }
+        switch outcome {
+        case .none:
+          return .none
 
-        case let .textDelta(delta):
-          state.currentPartialText += delta
-          state.streamingStatus = .running
-
-          // Merge into the turn's answer row by stable ID.
-          // NOTE: we do NOT mark reasoning complete or clear the reasoning
-          // accumulator here — reasoning may resume after text (interleaved
-          // streams). Finalization happens once, in `.done`.
-          if let answerID = state.streamingAnswerID,
-             let index = state.messages.firstIndex(where: { $0.id == answerID }),
-             case .text(var textMessage) = state.messages[index] {
-            textMessage.content = state.currentPartialText
-            textMessage.isComplete = false
-            state.messages[index] = .text(textMessage)
-          } else {
-            let newID = uuid()
-            state.streamingAnswerID = newID
-            state.messages.append(
-              .text(
-                id: newID,
-                role: .assistant,
-                content: state.currentPartialText,
-                isComplete: false,
-                timestamp: now
-              )
-            )
-          }
-
-        case .done:
-          if let thinkingID = state.streamingThinkingID,
-             let index = state.messages.firstIndex(where: { $0.id == thinkingID }),
-             case .thinking(var thinkingMessage) = state.messages[index] {
-            thinkingMessage.isComplete = true
-            state.messages[index] = .thinking(thinkingMessage)
-          }
-          if let answerID = state.streamingAnswerID,
-             let index = state.messages.firstIndex(where: { $0.id == answerID }),
-             case .text(var textMessage) = state.messages[index] {
-            textMessage.isComplete = true
-            state.messages[index] = .text(textMessage)
-          }
-
+        case let .turnCompleted(finalizedMessages):
           // Persist the assistant's finalized output exactly once, at the turn
           // boundary. Only completed rows are written — a failed/killed turn
           // routes through `.error` and never reaches here, so partial
@@ -212,22 +157,7 @@ struct ChatFeature {
           // durable from the send path.
           let conversationID = state.conversation?.id
           let updatedConversation = state.conversation
-          let finalizedMessages: [ChatMessage] = [
-            state.streamingThinkingID,
-            state.streamingAnswerID
-          ]
-          .compactMap { id in
-            guard let id else { return nil }
-            return state.messages.first(where: { $0.id == id })
-          }
           let history = self.history
-
-          state.currentPartialText = ""
-          state.currentPartialThinking = ""
-          state.streamingThinkingID = nil
-          state.streamingAnswerID = nil
-          state.streamingStatus = .done
-          state.isSending = false
 
           return .merge(
             .run { _ in
@@ -242,18 +172,10 @@ struct ChatFeature {
             .send(.streamCompleted)
           )
 
-        case let .error(streamError):
-          state.streamingStatus = .failed
-          state.streamErrorMessage = streamError.message
-          state.isSending = false
-          state.currentPartialText = ""
-          state.currentPartialThinking = ""
-          state.streamingThinkingID = nil
-          state.streamingAnswerID = nil
-          return .send(.streamFailed(streamError.message))
+        case let .turnFailed(message):
+          state.streamErrorMessage = message
+          return .send(.streamFailed(message))
         }
-
-        return .none
 
       case .streamCompleted, .streamFailed:
         return .none
@@ -352,5 +274,29 @@ struct ChatFeature {
     guard !trimmed.isEmpty else { return "New chat" }
     if trimmed.count <= 40 { return trimmed }
     return String(trimmed.prefix(40)) + "…"
+  }
+}
+
+private extension ChatFeature.State {
+  var turnState: ChatTurnState {
+    ChatTurnState(
+      messages: messages,
+      currentPartialText: currentPartialText,
+      currentPartialThinking: currentPartialThinking,
+      streamingThinkingID: streamingThinkingID,
+      streamingAnswerID: streamingAnswerID,
+      streamingStatus: streamingStatus,
+      isSending: isSending
+    )
+  }
+
+  mutating func apply(_ turnState: ChatTurnState) {
+    messages = turnState.messages
+    currentPartialText = turnState.currentPartialText
+    currentPartialThinking = turnState.currentPartialThinking
+    streamingThinkingID = turnState.streamingThinkingID
+    streamingAnswerID = turnState.streamingAnswerID
+    streamingStatus = turnState.streamingStatus
+    isSending = turnState.isSending
   }
 }

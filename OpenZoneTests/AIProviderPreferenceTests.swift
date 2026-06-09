@@ -165,15 +165,15 @@ struct HomeModelSelectionTests {
         }
         store.exhaustivity = .off
 
-        #expect(store.state.hasSelectedModel == false)
+        #expect(store.state.catalog.hasSelectedModel == false)
 
         let model = ChatModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
-        await store.send(.composerModelSelected(model.id))
+        await store.send(.catalog(.modelSelected(model.id)))
 
         #expect(backing.preference().modelID == model.id)
         #expect(backing.preference().providerID == AIProviderAPI.openRouter.id)
-        #expect(store.state.selectedModelID == model.id)
-        #expect(store.state.hasSelectedModel == true)
+        #expect(store.state.catalog.selectedModelID == model.id)
+        #expect(store.state.catalog.hasSelectedModel == true)
     }
 
     @Test("onAppear seeds the selection from the stored preference")
@@ -191,8 +191,9 @@ struct HomeModelSelectionTests {
         store.exhaustivity = .off
 
         await store.send(.onAppear)
+        await store.receive(\.catalog.loadCatalog)
 
-        #expect(store.state.selectedModelID == known.id)
-        #expect(store.state.hasSelectedModel == true)
+        #expect(store.state.catalog.selectedModelID == known.id)
+        #expect(store.state.catalog.hasSelectedModel == true)
     }
 }

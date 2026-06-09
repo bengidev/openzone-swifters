@@ -13,26 +13,27 @@ Swift code must also follow the repo's Swift 6 strictness rules in `docs/archite
 ```text
 OpenZone/
 ├── OpenZoneApp.swift
-├── ContentView.swift
-├── Item.swift
 ├── Features/
-│   ├── AppFeature.swift
+│   ├── AppFeature.swift       # Root reducer: AppRoute, onboarding/home, Settings sheet
 │   ├── Chat/
-│   │   ├── Domain/           # ChatModel, messages, requests
-│   │   ├── Application/
-│   │   ├── Infrastructure/   # streaming client, history
-│   │   └── Presenter/
+│   │   ├── Domain/            # ChatModel, messages, requests, streaming events
+│   │   ├── Application/       # ChatFeature, ChatTurnEngine
+│   │   ├── Infrastructure/    # ChatAPIClient, streaming client, ChatHistoryClient
+│   │   └── Presenter/         # ChatThreadView, message rows, error banner
 │   ├── Home/
-│   │   ├── Domain/
+│   │   ├── Domain/            # Composer options, history sectioning, catalog presentation types
+│   │   ├── Application/       # HomeFeature + child reducers (see below)
+│   │   ├── Infrastructure/    # ModelCatalogClient, catalog cache preference
+│   │   └── Presenter/         # HomeView, composer, sidebar, model popup
+│   ├── Onboarding/
 │   │   ├── Application/
-│   │   ├── Infrastructure/   # ModelCatalogClient, catalog cache preference
+│   │   ├── Domain/
+│   │   ├── Infrastructure/
 │   │   └── Presenter/
-│   └── Onboarding/
-│       ├── Application/
-│       ├── Domain/
-│       ├── Infrastructure/
-│       └── Presenter/
-├── Externals/                # External integrations (internal module)
+│   └── Settings/
+│       ├── Application/       # SettingsFeature
+│       └── Presenter/         # SettingsView (API key sheet)
+├── Externals/                 # External integrations (internal module)
 │   ├── Networking/
 │   ├── Preference/
 │   └── Security/
@@ -41,11 +42,35 @@ OpenZone/
     └── UI/
 ```
 
+## Child reducers
+
+Parent reducers compose focused child reducers instead of monolithic state machines.
+
+### `HomeFeature`
+
+- **`ChatFeature`** — active thread, streaming turns, message restore/clear ([Chat context](../contexts/chat/CONTEXT.md)).
+- **`ChatHistoryFeature`** — sidebar conversation list, search, pin/rename/delete, selection handoff to chat.
+- **`ModelCatalogFeature`** — catalog load, debounced model search, free-tier filter for the popup.
+- **`ComposerFeature`** — composer controls, model/reasoning/speed selection, send gating (API key + model).
+
+`HomeFeature` scopes each child under its state and action namespace and coordinates cross-cutting effects (for example, refreshing send eligibility after settings changes reported by the app shell).
+
+### `ChatFeature`
+
+- **`ChatTurnEngine`** — single-turn orchestration: build `ChatRequest`, subscribe to the stream, merge reasoning and answer deltas into stable rows, persist at turn boundaries.
+
+### `AppFeature`
+
+- **`OnboardingFeature`** — first-run flow and completion persistence.
+- **`HomeFeature`** — post-onboarding workspace (composes the Home child reducers above).
+- **`SettingsFeature`** — composed at **AppFeature** level via `@Presents` / `.ifLet`, not inside `HomeFeature`. The settings sheet is app-wide presentation; home forwards settings intents to the root reducer.
+
 ## State management rules
 
 - The app root owns a `StoreOf<AppFeature>`.
 - Each feature owns a TCA reducer named `<FeatureName>Feature` in `Application/`.
-- Feature views receive `StoreOf<<FeatureName>Feature>` and send actions through `store.send(...)`.
+- Child reducers follow the same naming pattern (`ChatHistoryFeature`, `ModelCatalogFeature`, `ComposerFeature`, `ChatTurnEngine`).
+- Feature views receive `StoreOf<<FeatureName>Feature>` (or a scoped child store) and send actions through `store.send(...)`.
 - Do not add separate `@Observable` view-model classes for TCA-backed features. State belongs in `@ObservableState`; mutations belong in reducer actions.
 - Side effects (persistence, networking, system adapters) run from reducer effects and use explicit clients from `Infrastructure/`.
 - Tests should use `TestStore` for reducer behavior, plus normal view/unit tests where useful.
@@ -61,7 +86,7 @@ A feature owns one product workflow. It may contain:
 - `Infrastructure/` — persistence, system adapters, external clients scoped to the feature workflow.
 - `Presenter/` — SwiftUI views that render the feature from a TCA store.
 
-Feature code may depend on `OpenZone/Externals`, `OpenZone/Shared`, Swift standard libraries, Apple frameworks, TCA, and its own feature folders. Feature code must not depend on another feature directly unless a clear integration boundary is introduced.
+Feature code may depend on `OpenZone/Externals`, `OpenZone/Shared`, Swift standard libraries, Apple frameworks, TCA, and its own feature folders. Feature code must not depend on another feature directly unless a clear integration boundary is introduced (parent reducer composition).
 
 ### `OpenZone/Externals/`
 

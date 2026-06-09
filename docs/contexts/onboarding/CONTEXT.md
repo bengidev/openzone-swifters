@@ -7,13 +7,13 @@
 | **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
 | **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
 
-The onboarding feature owns the first-run experience. It teaches the user the core OpenZone concepts, persists completion, and then lets the app route back to the temporary main `ContentView`.
+The onboarding feature owns the first-run experience. It teaches the user the core OpenZone concepts, persists completion, and then lets the app shell route to the home workspace (`HomeView`).
 
 ## Language
 
 - **Onboarding feature** — the full first-run workflow under `OpenZone/Features/Onboarding`.
 - **Onboarding page** — one step in the five-page flow.
-- **Completion** — persisted signal that onboarding has finished; when true, the app shell shows `ContentView`.
+- **Completion** — persisted signal that onboarding has finished; when true, the app shell routes to home (`HomeView`).
 - **Demo visual** — an interactive illustration inside an onboarding page.
 
 ## Architecture
