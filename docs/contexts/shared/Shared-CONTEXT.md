@@ -15,7 +15,7 @@ OpenZone/Shared/
 └── UI/       # button styles, badges, patterns, backgrounds
 ```
 
-External integrations live in `OpenZone/Externals/` — see [Externals context](../externals/CONTEXT.md).
+External integrations live in `OpenZone/Externals/` — see [Externals context](../externals/Externals-CONTEXT.md).
 
 ## Language
 
@@ -27,7 +27,7 @@ External integrations live in `OpenZone/Externals/` — see [Externals context](
 
 - Shared code must not import or reference feature code.
 - Shared code must not contain feature-specific copy, workflow state, or TCA reducers.
-- Feature-specific UI remains inside `OpenZone/Features/<FeatureName>/Presenter`.
+- Feature-specific UI remains inside `OpenZone/Features/<FeatureName>/`.
 
 ## TCA boundary
 

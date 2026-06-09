@@ -6,7 +6,7 @@ import Foundation
 /// Model identity is the wrapped model's string `id`; `title` mirrors its
 /// `displayName`. `availableSpeedModes` is composer-only presentation metadata.
 /// The `id` is what the preference store persists and the request carries.
-nonisolated struct ChatModelOption: Equatable, Identifiable, Sendable {
+nonisolated struct HomeModelOption: Equatable, Identifiable, Sendable {
     /// The underlying shared model value (id, free flag, context length, reasoning).
     let model: ChatModel
     /// Speed modes offered for this model in the composer rail.
@@ -42,24 +42,24 @@ nonisolated struct ChatModelOption: Equatable, Identifiable, Sendable {
 ///
 /// This is the always-available presentation data used before a live catalog
 /// is fetched (no key yet, offline, or first launch). The live catalog flows
-/// through `ModelCatalogClient` and is held in feature state; this type only
+/// through `HomeModelCatalogClient` and is held in feature state; this type only
 /// provides the never-empty fallback and stale-id resolution.
-enum ChatModelCatalog {
+enum HomeModelCatalog {
     /// Curated fallback models offered for the given provider id. Unknown/absent
     /// providers fall back to the default provider's list. Sourced from the
     /// shared `ChatModel.curatedFallback` so there is one fallback definition.
-    static func models(for providerID: String?) -> [ChatModelOption] {
+    static func models(for providerID: String?) -> [HomeModelOption] {
         switch providerID ?? AIProviderAPI.default.id {
         case AIProviderAPI.openRouter.id:
-            return ChatModel.curatedFallback.map { ChatModelOption(model: $0) }
+            return ChatModel.curatedFallback.map { HomeModelOption(model: $0) }
         default:
-            return ChatModel.curatedFallback.map { ChatModelOption(model: $0) }
+            return ChatModel.curatedFallback.map { HomeModelOption(model: $0) }
         }
     }
 
     /// Resolves a stored model id to its presentation option for the provider,
     /// or `nil` when the id is absent or not in the fallback catalog.
-    static func option(for modelID: String?, providerID: String?) -> ChatModelOption? {
+    static func option(for modelID: String?, providerID: String?) -> HomeModelOption? {
         guard let modelID else { return nil }
         return models(for: providerID).first { $0.id == modelID }
     }

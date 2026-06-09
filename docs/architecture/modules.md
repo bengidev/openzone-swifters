@@ -8,6 +8,21 @@ State management is implemented with [The Composable Architecture (TCA)](https:/
 
 Swift code must also follow the repo's Swift 6 strictness rules in `docs/architecture/swift-6-strictness.md`.
 
+## Module map
+
+The app is a single root that composes feature modules as siblings, plus a cross-cutting shared layer. `SidePanel` is one module that hosts two sub-scopes — `Session` (saved-conversation browsing, formerly "history chat") and `Setting` (app preferences):
+
+```text
+App
+├── Shared        # API/Theme/Credential + UI primitives (cross-cutting)
+├── Onboarding
+├── Home
+├── Chat
+└── SidePanel
+    ├── Session    # SidePanelSession… (ex "history chat")
+    └── Setting    # SidePanelSetting…
+```
+
 ## Current layout
 
 ```text
@@ -17,21 +32,14 @@ OpenZone/
 ├── Item.swift
 ├── Features/
 │   ├── AppFeature.swift
-│   ├── Chat/
-│   │   ├── Domain/           # ChatModel, messages, requests
-│   │   ├── Application/
-│   │   ├── Infrastructure/   # streaming client, history
-│   │   └── Presenter/
-│   ├── Home/
-│   │   ├── Domain/
-│   │   ├── Application/
-│   │   ├── Infrastructure/   # ModelCatalogClient, catalog cache preference
-│   │   └── Presenter/
-│   └── Onboarding/
-│       ├── Application/
-│       ├── Domain/
-│       ├── Infrastructure/
-│       └── Presenter/
+│   ├── Onboarding/           # OnboardingFeature, pages, visuals, persistence
+│   ├── Home/                 # HomeFeature, composer, model catalog
+│   ├── Chat/                 # ChatFeature, streaming, history persistence
+│   └── SidePanel/            # hosts Session + Setting sub-scopes
+│       ├── SidePanelSessionSection.swift
+│       ├── SidePanelSessionSidebarView.swift
+│       ├── SidePanelSettingFeature.swift
+│       └── SidePanelSettingView.swift
 ├── Externals/                # External integrations (internal module)
 │   ├── Networking/
 │   ├── Preference/
@@ -41,27 +49,48 @@ OpenZone/
     └── UI/
 ```
 
+> Flat feature folders: each feature folder holds its files directly — no `Domain/Application/Infrastructure/Presenter` boundary subfolders. File responsibility is conveyed by the scope-prefixed name, not by a folder layer.
+>
+> Scope prefixes: every symbol/file carries its module scope. The side panel's sub-scopes extend the parent prefix — `SidePanelSession…` for the session (ex "history chat") scope and `SidePanelSetting…` for the setting scope.
+
 ## State management rules
 
 - The app root owns a `StoreOf<AppFeature>`.
-- Each feature owns a TCA reducer named `<FeatureName>Feature` in `Application/`.
+- Each feature owns a TCA reducer named `<FeatureName>Feature`.
 - Feature views receive `StoreOf<<FeatureName>Feature>` and send actions through `store.send(...)`.
 - Do not add separate `@Observable` view-model classes for TCA-backed features. State belongs in `@ObservableState`; mutations belong in reducer actions.
-- Side effects (persistence, networking, system adapters) run from reducer effects and use explicit clients from `Infrastructure/`.
+- Side effects (persistence, networking, system adapters) run from reducer effects and use explicit dependency clients.
 - Tests should use `TestStore` for reducer behavior, plus normal view/unit tests where useful.
+
+## File naming
+
+One type per file; the file name matches its primary type. The suffix conveys the type's **role**, not the module — the module is already conveyed by the scope prefix.
+
+- `…Feature` — a TCA reducer (`@Reducer struct …Feature`). There is normally exactly one per module. The `Feature` suffix is reserved for reducers; do not append it to non-reducer files.
+- `…View` — a SwiftUI view (`HomeView`, `ChatThreadView`, `OnboardingView`, `SidePanelSettingView`).
+- `…Client` — a dependency client used from reducer effects (`ChatHistoryClient`, `HomeModelCatalogClient`).
+- Everything else — named after the value type / enum it defines (`ChatMessage`, `HomeModelOption`, `OnboardingPage`).
+
+So within a module only the single reducer file carries `Feature`; every other file is named by its role. This is why most files have no `Feature` suffix — they aren't reducers.
+
+> Note: a literal "Feature" inside a domain name (e.g. `OnboardingFeatureHighlight`, `OnboardingFeaturePageView` — "feature highlight" as a product concept) is part of the noun, not the reducer suffix, and does not imply a reducer.
+>
+> A few clients are deliberately named for what they do rather than their module: `OpenAICompatibleStreamingClient` keeps its descriptive technical name (OpenAI-compatible wire protocol) and lives in `Features/Chat/` because it combines provider wire behavior with chat domain types.
 
 ## Ownership rules
 
 ### `OpenZone/Features/<FeatureName>/`
 
-A feature owns one product workflow. It may contain:
-
-- `Domain/` — value types, enums, feature language, pure rules.
-- `Application/` — TCA reducers, `@ObservableState`, actions, and use-case orchestration.
-- `Infrastructure/` — persistence, system adapters, external clients scoped to the feature workflow.
-- `Presenter/` — SwiftUI views that render the feature from a TCA store.
+A feature owns one product workflow. Its folder holds all of the feature's files directly (flat) — reducers, `@ObservableState`, actions, value types, feature-scoped clients, and SwiftUI views. Use scope-prefixed file names (e.g. `HomeFeature`, `HomeComposerView`, `ChatHistoryClient`) so responsibility is clear without boundary subfolders.
 
 Feature code may depend on `OpenZone/Externals`, `OpenZone/Shared`, Swift standard libraries, Apple frameworks, TCA, and its own feature folders. Feature code must not depend on another feature directly unless a clear integration boundary is introduced.
+
+#### `OpenZone/Features/SidePanel/`
+
+The side panel is one feature module that hosts two sub-scopes, each scope-prefixed:
+
+- **Session** (`SidePanelSession…`) — saved-conversation browsing, formerly "history chat". Lists and groups persisted conversations and hands off to Chat to open a thread. Consumes Chat's history persistence (`ChatHistoryClient`); does not own the live stream.
+- **Setting** (`SidePanelSetting…`) — app preferences. Reads/writes through `Externals` clients and the shared theme preference.
 
 ### `OpenZone/Externals/`
 
@@ -71,7 +100,7 @@ Externals contains feature-neutral adapters for systems outside the app:
 - `Preference/` — `AIProviderPreference`, `AIProviderReasoningModel`, `AIProviderPreferenceStore`, and `AIProviderPreferenceClient`.
 - `Security/` — `CredentialStore` and `CredentialStoreClient`.
 
-Externals must not reference feature UI or reducers. Chat domain types (e.g. `ChatModel`) belong in `Features/Chat/Domain/`. Home-scoped orchestration (e.g. `ModelCatalogClient`) belongs in `Features/Home/Infrastructure/`. Chat streaming (`OpenAICompatibleStreamingClient`) stays in `Features/Chat/Infrastructure/` because it combines provider wire behavior with chat domain types.
+Externals must not reference feature UI or reducers. Chat domain types (e.g. `ChatModel`) belong in `Features/Chat/`. Home-scoped orchestration (e.g. `HomeModelCatalogClient`) belongs in `Features/Home/`. Chat streaming (`OpenAICompatibleStreamingClient`) and chat history persistence (`ChatHistoryClient`) stay in `Features/Chat/` because they combine provider wire behavior with chat domain types. The side panel's session scope consumes that persistence; it does not duplicate it.
 
 ### `OpenZone/Shared/`
 

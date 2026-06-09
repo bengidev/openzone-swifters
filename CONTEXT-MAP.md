@@ -6,10 +6,17 @@ This repo uses a **multi-context** domain-doc layout (see [docs/agents/domain.md
 
 | Context | Code path | Context doc | ADRs |
 | --- | --- | --- | --- |
-| OpenZone app shell | `OpenZone/` | `docs/contexts/app/CONTEXT.md` | `docs/adr/` |
-| External integrations | `OpenZone/Externals/` | `docs/contexts/externals/CONTEXT.md` | `docs/adr/` |
-| Shared app primitives | `OpenZone/Shared/` | `docs/contexts/shared/CONTEXT.md` | `docs/adr/` |
-| Onboarding feature | `OpenZone/Features/Onboarding/` | `docs/contexts/onboarding/CONTEXT.md` | `docs/adr/` |
+| OpenZone app shell | `OpenZone/` | `docs/contexts/app/App-CONTEXT.md` | `docs/adr/` |
+| External integrations | `OpenZone/Externals/` | `docs/contexts/externals/Externals-CONTEXT.md` | `docs/adr/` |
+| Shared app primitives | `OpenZone/Shared/` | `docs/contexts/shared/Shared-CONTEXT.md` | `docs/adr/` |
+| Onboarding feature | `OpenZone/Features/Onboarding/` | `docs/contexts/onboarding/Onboarding-CONTEXT.md` | `docs/adr/` |
+| Home feature | `OpenZone/Features/Home/` | `docs/contexts/home/Home-CONTEXT.md` | `docs/adr/` |
+| Chat feature | `OpenZone/Features/Chat/` | `docs/contexts/chat/Chat-CONTEXT.md` | `docs/adr/` |
+| Side panel feature | `OpenZone/Features/SidePanel/` | `docs/contexts/sidepanel/SidePanel-CONTEXT.md` | `docs/adr/` |
+| ↳ Side panel · session scope | `OpenZone/Features/SidePanel/` (`SidePanelSession…`) | `docs/contexts/sidepanel/SidePanelSession-CONTEXT.md` | `docs/adr/` |
+| ↳ Side panel · setting scope | `OpenZone/Features/SidePanel/` (`SidePanelSetting…`) | `docs/contexts/sidepanel/SidePanelSetting-CONTEXT.md` | `docs/adr/` |
+
+The side panel is one module that hosts two sub-scopes: **session** (saved-conversation browsing, formerly "history chat") and **setting** (app preferences). Both carry the parent `SidePanel` prefix — `SidePanelSession…` and `SidePanelSetting…`.
 
 ## Reading rules
 

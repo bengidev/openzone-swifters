@@ -137,8 +137,8 @@ struct HomeReasoningSelectionTests {
         await store.send(.onAppear)
         await store.send(.settingsButtonTapped)
 
-        #expect(store.state.settings?.reasoningModel == .low)
-        #expect(store.state.settings?.modelSupportsReasoning == true)
+        #expect(store.state.sidePanel.setting?.reasoningModel == .low)
+        #expect(store.state.sidePanel.setting?.modelSupportsReasoning == true)
     }
 }
 
@@ -150,8 +150,8 @@ struct SettingsReasoningControlTests {
     @Test("Selecting a level in Settings persists it to the shared store")
     func settingsSelectionPersists() async {
         let backing = InMemoryAIProviderPreferenceStore()
-        let store = TestStore(initialState: SettingsFeature.State(modelSupportsReasoning: true)) {
-            SettingsFeature()
+        let store = TestStore(initialState: SidePanelSettingFeature.State(modelSupportsReasoning: true)) {
+            SidePanelSettingFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
@@ -169,8 +169,8 @@ struct SettingsReasoningControlTests {
         let backing = InMemoryAIProviderPreferenceStore(
             preference: AIProviderPreference(reasoningModel: .medium)
         )
-        let store = TestStore(initialState: SettingsFeature.State()) {
-            SettingsFeature()
+        let store = TestStore(initialState: SidePanelSettingFeature.State()) {
+            SidePanelSettingFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())

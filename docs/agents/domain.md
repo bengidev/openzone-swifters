@@ -22,13 +22,20 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 ├── docs/architecture/modules.md        ← feature/shared/TCA rules
 ├── docs/architecture/swift-6-strictness.md ← Swift 6 concurrency/memory-safety rules
 ├── docs/contexts/
-│   ├── app/CONTEXT.md                 ← app shell glossary (when present)
-│   ├── shared/CONTEXT.md              ← shared UI/theme glossary
-│   └── onboarding/CONTEXT.md          ← onboarding glossary
+│   ├── app/App-CONTEXT.md              ← app shell glossary
+│   ├── externals/Externals-CONTEXT.md ← external integrations glossary
+│   ├── shared/Shared-CONTEXT.md       ← shared UI/theme glossary
+│   ├── onboarding/Onboarding-CONTEXT.md ← onboarding glossary
+│   ├── home/Home-CONTEXT.md           ← home/landing glossary
+│   ├── chat/Chat-CONTEXT.md           ← chat/streaming glossary
+│   └── sidepanel/                     ← side panel module
+│       ├── SidePanel-CONTEXT.md       ← side panel glossary
+│       ├── SidePanelSession-CONTEXT.md ← session scope (ex "history chat")
+│       └── SidePanelSetting-CONTEXT.md ← setting scope
 └── OpenZone/
     ├── Externals/                       ← external integrations (Networking, Preference, Security)
     ├── Shared/                        ← theme + UI primitives (Theme/, UI/)
-    └── Features/Onboarding/           ← onboarding feature code
+    └── Features/                       ← Onboarding, Home, Chat, SidePanel
 ```
 
 ## Use the glossary's vocabulary

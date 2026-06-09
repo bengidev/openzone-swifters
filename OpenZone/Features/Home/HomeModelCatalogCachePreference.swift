@@ -88,35 +88,35 @@ nonisolated final class InMemoryModelCatalogCachePreferenceStore: ModelCatalogCa
 
 // MARK: - TCA dependency
 
-nonisolated struct ModelCatalogCachePreferenceClient: Sendable {
+nonisolated struct HomeModelCatalogCachePreferenceClient: Sendable {
     var cachedCatalog: @Sendable () -> ModelCatalogCachePreference?
     var setCachedCatalog: @Sendable (ModelCatalogCachePreference?) -> Void
 }
 
-extension ModelCatalogCachePreferenceClient {
-    static func wrap(_ store: some ModelCatalogCachePreferenceStore) -> ModelCatalogCachePreferenceClient {
-        ModelCatalogCachePreferenceClient(
+extension HomeModelCatalogCachePreferenceClient {
+    static func wrap(_ store: some ModelCatalogCachePreferenceStore) -> HomeModelCatalogCachePreferenceClient {
+        HomeModelCatalogCachePreferenceClient(
             cachedCatalog: { store.cachedCatalog() },
             setCachedCatalog: { store.setCachedCatalog($0) }
         )
     }
 }
 
-extension ModelCatalogCachePreferenceClient: DependencyKey {
-    static let liveValue = ModelCatalogCachePreferenceClient.wrap(
+extension HomeModelCatalogCachePreferenceClient: DependencyKey {
+    static let liveValue = HomeModelCatalogCachePreferenceClient.wrap(
         UserDefaultsModelCatalogCachePreferenceStore()
     )
-    static let testValue = ModelCatalogCachePreferenceClient.wrap(
+    static let testValue = HomeModelCatalogCachePreferenceClient.wrap(
         InMemoryModelCatalogCachePreferenceStore()
     )
-    static let previewValue = ModelCatalogCachePreferenceClient.wrap(
+    static let previewValue = HomeModelCatalogCachePreferenceClient.wrap(
         InMemoryModelCatalogCachePreferenceStore()
     )
 }
 
 extension DependencyValues {
-    var modelCatalogCachePreference: ModelCatalogCachePreferenceClient {
-        get { self[ModelCatalogCachePreferenceClient.self] }
-        set { self[ModelCatalogCachePreferenceClient.self] = newValue }
+    var modelCatalogCachePreference: HomeModelCatalogCachePreferenceClient {
+        get { self[HomeModelCatalogCachePreferenceClient.self] }
+        set { self[HomeModelCatalogCachePreferenceClient.self] = newValue }
     }
 }

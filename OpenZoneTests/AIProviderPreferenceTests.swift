@@ -81,10 +81,10 @@ struct AIProviderPreferenceTests {
 
     @Test("Model catalog resolves a known id and rejects an unknown one")
     func modelCatalogResolution() {
-        let known = ChatModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
-        #expect(ChatModelCatalog.option(for: known.id, providerID: AIProviderAPI.openRouter.id) != nil)
-        #expect(ChatModelCatalog.option(for: "ghost-model", providerID: AIProviderAPI.openRouter.id) == nil)
-        #expect(ChatModelCatalog.option(for: nil, providerID: nil) == nil)
+        let known = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
+        #expect(HomeModelCatalog.option(for: known.id, providerID: AIProviderAPI.openRouter.id) != nil)
+        #expect(HomeModelCatalog.option(for: "ghost-model", providerID: AIProviderAPI.openRouter.id) == nil)
+        #expect(HomeModelCatalog.option(for: nil, providerID: nil) == nil)
     }
 }
 
@@ -167,7 +167,7 @@ struct HomeModelSelectionTests {
 
         #expect(store.state.hasSelectedModel == false)
 
-        let model = ChatModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
+        let model = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
         await store.send(.composerModelSelected(model.id))
 
         #expect(backing.preference().modelID == model.id)
@@ -178,7 +178,7 @@ struct HomeModelSelectionTests {
 
     @Test("onAppear seeds the selection from the stored preference")
     func onAppearSeedsFromPreference() async {
-        let known = ChatModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
+        let known = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
         let backing = InMemoryAIProviderPreferenceStore(
             preference: AIProviderPreference(providerID: AIProviderAPI.openRouter.id, modelID: known.id)
         )

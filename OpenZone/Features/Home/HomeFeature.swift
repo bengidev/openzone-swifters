@@ -6,9 +6,8 @@ import Foundation
 struct HomeFeature {
     @Dependency(CredentialStoreClient.self) private var credentialStore
     @Dependency(AIProviderPreferenceClient.self) private var providerPreference
-    @Dependency(ModelCatalogClient.self) private var modelCatalog
-    @Dependency(ModelCatalogCachePreferenceClient.self) private var modelCatalogCachePreference
-    @Dependency(ChatHistoryClient.self) private var chatHistory
+    @Dependency(HomeModelCatalogClient.self) private var modelCatalog
+    @Dependency(HomeModelCatalogCachePreferenceClient.self) private var modelCatalogCachePreference
     @Dependency(\.continuousClock) private var clock
 
     private nonisolated enum CancelID: Hashable, Sendable { case searchDebounce }
@@ -16,25 +15,11 @@ struct HomeFeature {
     @ObservableState
     struct State: Equatable {
         var chat = ChatFeature.State()
-        var isSidebarVisible = false
 
-        /// Persisted conversation history shown in the sidebar drawer,
-        /// most-recently-updated first. Loaded when the sidebar opens.
-        var conversations: [ChatConversation] = []
-
-        /// Live text in the sidebar history search field. Filters the history
-        /// list by title, case-insensitively. Empty means show everything.
-        var historySearchQuery: String = ""
-
-        /// Conversations after applying the history search filter. Pinned-first
-        /// ordering from the client is preserved; sectioning happens in the view.
-        var filteredConversations: [ChatConversation] {
-            let query = historySearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !query.isEmpty else { return conversations }
-            return conversations.filter {
-                $0.title.localizedCaseInsensitiveContains(query)
-            }
-        }
+        /// The side panel module (session browser + settings sheet). Owns its
+        /// own state; Home drives the live chat reducer in response to the
+        /// panel's delegate outputs.
+        var sidePanel = SidePanelFeature.State()
 
         /// The selected provider id, mirrored from the preference store. Defaults
         /// to the catalog default until the user (or a stored preference) sets it.
@@ -53,7 +38,7 @@ struct HomeFeature {
         /// Settings sheet reports a change.
         var hasAPIKey = false
 
-        /// The live catalog loaded by `ModelCatalogClient`. Falls back to the
+        /// The live catalog loaded by `HomeModelCatalogClient`. Falls back to the
         /// curated list (via `availableModels`) when empty.
         var catalogModels: [ChatModel] = []
 
@@ -70,32 +55,29 @@ struct HomeFeature {
         /// Whether the free-tier filter is active in the model popup.
         var modelFilterFreeOnly: Bool = false
 
-        /// Presented Settings sheet, when non-nil.
-        @Presents var settings: SettingsFeature.State?
-
         /// The presentation option for the current selection, resolved first
         /// from the live catalog, then from the curated fallback.
-        var selectedModelOption: ChatModelOption? {
+        var selectedModelOption: HomeModelOption? {
             guard let selectedModelID else { return nil }
             // Prefer live catalog entry so the richer metadata is shown.
             if let live = catalogModels.first(where: { $0.id == selectedModelID }) {
-                return ChatModelOption(model: live)
+                return HomeModelOption(model: live)
             }
-            return ChatModelCatalog.option(for: selectedModelID, providerID: selectedProviderID)
+            return HomeModelCatalog.option(for: selectedModelID, providerID: selectedProviderID)
         }
 
         /// Models offered for the current provider, shown in the composer popup.
         /// Uses the live catalog when available, curated fallback otherwise.
-        var availableModels: [ChatModelOption] {
+        var availableModels: [HomeModelOption] {
             let source = catalogModels.isEmpty
                 ? ChatModel.curatedFallback
                 : catalogModels
-            return source.map { ChatModelOption(model: $0) }
+            return source.map { HomeModelOption(model: $0) }
         }
 
         /// Subset of `availableModels` filtered by the current popup search
         /// query and free-only toggle.
-        var filteredModels: [ChatModelOption] {
+        var filteredModels: [HomeModelOption] {
             var result = availableModels
             if modelFilterFreeOnly {
                 result = result.filter { $0.isFree }
@@ -117,16 +99,9 @@ struct HomeFeature {
 
     enum Action: Equatable {
         case chat(ChatFeature.Action)
+        case sidePanel(SidePanelFeature.Action)
         case microphoneTapped
         case attachmentTapped
-        case sidebarToggleTapped
-        case sidebarDismissed
-        case conversationsLoaded([ChatConversation])
-        case conversationSelected(ChatConversation)
-        case historySearchQueryChanged(String)
-        case conversationPinToggled(ChatConversation)
-        case conversationRenamed(id: UUID, title: String)
-        case conversationDeleted(UUID)
         case composerModelSelected(String)
         case reasoningModelSelected(HomeComposerReasoningLevel)
         case speedModeSelected(HomeComposerSpeedMode)
@@ -137,12 +112,15 @@ struct HomeFeature {
         case searchQueryDebounced(String)
         case modelFilterFreeOnlyChanged(Bool)
         case settingsButtonTapped
-        case settings(PresentationAction<SettingsFeature.Action>)
+        case sidebarToggleTapped
     }
 
     var body: some Reducer<State, Action> {
         Scope(state: \.chat, action: \.chat) {
             ChatFeature()
+        }
+        Scope(state: \.sidePanel, action: \.sidePanel) {
+            SidePanelFeature()
         }
         Reduce { state, action in
             switch action {
@@ -152,85 +130,56 @@ struct HomeFeature {
             case .microphoneTapped, .attachmentTapped:
                 return .none
 
+            // MARK: Side panel button shortcuts (driven from the top bar / composer)
+
             case .sidebarToggleTapped:
-                state.isSidebarVisible.toggle()
-                // Refresh the history list each time the drawer opens so newly
-                // persisted conversations appear without an app relaunch.
-                guard state.isSidebarVisible else { return .none }
-                let history = self.chatHistory
-                return .run { send in
-                    let conversations = (try? await history.listConversations()) ?? []
-                    await send(.conversationsLoaded(conversations))
-                }
+                // Mirror the active conversation into the session scope so the
+                // list can highlight the open thread, then toggle the drawer.
+                state.sidePanel.session.activeConversationID = state.chat.conversation?.id
+                return .send(.sidePanel(.session(.sidebarToggleTapped)))
 
-            case .sidebarDismissed:
-                state.isSidebarVisible = false
+            case .settingsButtonTapped:
+                state.sidePanel.setting = SidePanelSettingFeature.State(
+                    hasStoredKey: credentialStore.secret() != nil,
+                    reasoningModel: state.reasoningModel,
+                    modelSupportsReasoning: state.selectedModelOption?.supportsReasoning == true
+                )
                 return .none
 
-            case let .conversationsLoaded(conversations):
-                state.conversations = conversations
-                return .none
+            // MARK: Side panel delegate outputs
 
-            case let .conversationSelected(conversation):
-                // Close the drawer and hand off to the chat reducer, which
-                // restores the persisted messages and continues in the same
-                // streaming reducer for the next turn.
-                state.isSidebarVisible = false
+            case let .sidePanel(.delegate(.openConversation(conversation))):
+                // Hand off to the chat reducer, which restores the persisted
+                // messages and continues in the same streaming reducer.
                 return .send(.chat(.reopenConversation(conversation)))
 
-            case let .historySearchQueryChanged(query):
-                // Filtering is synchronous over the already-loaded list, so the
-                // field just mirrors into state; `filteredConversations` derives
-                // the visible set. No debounce needed for a local title filter.
-                state.historySearchQuery = query
-                return .none
-
-            case let .conversationPinToggled(conversation):
-                // Optimistically flip the flag in state so the row reorders
-                // immediately, then persist and reload to get the authoritative
-                // pinned-first ordering back from the client.
-                let history = self.chatHistory
-                let newValue = !conversation.isPinned
-                let id = conversation.id
-                return .run { send in
-                    try? await history.setPinned(id, newValue)
-                    let conversations = (try? await history.listConversations()) ?? []
-                    await send(.conversationsLoaded(conversations))
-                }
-
-            case let .conversationRenamed(id, title):
-                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return .none }
-                let history = self.chatHistory
+            case let .sidePanel(.delegate(.activeConversationRenamed(id, title))):
                 // Keep the open conversation's title in sync if it was renamed.
                 if state.chat.conversation?.id == id {
-                    state.chat.conversation?.title = trimmed
+                    state.chat.conversation?.title = title
                 }
-                return .run { send in
-                    try? await history.renameConversation(id, trimmed)
-                    let conversations = (try? await history.listConversations()) ?? []
-                    await send(.conversationsLoaded(conversations))
-                }
+                return .none
 
-            case let .conversationDeleted(id):
-                let history = self.chatHistory
-                // If the deleted conversation is the one on screen, clear the
-                // active chat so the user isn't left viewing a gone thread.
-                if state.chat.conversation?.id == id {
-                    return .merge(
-                        .send(.chat(.clearActiveConversation)),
-                        .run { send in
-                            try? await history.deleteConversation(id)
-                            let conversations = (try? await history.listConversations()) ?? []
-                            await send(.conversationsLoaded(conversations))
-                        }
-                    )
-                }
-                return .run { send in
-                    try? await history.deleteConversation(id)
-                    let conversations = (try? await history.listConversations()) ?? []
-                    await send(.conversationsLoaded(conversations))
-                }
+            case let .sidePanel(.delegate(.activeConversationDeleted(id))):
+                // If the deleted conversation is on screen, clear the active
+                // chat so the user isn't left viewing a gone thread.
+                guard state.chat.conversation?.id == id else { return .none }
+                return .send(.chat(.clearActiveConversation))
+
+            case .sidePanel(.delegate(.credentialsChanged)):
+                // The settings sheet mutated stored credentials; re-read the
+                // source of truth so the send gate reflects the change.
+                state.hasAPIKey = credentialStore.secret() != nil
+                return .none
+
+            case .sidePanel(.delegate(.reasoningModelChanged)):
+                // The sheet wrote the level to the shared store; re-read it so
+                // the composer chip reflects the change immediately on dismiss.
+                state.reasoningModel = providerPreference.preference().reasoningModel
+                return .none
+
+            case .sidePanel:
+                return .none
 
             case let .composerModelSelected(modelID):
                 // The preference store is the single source of truth: persist the
@@ -308,38 +257,7 @@ struct HomeFeature {
             case let .modelFilterFreeOnlyChanged(freeOnly):
                 state.modelFilterFreeOnly = freeOnly
                 return .none
-
-            case .settingsButtonTapped:
-                state.settings = SettingsFeature.State(
-                    hasStoredKey: credentialStore.secret() != nil,
-                    reasoningModel: state.reasoningModel,
-                    modelSupportsReasoning: state.selectedModelOption?.supportsReasoning == true
-                )
-                return .none
-
-            case .settings(.presented(.reasoningModelSelected)):
-                // The sheet wrote the level to the shared store; re-read it so
-                // the composer chip reflects the change immediately on dismiss.
-                state.reasoningModel = providerPreference.preference().reasoningModel
-                return .none
-
-            case .settings(.presented(.saveTapped)),
-                 .settings(.presented(.clearTapped)):
-                // The sheet just mutated stored credentials; re-read the source
-                // of truth so the send gate reflects the change immediately.
-                state.hasAPIKey = credentialStore.secret() != nil
-                return .none
-
-            case .settings(.dismiss):
-                state.hasAPIKey = credentialStore.secret() != nil
-                return .none
-
-            case .settings:
-                return .none
             }
-        }
-        .ifLet(\.$settings, action: \.settings) {
-            SettingsFeature()
         }
     }
 }

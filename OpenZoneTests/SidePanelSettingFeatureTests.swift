@@ -6,15 +6,15 @@ import Testing
 
 @MainActor
 @Suite("Settings Feature")
-struct SettingsFeatureTests {
+struct SidePanelSettingFeatureTests {
     /// Builds a Settings store over an in-memory credential store so the test is
     /// hermetic and the same backing store can be asserted against directly.
     private func makeStore(
-        initialState: SettingsFeature.State = .init(),
+        initialState: SidePanelSettingFeature.State = .init(),
         backing: InMemoryCredentialStore
-    ) -> TestStoreOf<SettingsFeature> {
+    ) -> TestStoreOf<SidePanelSettingFeature> {
         TestStore(initialState: initialState) {
-            SettingsFeature()
+            SidePanelSettingFeature()
         } withDependencies: {
             $0[CredentialStoreClient.self] = .wrap(backing)
         }
@@ -34,7 +34,7 @@ struct SettingsFeatureTests {
     func savePersistsKey() async {
         let backing = InMemoryCredentialStore()
         let store = makeStore(
-            initialState: SettingsFeature.State(draftAPIKey: "sk-new"),
+            initialState: SidePanelSettingFeature.State(draftAPIKey: "sk-new"),
             backing: backing
         )
 
@@ -49,7 +49,7 @@ struct SettingsFeatureTests {
     func saveTrimsWhitespace() async {
         let backing = InMemoryCredentialStore()
         let store = makeStore(
-            initialState: SettingsFeature.State(draftAPIKey: "  sk-trim  "),
+            initialState: SidePanelSettingFeature.State(draftAPIKey: "  sk-trim  "),
             backing: backing
         )
 
@@ -64,7 +64,7 @@ struct SettingsFeatureTests {
     func saveBlankIsNoOp() async {
         let backing = InMemoryCredentialStore()
         let store = makeStore(
-            initialState: SettingsFeature.State(draftAPIKey: "   "),
+            initialState: SidePanelSettingFeature.State(draftAPIKey: "   "),
             backing: backing
         )
 
@@ -89,7 +89,7 @@ struct SettingsFeatureTests {
 
     @Test("canSave is false for blank and true for non-blank drafts")
     func canSaveReflectsDraft() {
-        var state = SettingsFeature.State()
+        var state = SidePanelSettingFeature.State()
         #expect(state.canSave == false)
         state.draftAPIKey = "   "
         #expect(state.canSave == false)

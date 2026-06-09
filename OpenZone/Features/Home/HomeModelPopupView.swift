@@ -170,7 +170,7 @@ struct HomeModelPopupView: View {
 // MARK: - Model row
 
 private struct ModelRow: View {
-    let option: ChatModelOption
+    let option: HomeModelOption
     let isSelected: Bool
     let palette: OpenZonePalette
     let onSelect: () -> Void

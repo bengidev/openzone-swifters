@@ -61,11 +61,11 @@ private nonisolated struct OpenRouterModelEntry: Decodable, Sendable {
 nonisolated let modelCatalogCacheTTL: TimeInterval = 60 * 60 // 1 hour
 
 /// TCA dependency for fetching the provider model catalog for the Home composer.
-nonisolated struct ModelCatalogClient: Sendable {
+nonisolated struct HomeModelCatalogClient: Sendable {
     var listModels: @Sendable (
         _ provider: AIProviderAPI,
         _ secret: String?,
-        _ cachePreference: ModelCatalogCachePreferenceClient,
+        _ cachePreference: HomeModelCatalogCachePreferenceClient,
         _ urlSession: URLSession
     ) async -> [ChatModel]
 
@@ -73,7 +73,7 @@ nonisolated struct ModelCatalogClient: Sendable {
         listModels: @escaping @Sendable (
             _ provider: AIProviderAPI,
             _ secret: String?,
-            _ cachePreference: ModelCatalogCachePreferenceClient,
+            _ cachePreference: HomeModelCatalogCachePreferenceClient,
             _ urlSession: URLSession
         ) async -> [ChatModel]
     ) {
@@ -81,8 +81,8 @@ nonisolated struct ModelCatalogClient: Sendable {
     }
 }
 
-extension ModelCatalogClient {
-    static let live = ModelCatalogClient { provider, secret, cachePreference, urlSession in
+extension HomeModelCatalogClient {
+    static let live = HomeModelCatalogClient { provider, secret, cachePreference, urlSession in
         guard let secret else {
             return ChatModel.curatedFallback
         }
@@ -158,15 +158,15 @@ extension ModelCatalogClient {
     }
 }
 
-extension ModelCatalogClient: DependencyKey {
-    static let liveValue = ModelCatalogClient.live
-    static let testValue = ModelCatalogClient { _, _, _, _ in ChatModel.curatedFallback }
-    static let previewValue = ModelCatalogClient { _, _, _, _ in ChatModel.curatedFallback }
+extension HomeModelCatalogClient: DependencyKey {
+    static let liveValue = HomeModelCatalogClient.live
+    static let testValue = HomeModelCatalogClient { _, _, _, _ in ChatModel.curatedFallback }
+    static let previewValue = HomeModelCatalogClient { _, _, _, _ in ChatModel.curatedFallback }
 }
 
 extension DependencyValues {
-    var modelCatalog: ModelCatalogClient {
-        get { self[ModelCatalogClient.self] }
-        set { self[ModelCatalogClient.self] = newValue }
+    var modelCatalog: HomeModelCatalogClient {
+        get { self[HomeModelCatalogClient.self] }
+        set { self[HomeModelCatalogClient.self] = newValue }
     }
 }

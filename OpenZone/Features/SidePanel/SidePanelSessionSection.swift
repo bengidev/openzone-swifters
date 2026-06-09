@@ -5,7 +5,7 @@ import Foundation
 /// recency buckets (Today, Yesterday, Previous 7 Days, Previous 30 Days,
 /// Older) keyed off `updatedAt`. Also provides the compact relative-time
 /// label shown on each row.
-struct ChatHistorySection: Identifiable, Equatable {
+struct SidePanelSessionSection: Identifiable, Equatable {
     let id: String
     let title: String
     let conversations: [ChatConversation]
@@ -17,12 +17,12 @@ struct ChatHistorySection: Identifiable, Equatable {
         _ conversations: [ChatConversation],
         now: Date = Date(),
         calendar: Calendar = .current
-    ) -> [ChatHistorySection] {
-        var sections: [ChatHistorySection] = []
+    ) -> [SidePanelSessionSection] {
+        var sections: [SidePanelSessionSection] = []
 
         let pinned = conversations.filter(\.isPinned)
         if !pinned.isEmpty {
-            sections.append(ChatHistorySection(id: "pinned", title: "Pinned", conversations: pinned))
+            sections.append(SidePanelSessionSection(id: "pinned", title: "Pinned", conversations: pinned))
         }
 
         // Unpinned conversations bucket by recency. Preserve encounter order so
@@ -38,7 +38,7 @@ struct ChatHistorySection: Identifiable, Equatable {
         // Emit buckets in canonical recency order rather than encounter order.
         for bucket in RecencyBucket.allCases where buckets[bucket] != nil {
             sections.append(
-                ChatHistorySection(
+                SidePanelSessionSection(
                     id: bucket.rawValue,
                     title: bucket.title,
                     conversations: buckets[bucket] ?? []
