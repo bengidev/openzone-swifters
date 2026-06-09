@@ -6,7 +6,7 @@ import Foundation
 /// this reducer never holds the secret beyond the in-flight draft the user is
 /// typing, and surfaces only whether a key is stored — never the value itself.
 @Reducer
-struct SettingsFeature {
+struct SidePanelSettingFeature {
     @Dependency(CredentialStoreClient.self) private var credentialStore
     @Dependency(AIProviderPreferenceClient.self) private var providerPreference
 

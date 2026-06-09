@@ -30,7 +30,7 @@ struct ChatHistorySectionTests {
             convo(title: "Pinned chat", updatedDaysAgo: 3, isPinned: true),
             convo(title: "Today chat", updatedDaysAgo: 0)
         ]
-        let sections = ChatHistorySection.grouped(conversations, now: now)
+        let sections = SidePanelSessionSection.grouped(conversations, now: now)
 
         #expect(sections.first?.title == "Pinned")
         #expect(sections.first?.conversations.count == 1)
@@ -48,24 +48,24 @@ struct ChatHistorySectionTests {
             convo(title: "yesterday", updatedDaysAgo: 1),
             convo(title: "last month", updatedDaysAgo: 20)
         ]
-        let titles = ChatHistorySection.grouped(conversations, now: now).map(\.title)
+        let titles = SidePanelSessionSection.grouped(conversations, now: now).map(\.title)
         #expect(titles == ["Today", "Yesterday", "Previous 7 Days", "Previous 30 Days", "Older"])
     }
 
     @Test("Empty buckets are dropped")
     func emptyBucketsDropped() {
         let conversations = [convo(title: "today", updatedDaysAgo: 0)]
-        let titles = ChatHistorySection.grouped(conversations, now: now).map(\.title)
+        let titles = SidePanelSessionSection.grouped(conversations, now: now).map(\.title)
         #expect(titles == ["Today"])
     }
 
     @Test("Relative label is compact")
     func relativeLabelCompact() {
-        #expect(ChatHistorySection.relativeLabel(for: now, now: now) == "now")
-        #expect(ChatHistorySection.relativeLabel(for: now.addingTimeInterval(-90), now: now) == "1m")
-        #expect(ChatHistorySection.relativeLabel(for: now.addingTimeInterval(-3 * 3600), now: now) == "3h")
-        #expect(ChatHistorySection.relativeLabel(for: now.addingTimeInterval(-2 * 86_400), now: now) == "2d")
-        #expect(ChatHistorySection.relativeLabel(for: now.addingTimeInterval(-14 * 86_400), now: now) == "2w")
-        #expect(ChatHistorySection.relativeLabel(for: now.addingTimeInterval(-400 * 86_400), now: now) == "1y")
+        #expect(SidePanelSessionSection.relativeLabel(for: now, now: now) == "now")
+        #expect(SidePanelSessionSection.relativeLabel(for: now.addingTimeInterval(-90), now: now) == "1m")
+        #expect(SidePanelSessionSection.relativeLabel(for: now.addingTimeInterval(-3 * 3600), now: now) == "3h")
+        #expect(SidePanelSessionSection.relativeLabel(for: now.addingTimeInterval(-2 * 86_400), now: now) == "2d")
+        #expect(SidePanelSessionSection.relativeLabel(for: now.addingTimeInterval(-14 * 86_400), now: now) == "2w")
+        #expect(SidePanelSessionSection.relativeLabel(for: now.addingTimeInterval(-400 * 86_400), now: now) == "1y")
     }
 }

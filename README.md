@@ -53,11 +53,11 @@ OpenZone/
 ├── Item.swift                 # SwiftData @Model scaffold
 ├── Features/
 │   ├── AppFeature.swift       # Root TCA reducer
-│   └── Onboarding/            # First-run onboarding feature
-│       ├── Application/       # TCA reducer, state, actions, orchestration
-│       ├── Domain/            # Onboarding pages and value types
-│       ├── Infrastructure/    # SwiftData progress persistence client
-│       └── Presenter/         # SwiftUI onboarding screens backed by StoreOf<OnboardingFeature>
+│   ├── Onboarding/            # First-run onboarding feature
+│   ├── Home/                  # Landing + composer + model catalog
+│   ├── Chat/                  # Live conversation, streaming, history persistence
+│   └── SidePanel/             # Slide-in panel: Session + Setting scopes
+│                              #   SidePanelSession… (ex "history chat") + SidePanelSetting…
 ├── Externals/                 # External integrations (Networking, Preference, Security)
 └── Shared/                    # Theme + UI primitives only
     ├── Theme/                 # Palette, typography, app theme preference
@@ -75,7 +75,7 @@ See [docs/architecture/modules.md](docs/architecture/modules.md) for feature/sha
 | Doc index | [docs/README.md](docs/README.md) |
 | Contributing & issues | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Agent / skill configuration | [AGENTS.md](AGENTS.md) → [docs/agents/](docs/agents/) |
-| Domain glossaries (multi-context) | [CONTEXT-MAP.md](CONTEXT-MAP.md) → `docs/contexts/*/CONTEXT.md` |
+| Domain glossaries (multi-context) | [CONTEXT-MAP.md](CONTEXT-MAP.md) → `docs/contexts/<scope>/<Scope>-CONTEXT.md` |
 | Architecture decisions (ADRs) | `docs/adr/` (created as decisions are recorded) |
 | Module & TCA layout | [docs/architecture/modules.md](docs/architecture/modules.md) |
 | Swift 6 concurrency & safety | [docs/architecture/swift-6-strictness.md](docs/architecture/swift-6-strictness.md) |

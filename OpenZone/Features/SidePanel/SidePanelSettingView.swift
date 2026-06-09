@@ -7,8 +7,8 @@ import SwiftUI
 /// via the reducer. The field is never pre-filled with the stored secret — the
 /// secret is write-only from the UI's perspective — and shows only whether a key
 /// is currently stored.
-struct SettingsView: View {
-    @Bindable var store: StoreOf<SettingsFeature>
+struct SidePanelSettingView: View {
+    @Bindable var store: StoreOf<SidePanelSettingFeature>
 
     @Environment(\.palette) private var palette
     @Environment(\.dismiss) private var dismiss
@@ -168,9 +168,9 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView(
-        store: Store(initialState: SettingsFeature.State()) {
-            SettingsFeature()
+    SidePanelSettingView(
+        store: Store(initialState: SidePanelSettingFeature.State()) {
+            SidePanelSettingFeature()
         }
     )
     .environment(\.palette, .resolve(.light))

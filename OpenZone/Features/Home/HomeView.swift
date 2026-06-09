@@ -39,18 +39,20 @@ struct HomeView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .accessibilityHidden(store.isSidebarVisible)
+                .accessibilityHidden(store.sidePanel.isSidebarVisible)
 
-                ChatHistorySidebarView(store: store)
+                SidePanelSessionSidebarView(
+                    store: store.scope(state: \.sidePanel.session, action: \.sidePanel.session)
+                )
             }
             .contentShape(Rectangle())
             .simultaneousGesture(sidebarSwipeGesture(in: proxy.size))
         }
         .onAppear { store.send(.onAppear) }
         .sheet(
-            item: $store.scope(state: \.settings, action: \.settings)
-        ) { settingsStore in
-            SettingsView(store: settingsStore)
+            item: $store.scope(state: \.sidePanel.setting, action: \.sidePanel.setting)
+        ) { settingStore in
+            SidePanelSettingView(store: settingStore)
         }
         .sheet(isPresented: Binding(
             get: { store.isModelPopupPresented },
@@ -126,9 +128,9 @@ struct HomeView: View {
                 let mostlyHorizontal = abs(translation.width) > abs(translation.height) * 1.4
                 guard mostlyHorizontal else { return }
 
-                if store.isSidebarVisible {
+                if store.sidePanel.isSidebarVisible {
                     guard translation.width < -sidebarSwipeThreshold else { return }
-                    store.send(.sidebarDismissed)
+                    store.send(.sidePanel(.session(.sidebarDismissed)))
                     return
                 }
 

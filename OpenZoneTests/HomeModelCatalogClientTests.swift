@@ -111,7 +111,7 @@ struct ModelCatalogCachePreferenceStoreTests {
     }
 }
 
-// MARK: - ModelCatalogClient
+// MARK: - HomeModelCatalogClient
 
 /// A separate URLProtocol stub used exclusively by `ModelCatalogClientTests`
 /// so it never shares static state with `StubURLProtocol` used by the
@@ -145,12 +145,12 @@ nonisolated final class CatalogStubURLProtocol: URLProtocol, @unchecked Sendable
     override func stopLoading() {}
 }
 
-@Suite("ModelCatalogClient", .serialized)
+@Suite("HomeModelCatalogClient", .serialized)
 struct ModelCatalogClientTests {
 
     private func makeCachePreference(
         cached: ModelCatalogCachePreference? = nil
-    ) -> ModelCatalogCachePreferenceClient {
+    ) -> HomeModelCatalogCachePreferenceClient {
         .wrap(InMemoryModelCatalogCachePreferenceStore(cachedCatalog: cached))
     }
 
@@ -169,7 +169,7 @@ struct ModelCatalogClientTests {
 
     @Test("Returns curated fallback when no secret is provided")
     func noKeyReturnsFallback() async {
-        let client = ModelCatalogClient.live
+        let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, nil, makeCachePreference(), .shared)
         #expect(result == ChatModel.curatedFallback)
     }
@@ -199,10 +199,10 @@ struct ModelCatalogClientTests {
         }
         """
         let cacheStore = InMemoryModelCatalogCachePreferenceStore()
-        let cacheClient = ModelCatalogCachePreferenceClient.wrap(cacheStore)
+        let cacheClient = HomeModelCatalogCachePreferenceClient.wrap(cacheStore)
         let session = makeSession(responseJSON: json)
 
-        let client = ModelCatalogClient.live
+        let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, "sk-test", cacheClient, session)
 
         // Both models should be present.
@@ -238,7 +238,7 @@ struct ModelCatalogClientTests {
         let json = #"{"data": [{"id": "network/model-b", "name": "Network B"}]}"#
         let session = makeSession(responseJSON: json)
 
-        let client = ModelCatalogClient.live
+        let client = HomeModelCatalogClient.live
         let result = await client.listModels(
             .openRouter, "sk-test", makeCachePreference(cached: cache), session
         )
@@ -264,7 +264,7 @@ struct ModelCatalogClientTests {
         """
         let session = makeSession(responseJSON: json)
 
-        let client = ModelCatalogClient.live
+        let client = HomeModelCatalogClient.live
         let result = await client.listModels(
             .openRouter, "sk-test", makeCachePreference(cached: staleCache), session
         )
@@ -278,7 +278,7 @@ struct ModelCatalogClientTests {
     func fallbackOnNetworkError() async {
         // Empty body + 500 → fetch throws → should return curated fallback.
         let session = makeSession(responseJSON: "", statusCode: 500)
-        let client = ModelCatalogClient.live
+        let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
         #expect(result == ChatModel.curatedFallback)
     }
@@ -294,7 +294,7 @@ struct ModelCatalogClientTests {
             fetchedAt: Date().addingTimeInterval(-7200)
         )
         let session = makeSession(responseJSON: "", statusCode: 500)
-        let client = ModelCatalogClient.live
+        let client = HomeModelCatalogClient.live
 
         let result = await client.listModels(
             .openRouter, "sk-test", makeCachePreference(cached: staleCache), session
@@ -314,7 +314,7 @@ struct ModelCatalogClientTests {
         ]}
         """
         let session = makeSession(responseJSON: json)
-        let client = ModelCatalogClient.live
+        let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
 
         let r1 = result.first { $0.id == "deepseek/deepseek-r1:free" }
@@ -340,7 +340,7 @@ struct HomeFeatureCatalogTests {
         } withDependencies: {
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore(secret: "sk-test"))
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[ModelCatalogClient.self] = ModelCatalogClient { _, _, _, _ in expectedModels }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
         }
         store.exhaustivity = .off
 
@@ -401,7 +401,7 @@ struct HomeFeatureCatalogTests {
         } withDependencies: {
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[ModelCatalogClient.self] = ModelCatalogClient { _, _, _, _ in [] }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
             $0.continuousClock = ImmediateClock()
         }
         store.exhaustivity = .off
@@ -423,7 +423,7 @@ struct HomeFeatureCatalogTests {
         } withDependencies: {
             $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[ModelCatalogClient.self] = ModelCatalogClient { _, _, _, _ in [] }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
             $0.continuousClock = clock
         }
 

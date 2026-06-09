@@ -41,8 +41,8 @@ struct HomeFeatureCredentialTests {
         store.exhaustivity = .off
 
         await store.send(.settingsButtonTapped)
-        #expect(store.state.settings != nil)
-        #expect(store.state.settings?.hasStoredKey == true)
+        #expect(store.state.sidePanel.setting != nil)
+        #expect(store.state.sidePanel.setting?.hasStoredKey == true)
     }
 
     @Test("Saving a key in the sheet opens the send gate")
@@ -50,7 +50,9 @@ struct HomeFeatureCredentialTests {
         let backing = InMemoryCredentialStore()
         let store = TestStore(
             initialState: HomeFeature.State(
-                settings: SettingsFeature.State(draftAPIKey: "sk-new")
+                sidePanel: SidePanelFeature.State(
+                    setting: SidePanelSettingFeature.State(draftAPIKey: "sk-new")
+                )
             )
         ) {
             HomeFeature()
@@ -62,9 +64,10 @@ struct HomeFeatureCredentialTests {
         await store.send(.onAppear)
         #expect(store.state.hasAPIKey == false)
 
-        // The user saves from the open sheet; the parent re-reads the credential
-        // source and opens the send gate.
-        await store.send(.settings(.presented(.saveTapped)))
+        // The user saves from the open sheet; the panel forwards a delegate and
+        // the parent re-reads the credential source, opening the send gate.
+        await store.send(.sidePanel(.setting(.presented(.saveTapped))))
+        await store.receive(\.sidePanel.delegate.credentialsChanged)
 
         #expect(backing.secret() == "sk-new")
         #expect(store.state.hasAPIKey == true)
@@ -80,7 +83,8 @@ struct HomeFeatureCredentialTests {
         #expect(store.state.hasAPIKey == true)
 
         await store.send(.settingsButtonTapped)
-        await store.send(.settings(.presented(.clearTapped)))
+        await store.send(.sidePanel(.setting(.presented(.clearTapped))))
+        await store.receive(\.sidePanel.delegate.credentialsChanged)
 
         #expect(backing.secret() == nil)
         #expect(store.state.hasAPIKey == false)

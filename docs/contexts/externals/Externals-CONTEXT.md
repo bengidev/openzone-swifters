@@ -26,10 +26,10 @@ OpenZone/Externals/
 ## Architecture
 
 - Externals code must not import or reference feature UI or TCA reducers.
-- Feature domain types (e.g. `ChatModel`) belong in `Features/Chat/Domain/`.
-- Feature orchestration clients (e.g. `ModelCatalogClient`) belong in the owning feature's `Infrastructure/`.
+- Feature domain types (e.g. `ChatModel`) belong in `Features/Chat/`.
+- Feature orchestration clients (e.g. `HomeModelCatalogClient`) belong in the owning feature's folder.
 - Same app target today — folder boundaries are the contract until promoted to a library target.
 
 ## TCA boundary
 
-Externals exposes dependency clients (`AIProviderPreferenceClient`, `CredentialStoreClient`). Feature infrastructure clients (`ModelCatalogClient`, `ModelCatalogCachePreferenceClient`) live under `Features/Home/Infrastructure/`.
+Externals exposes dependency clients (`AIProviderPreferenceClient`, `CredentialStoreClient`). Feature-scoped clients (`HomeModelCatalogClient`, `HomeModelCatalogCachePreferenceClient`) live under `Features/Home/`.

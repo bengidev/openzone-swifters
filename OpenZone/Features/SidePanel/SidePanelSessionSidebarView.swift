@@ -5,10 +5,10 @@ import SwiftUI
 /// Pinned section followed by recency buckets (Today, Yesterday, Previous 7
 /// Days, Previous 30 Days, Older). A search field filters by title; each row
 /// offers a long-press menu to rename, pin/unpin, or delete. Tapping a row
-/// hands off to `HomeFeature`, which reopens the conversation in the chat
+/// emits a session delegate so the parent reopens the conversation in the chat
 /// reducer. All colors are sourced from the shared palette.
-struct ChatHistorySidebarView: View {
-    @Bindable var store: StoreOf<HomeFeature>
+struct SidePanelSessionSidebarView: View {
+    @Bindable var store: StoreOf<SidePanelSessionFeature>
 
     @Environment(\.palette) private var palette
 
@@ -168,7 +168,7 @@ struct ChatHistorySidebarView: View {
     private var conversationList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
-                ForEach(ChatHistorySection.grouped(store.filteredConversations)) { section in
+                ForEach(SidePanelSessionSection.grouped(store.filteredConversations)) { section in
                     Section {
                         ForEach(section.conversations) { conversation in
                             Button {
@@ -224,7 +224,7 @@ struct ChatHistorySidebarView: View {
     }
 
     private func conversationRow(_ conversation: ChatConversation) -> some View {
-        let isActive = store.chat.conversation?.id == conversation.id
+        let isActive = store.activeConversationID == conversation.id
         return HStack(spacing: 8) {
             if conversation.isPinned {
                 Image(systemName: "pin.fill")
@@ -239,7 +239,7 @@ struct ChatHistorySidebarView: View {
 
             Spacer(minLength: 8)
 
-            Text(ChatHistorySection.relativeLabel(for: conversation.updatedAt))
+            Text(SidePanelSessionSection.relativeLabel(for: conversation.updatedAt))
                 .font(.system(size: 12))
                 .foregroundStyle(palette.textTertiary)
                 .fixedSize()
