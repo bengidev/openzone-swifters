@@ -1,13 +1,13 @@
 import ComposableArchitecture
 import Foundation
 
-// MARK: - OpenRouter wire types
+// MARK: - Provider wire types
 
-private nonisolated struct OpenRouterModelsResponse: Decodable, Sendable {
-    let data: [OpenRouterModelEntry]
+private nonisolated struct ProviderModelsResponse: Decodable, Sendable {
+    let data: [ProviderModelEntry]
 }
 
-private nonisolated struct OpenRouterModelEntry: Decodable, Sendable {
+private nonisolated struct ProviderModelEntry: Decodable, Sendable {
     let id: String
     let name: String?
     let contextLength: Int?
@@ -15,8 +15,10 @@ private nonisolated struct OpenRouterModelEntry: Decodable, Sendable {
     let pricing: Pricing?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, architecture, pricing
+        case id, name
         case contextLength = "context_length"
+        case architecture
+        case pricing
     }
 
     nonisolated struct Architecture: Decodable, Sendable {
@@ -26,23 +28,35 @@ private nonisolated struct OpenRouterModelEntry: Decodable, Sendable {
     nonisolated struct Pricing: Decodable, Sendable {
         let prompt: String?
         let completion: String?
+        let promo: String?
     }
 
     var isFree: Bool {
-        guard let prompt = pricing?.prompt, let completion = pricing?.completion else {
-            return id.hasSuffix(":free")
-        }
-        return (prompt == "0" || prompt == "0.0") && (completion == "0" || completion == "0.0")
+        // If pricing info exists (OpenRouter style), use it.
+        if let pricing { return pricing.promo == "0" || pricing.completion == "0" }
+        // For providers without pricing info, check if name contains "free"
+        if let name { return name.lowercased().contains("free") }
+        return false
     }
 
     var supportsReasoning: Bool {
-        let lower = id.lowercased()
-        return lower.contains("deepseek-r1")
-            || lower.contains("deepseek-r2")
-            || lower.contains("qwq")
-            || lower.contains("o1")
-            || lower.contains("o3")
-            || lower.contains("-thinking")
+        // OpenRouter uses model id patterns. Keep existing logic for OpenRouter,
+        // but also check for common reasoning model patterns.
+        let reasoningIDs: Set<String> = [
+            "deepseek-r1", "deepseek-r1-distill",
+            "deepseek/deepseek-r1", "deepseek/deepseek-r1-distill",
+            "openai/o1", "openai/o3", "openai/o1-mini", "openai/o3-mini",
+            "qwen/qwq", "qwen/qvq",
+            "deepseek-v4-pro", "deepseek-v4-flash",
+            "deepseek-v4-pro-free", "deepseek-v4-flash-free",
+            "kimi-k2.5", "kimi-k2.6"
+        ]
+        for prefix in reasoningIDs {
+            if id.hasPrefix(prefix) || id.contains(prefix) { return true }
+        }
+        // OpenRouter-style detection via architecture
+        if let modality = architecture?.modality, modality.contains("reasoning") { return true }
+        return false
     }
 
     func toChatModel() -> ChatModel {
@@ -144,7 +158,7 @@ extension HomeModelCatalogClient {
             throw URLError(.badServerResponse)
         }
 
-        let envelope = try JSONDecoder().decode(OpenRouterModelsResponse.self, from: data)
+        let envelope = try JSONDecoder().decode(ProviderModelsResponse.self, from: data)
         return envelope.data
             .filter { entry in
                 let modality = entry.architecture?.modality ?? ""
