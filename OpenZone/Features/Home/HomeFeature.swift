@@ -55,15 +55,23 @@ struct HomeFeature {
         /// Whether the free-tier filter is active in the model popup.
         var modelFilterFreeOnly: Bool = false
 
-        /// The presentation option for the current selection, resolved first
-        /// from the live catalog, then from the curated fallback.
+        /// When true, the next catalog load may pick the first available model
+        /// if nothing is selected. Cleared after a provider change so the user
+        /// must choose a model for the new provider.
+        var shouldAutoSelectDefaultModel = true
+
+        /// The presentation option for the current selection, resolved from the
+        /// current catalog when possible and synthesized from the stored id when
+        /// the catalog no longer lists it.
         var selectedModelOption: HomeModelOption? {
             guard let selectedModelID else { return nil }
-            // Prefer live catalog entry so the richer metadata is shown.
-            if let live = catalogModels.first(where: { $0.id == selectedModelID }) {
-                return HomeModelOption(model: live)
+            if let match = availableModels.first(where: { $0.id == selectedModelID }) {
+                return match
             }
-            return HomeModelCatalog.option(for: selectedModelID, providerID: selectedProviderID)
+            return HomeModelOption(
+                id: selectedModelID,
+                title: HomeModelCatalog.displayTitle(for: selectedModelID)
+            )
         }
 
         /// Models offered for the current provider, shown in the composer popup.
@@ -175,7 +183,10 @@ struct HomeFeature {
                 // provider), and reload the catalog so the composer shows the
                 // new provider's offerings on dismiss.
                 state.selectedProviderID = providerID
+                providerPreference.setProviderID(providerID)
+                providerPreference.setModelID(nil)
                 state.selectedModelID = nil
+                state.shouldAutoSelectDefaultModel = false
                 state.sidePanel.selectedProviderID = providerID
                 state.sidePanel.modelSupportsReasoning = false
                 state.hasAPIKey = credentialStore.secret(providerID) != nil
@@ -225,6 +236,7 @@ struct HomeFeature {
                 let preference = providerPreference.preference()
                 state.selectedProviderID = preference.providerID ?? AIProviderAPI.default.id
                 state.selectedModelID = preference.modelID
+                state.shouldAutoSelectDefaultModel = preference.modelID == nil
                 state.reasoningModel = preference.reasoningModel
                 state.sidePanel.modelSupportsReasoning =
                     state.selectedModelOption?.supportsReasoning == true
@@ -243,6 +255,12 @@ struct HomeFeature {
 
             case let .catalogLoaded(models):
                 state.catalogModels = models
+                reconcileModelSelection(
+                    state: &state,
+                    preference: providerPreference,
+                    allowAutoSelect: state.shouldAutoSelectDefaultModel
+                )
+                state.shouldAutoSelectDefaultModel = false
                 state.sidePanel.modelSupportsReasoning =
                     state.selectedModelOption?.supportsReasoning == true
                 state.sidePanel.selectedProviderID = state.selectedProviderID
@@ -278,5 +296,31 @@ struct HomeFeature {
                 return .none
             }
         }
+    }
+}
+
+
+private func reconcileModelSelection(
+    state: inout HomeFeature.State,
+    preference: AIProviderPreferenceClient,
+    allowAutoSelect: Bool
+) {
+    let models = state.availableModels
+    guard !models.isEmpty else { return }
+
+    if let selectedModelID = state.selectedModelID {
+        guard !models.contains(where: { $0.id == selectedModelID }) else { return }
+    } else if !allowAutoSelect {
+        return
+    }
+
+    let defaultModel = models[0]
+    preference.setProviderID(state.selectedProviderID)
+    preference.setModelID(defaultModel.id)
+    state.selectedModelID = defaultModel.id
+
+    if let option = state.selectedModelOption,
+       !option.availableSpeedModes.contains(state.speedMode) {
+        state.speedMode = .standard
     }
 }
