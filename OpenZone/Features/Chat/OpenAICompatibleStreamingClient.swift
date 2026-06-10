@@ -38,7 +38,7 @@ nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Senda
         return AsyncStream { continuation in
             let task = Task {
                 do {
-                    guard let secret = credentialProvider.resolve() else {
+                    guard let secret = credentialProvider.resolve(request.provider.id) else {
                         continuation.yield(.error("Missing API key. Add your provider key to continue."))
                         continuation.finish()
                         return

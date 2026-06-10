@@ -28,7 +28,12 @@ extension ChatAPIClient: DependencyKey {
   /// they never touch the network.
   static let liveValue = ChatAPIClient.wrap(
     OpenAICompatibleStreamingClient(
-      credentialProvider: .keychain(KeychainCredentialStore.openRouter)
+      credentialProvider: AIProviderCredentialAPI { providerID in
+        KeychainCredentialStore(
+          service: "io.github.bengidev.OpenZone",
+          account: "\(providerID)-api-key"
+        ).secret()
+      }
     )
   )
   static let testValue = ChatAPIClient.wrap(ChatCannedEventClient())
