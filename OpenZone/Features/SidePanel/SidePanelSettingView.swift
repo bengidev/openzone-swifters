@@ -21,6 +21,7 @@ struct SidePanelSettingView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
+                        providerPicker
                         header
                         keyField
                         if let errorMessage = store.errorMessage {
@@ -50,6 +51,33 @@ struct SidePanelSettingView: View {
         }
     }
 
+    private var providerPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Provider")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(palette.textPrimary)
+
+            Text("Choose which AI provider to use. Each provider has its own API key and model catalog.")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Picker(
+                "Provider",
+                selection: Binding(
+                    get: { store.selectedProviderID },
+                    set: { store.send(.providerSelected($0)) }
+                )
+            ) {
+                ForEach(AIProviderAPI.all, id: \.id) { provider in
+                    Text(provider.displayName).tag(provider.id)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("settings-provider-picker")
+        }
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Provider API key")
@@ -58,7 +86,7 @@ struct SidePanelSettingView: View {
 
             Text(store.hasStoredKey
                  ? "A key is stored securely in the Keychain. Enter a new value to replace it."
-                 : "Add your provider API key to enable sending. It is stored securely in the Keychain and never leaves this device.")
+                 : "Add your \(AIProviderAPI.resolve(id: store.selectedProviderID).displayName) API key to enable sending. It is stored securely in the Keychain and never leaves this device.")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

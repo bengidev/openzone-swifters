@@ -28,6 +28,10 @@ struct SidePanelSettingFeature {
         /// the parent when presenting the sheet; the reasoning control is shown
         /// only when this is true, matching the composer-side gate.
         var modelSupportsReasoning = false
+        /// The provider whose credentials are currently being managed. Mirrored
+        /// from the parent so the key field targets the active provider, and
+        /// updated when the user picks a different provider in this sheet.
+        var selectedProviderID: String = AIProviderAPI.default.id
 
         var canSave: Bool {
             !draftAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -38,13 +42,15 @@ struct SidePanelSettingFeature {
             hasStoredKey: Bool = false,
             errorMessage: String? = nil,
             reasoningModel: AIProviderReasoningModel = .high,
-            modelSupportsReasoning: Bool = false
+            modelSupportsReasoning: Bool = false,
+            selectedProviderID: String = AIProviderAPI.default.id
         ) {
             self.draftAPIKey = draftAPIKey
             self.hasStoredKey = hasStoredKey
             self.errorMessage = errorMessage
             self.reasoningModel = reasoningModel
             self.modelSupportsReasoning = modelSupportsReasoning
+            self.selectedProviderID = selectedProviderID
         }
     }
 
@@ -54,6 +60,7 @@ struct SidePanelSettingFeature {
         case saveTapped
         case clearTapped
         case reasoningModelSelected(AIProviderReasoningModel)
+        case providerSelected(String)
     }
 
     var body: some Reducer<State, Action> {
@@ -64,15 +71,17 @@ struct SidePanelSettingFeature {
                 return .none
 
             case .onAppear:
-                state.hasStoredKey = credentialStore.secret() != nil
-                state.reasoningModel = providerPreference.preference().reasoningModel
+                let preference = providerPreference.preference()
+                state.selectedProviderID = preference.providerID ?? AIProviderAPI.default.id
+                state.hasStoredKey = credentialStore.secret(state.selectedProviderID) != nil
+                state.reasoningModel = preference.reasoningModel
                 return .none
 
             case .saveTapped:
                 let key = state.draftAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !key.isEmpty else { return .none }
                 do {
-                    try credentialStore.save(key)
+                    try credentialStore.save(state.selectedProviderID, key)
                     state.draftAPIKey = ""
                     state.hasStoredKey = true
                     state.errorMessage = nil
@@ -83,7 +92,7 @@ struct SidePanelSettingFeature {
 
             case .clearTapped:
                 do {
-                    try credentialStore.clear()
+                    try credentialStore.clear(state.selectedProviderID)
                     state.draftAPIKey = ""
                     state.hasStoredKey = false
                     state.errorMessage = nil
@@ -97,6 +106,12 @@ struct SidePanelSettingFeature {
                 // into local state so the control reflects the change at once.
                 providerPreference.setReasoningModel(level)
                 state.reasoningModel = level
+                return .none
+
+            case let .providerSelected(id):
+                providerPreference.setProviderID(id)
+                state.selectedProviderID = id
+                state.hasStoredKey = credentialStore.secret(id) != nil
                 return .none
             }
         }

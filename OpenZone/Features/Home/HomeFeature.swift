@@ -160,7 +160,7 @@ struct HomeFeature {
             case .sidePanel(.delegate(.credentialsChanged)):
                 // The settings sheet mutated stored credentials; re-read the
                 // source of truth so the send gate reflects the change.
-                state.hasAPIKey = credentialStore.secret() != nil
+                state.hasAPIKey = credentialStore.secret(state.selectedProviderID) != nil
                 return .none
 
             case .sidePanel(.delegate(.reasoningModelChanged)):
@@ -168,6 +168,25 @@ struct HomeFeature {
                 // the composer chip reflects the change immediately on dismiss.
                 state.reasoningModel = providerPreference.preference().reasoningModel
                 return .none
+
+            case let .sidePanel(.delegate(.providerChanged(providerID))):
+                // The user picked a different provider in the settings sheet.
+                // Mirror it locally, clear the stale model (models differ per
+                // provider), and reload the catalog so the composer shows the
+                // new provider's offerings on dismiss.
+                state.selectedProviderID = providerID
+                state.selectedModelID = nil
+                state.sidePanel.selectedProviderID = providerID
+                state.sidePanel.modelSupportsReasoning = false
+                state.hasAPIKey = credentialStore.secret(providerID) != nil
+                let provider = AIProviderAPI.resolve(id: providerID)
+                let secret = credentialStore.secret(providerID)
+                let cachePreference = modelCatalogCachePreference
+                let catalogClient = modelCatalog
+                return .run { send in
+                    let models = await catalogClient.listModels(provider, secret, cachePreference, .shared)
+                    await send(.catalogLoaded(models))
+                }
 
             case .sidePanel:
                 return .none
@@ -186,6 +205,7 @@ struct HomeFeature {
                 }
                 state.sidePanel.modelSupportsReasoning =
                     state.selectedModelOption?.supportsReasoning == true
+                state.sidePanel.selectedProviderID = state.selectedProviderID
                 return .none
 
             case let .reasoningModelSelected(level):
@@ -199,7 +219,7 @@ struct HomeFeature {
                 return .none
 
             case .onAppear:
-                state.hasAPIKey = credentialStore.secret() != nil
+                state.hasAPIKey = credentialStore.secret(state.selectedProviderID) != nil
                 // Seed the selection from the single source of truth so the
                 // composer reflects any previously stored provider/model.
                 let preference = providerPreference.preference()
@@ -208,11 +228,12 @@ struct HomeFeature {
                 state.reasoningModel = preference.reasoningModel
                 state.sidePanel.modelSupportsReasoning =
                     state.selectedModelOption?.supportsReasoning == true
+                state.sidePanel.selectedProviderID = state.selectedProviderID
 
                 // Load the model catalog. The effect resolves the provider and
                 // secret at call time so the result is always up to date.
                 let provider = AIProviderAPI.resolve(id: state.selectedProviderID)
-                let secret = credentialStore.secret()
+                let secret = credentialStore.secret(state.selectedProviderID)
                 let cachePreference = modelCatalogCachePreference
                 let catalogClient = modelCatalog
                 return .run { send in
@@ -224,6 +245,7 @@ struct HomeFeature {
                 state.catalogModels = models
                 state.sidePanel.modelSupportsReasoning =
                     state.selectedModelOption?.supportsReasoning == true
+                state.sidePanel.selectedProviderID = state.selectedProviderID
                 return .none
 
             case let .modelPopupPresented(isPresented):

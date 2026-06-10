@@ -26,6 +26,9 @@ struct SidePanelFeature {
         /// Whether the parent's selected model supports reasoning. Mirrored from
         /// Home so the settings sheet can gate the reasoning control.
         var modelSupportsReasoning = false
+        /// The currently selected provider id, mirrored from Home. Drives the
+        /// settings sheet so the credential field targets the active provider.
+        var selectedProviderID: String = AIProviderAPI.default.id
 
         /// Convenience mirror of the session scope's sidebar visibility, so the
         /// parent and views can read it without reaching into the sub-scope.
@@ -34,11 +37,13 @@ struct SidePanelFeature {
         init(
             session: SidePanelSessionFeature.State = .init(),
             setting: SidePanelSettingFeature.State? = nil,
-            modelSupportsReasoning: Bool = false
+            modelSupportsReasoning: Bool = false,
+            selectedProviderID: String = AIProviderAPI.default.id
         ) {
             self.session = session
             self.setting = setting
             self.modelSupportsReasoning = modelSupportsReasoning
+            self.selectedProviderID = selectedProviderID
         }
     }
 
@@ -61,6 +66,9 @@ struct SidePanelFeature {
             case credentialsChanged
             /// The reasoning tier was changed from the settings sheet.
             case reasoningModelChanged
+            /// The provider was changed from the settings sheet. The associated
+            /// providerID is the newly active one.
+            case providerChanged(String)
         }
     }
 
@@ -72,9 +80,10 @@ struct SidePanelFeature {
             switch action {
             case .settingsButtonTapped, .session(.settingsButtonTapped):
                 state.setting = SidePanelSettingFeature.State(
-                    hasStoredKey: credentialStore.secret() != nil,
+                    hasStoredKey: credentialStore.secret(state.selectedProviderID) != nil,
                     reasoningModel: providerPreference.preference().reasoningModel,
-                    modelSupportsReasoning: state.modelSupportsReasoning
+                    modelSupportsReasoning: state.modelSupportsReasoning,
+                    selectedProviderID: state.selectedProviderID
                 )
                 return .none
 
@@ -100,6 +109,10 @@ struct SidePanelFeature {
 
             case .setting(.presented(.reasoningModelSelected)):
                 return .send(.delegate(.reasoningModelChanged))
+
+            case .setting(.presented(.providerSelected)):
+                state.selectedProviderID = providerPreference.preference().providerID ?? AIProviderAPI.default.id
+                return .send(.delegate(.providerChanged(state.selectedProviderID)))
 
             case .setting:
                 return .none
