@@ -63,4 +63,13 @@ enum HomeModelCatalog {
         guard let modelID else { return nil }
         return models(for: providerID).first { $0.id == modelID }
     }
+
+    /// Humanizes a wire model id for display when the catalog no longer lists it.
+    static func displayTitle(for modelID: String) -> String {
+        let leaf = modelID.split(separator: "/").last.map(String.init) ?? modelID
+        let withoutFreeSuffix = leaf.replacingOccurrences(of: ":free", with: "")
+        return withoutFreeSuffix
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+    }
 }
