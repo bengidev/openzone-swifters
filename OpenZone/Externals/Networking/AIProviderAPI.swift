@@ -70,9 +70,23 @@ extension AIProviderAPI {
         ]
     )
 
+    /// OpenCode, configured with bearer auth and recommended attribution
+    /// headers. The attribution headers identify the app to OpenCode and are
+    /// safe to commit (they carry no secret).
+    static let openCode = AIProviderAPI(
+        id: "opencode",
+        displayName: "OpenCode",
+        baseURL: URL(string: "https://opencode.ai/zen/v1")!,
+        authScheme: .bearer,
+        defaultHeaders: [
+            "HTTP-Referer": "https://github.com/bengidev/openzone-swifters",
+            "X-Title": "OpenZone"
+        ]
+    )
+
     /// Every provider the app knows how to address. Adding an OpenAI-compatible
     /// backend is a value appended here, not a new client.
-    static let all: [AIProviderAPI] = [.openRouter]
+    static let all: [AIProviderAPI] = [.openRouter, .openCode]
 
     /// The provider used when no preference has been stored yet.
     static let `default`: AIProviderAPI = .openRouter

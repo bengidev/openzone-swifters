@@ -9,22 +9,11 @@ import Foundation
 ///
 /// Externals networking primitive; it names no chat domain types.
 nonisolated struct AIProviderCredentialAPI: Sendable {
-    /// Returns the current secret, or `nil` when none is available.
-    var resolve: @Sendable () -> String?
+    /// Returns the current secret for the given provider id, or `nil` when none
+    /// is available.
+    var resolve: @Sendable (_ providerID: String) -> String?
 
-    init(resolve: @escaping @Sendable () -> String?) {
+    init(resolve: @escaping @Sendable (_ providerID: String) -> String?) {
         self.resolve = resolve
-    }
-}
-
-extension AIProviderCredentialAPI {
-    /// Resolves the secret from a `CredentialStore` at request time.
-    ///
-    /// The store is read on every `resolve()` call, so a key entered or updated
-    /// through Settings is picked up on the next send without reconstructing the
-    /// client. When no key is stored, `resolve()` returns `nil` and the send path
-    /// reports a missing-credential error rather than calling out with no auth.
-    static func keychain(_ store: some CredentialStore) -> AIProviderCredentialAPI {
-        AIProviderCredentialAPI { store.secret() }
     }
 }

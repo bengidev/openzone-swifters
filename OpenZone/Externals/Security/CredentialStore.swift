@@ -115,6 +115,7 @@ nonisolated struct KeychainCredentialStore: CredentialStore {
 extension KeychainCredentialStore {
     /// The shared item holding the OpenRouter API key for this app. The Settings
     /// surface and the streaming client both address this exact row.
+    @available(*, deprecated, message: "Use CredentialStoreClient.store(for:) instead")
     static let openRouter = KeychainCredentialStore(
         service: "io.github.bengidev.OpenZone",
         account: "openrouter-api-key"
@@ -159,14 +160,14 @@ nonisolated final class InMemoryCredentialStore: CredentialStore, @unchecked Sen
 /// struct-of-closures style used by `ChatAPIClient`. The reducer talks to this;
 /// the concrete adapter behind it is chosen by the dependency environment.
 nonisolated struct CredentialStoreClient: Sendable {
-    var secret: @Sendable () -> String?
-    var save: @Sendable (String) throws -> Void
-    var clear: @Sendable () throws -> Void
+    var secret: @Sendable (_ providerID: String) -> String?
+    var save: @Sendable (_ providerID: String, _ secret: String) throws -> Void
+    var clear: @Sendable (_ providerID: String) throws -> Void
 
     init(
-        secret: @escaping @Sendable () -> String?,
-        save: @escaping @Sendable (String) throws -> Void,
-        clear: @escaping @Sendable () throws -> Void
+        secret: @escaping @Sendable (_ providerID: String) -> String?,
+        save: @escaping @Sendable (_ providerID: String, _ secret: String) throws -> Void,
+        clear: @escaping @Sendable (_ providerID: String) throws -> Void
     ) {
         self.secret = secret
         self.save = save
@@ -175,21 +176,36 @@ nonisolated struct CredentialStoreClient: Sendable {
 }
 
 extension CredentialStoreClient {
-    static func wrap(_ store: some CredentialStore) -> CredentialStoreClient {
-        CredentialStoreClient(
-            secret: { store.secret() },
-            save: { try store.save(secret: $0) },
-            clear: { try store.clear() }
+    nonisolated static func store(for providerID: String) -> KeychainCredentialStore {
+        KeychainCredentialStore(
+            service: "io.github.bengidev.OpenZone",
+            account: "\(providerID)-api-key"
         )
     }
 }
 
 extension CredentialStoreClient: DependencyKey {
     /// Live path persists to the Keychain generic-password item.
-    static let liveValue = CredentialStoreClient.wrap(KeychainCredentialStore.openRouter)
+    static let liveValue = CredentialStoreClient(
+        secret: { providerID in Self.store(for: providerID).secret() },
+        save: { providerID, secret in try Self.store(for: providerID).save(secret: secret) },
+        clear: { providerID in try Self.store(for: providerID).clear() }
+    )
     /// Test/preview paths keep everything in memory so they never touch the Keychain.
-    static let testValue = CredentialStoreClient.wrap(InMemoryCredentialStore())
-    static let previewValue = CredentialStoreClient.wrap(InMemoryCredentialStore())
+    static let testValue: CredentialStoreClient = {
+        let store = InMemoryCredentialStore()
+        return CredentialStoreClient(
+            secret: { _ in store.secret() },
+            save: { _, secret in try store.save(secret: secret) },
+            clear: { _ in try store.clear() }
+        )
+    }()
+
+    static let previewValue = CredentialStoreClient(
+        secret: { _ in InMemoryCredentialStore().secret() },
+        save: { _, _ in },
+        clear: { _ in }
+    )
 }
 
 extension DependencyValues {
