@@ -45,7 +45,7 @@ private struct HomeComposerPromptPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !store.hasAPIKey {
-                MissingAPIKeyHint { store.send(.settingsButtonTapped) }
+                MissingAPIKeyHint { store.send(.sidePanel(.settingsButtonTapped)) }
             }
 
             TextField(

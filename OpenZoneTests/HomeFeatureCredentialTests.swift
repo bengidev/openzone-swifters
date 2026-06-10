@@ -40,7 +40,7 @@ struct HomeFeatureCredentialTests {
         let store = makeStore(backing: InMemoryCredentialStore(secret: "sk-existing"))
         store.exhaustivity = .off
 
-        await store.send(.settingsButtonTapped)
+        await store.send(.sidePanel(.settingsButtonTapped))
         #expect(store.state.sidePanel.setting != nil)
         #expect(store.state.sidePanel.setting?.hasStoredKey == true)
     }
@@ -82,7 +82,7 @@ struct HomeFeatureCredentialTests {
         await store.send(.onAppear)
         #expect(store.state.hasAPIKey == true)
 
-        await store.send(.settingsButtonTapped)
+        await store.send(.sidePanel(.settingsButtonTapped))
         await store.send(.sidePanel(.setting(.presented(.clearTapped))))
         await store.receive(\.sidePanel.delegate.credentialsChanged)
 

@@ -73,11 +73,20 @@ struct SidePanelSessionSidebarView: View {
     }
 
     private var header: some View {
-        HStack {
+        HStack(spacing: 12) {
             Text("History")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(palette.textPrimary)
             Spacer()
+            Button {
+                store.send(.settingsButtonTapped)
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(palette.textPrimary)
+            }
+            .accessibilityLabel("Settings")
+            .accessibilityIdentifier("sidepanel-settings-button")
             Button {
                 store.send(.sidebarDismissed)
             } label: {

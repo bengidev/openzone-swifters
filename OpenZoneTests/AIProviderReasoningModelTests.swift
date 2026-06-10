@@ -135,7 +135,7 @@ struct HomeReasoningSelectionTests {
         store.exhaustivity = .off
 
         await store.send(.onAppear)
-        await store.send(.settingsButtonTapped)
+        await store.send(.sidePanel(.settingsButtonTapped))
 
         #expect(store.state.sidePanel.setting?.reasoningModel == .low)
         #expect(store.state.sidePanel.setting?.modelSupportsReasoning == true)

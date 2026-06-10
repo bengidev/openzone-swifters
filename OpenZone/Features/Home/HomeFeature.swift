@@ -111,7 +111,6 @@ struct HomeFeature {
         case modelSearchQueryChanged(String)
         case searchQueryDebounced(String)
         case modelFilterFreeOnlyChanged(Bool)
-        case settingsButtonTapped
         case sidebarToggleTapped
     }
 
@@ -137,14 +136,6 @@ struct HomeFeature {
                 // list can highlight the open thread, then toggle the drawer.
                 state.sidePanel.session.activeConversationID = state.chat.conversation?.id
                 return .send(.sidePanel(.session(.sidebarToggleTapped)))
-
-            case .settingsButtonTapped:
-                state.sidePanel.setting = SidePanelSettingFeature.State(
-                    hasStoredKey: credentialStore.secret() != nil,
-                    reasoningModel: state.reasoningModel,
-                    modelSupportsReasoning: state.selectedModelOption?.supportsReasoning == true
-                )
-                return .none
 
             // MARK: Side panel delegate outputs
 
@@ -193,6 +184,8 @@ struct HomeFeature {
                    !option.availableSpeedModes.contains(state.speedMode) {
                     state.speedMode = .standard
                 }
+                state.sidePanel.modelSupportsReasoning =
+                    state.selectedModelOption?.supportsReasoning == true
                 return .none
 
             case let .reasoningModelSelected(level):
@@ -213,6 +206,8 @@ struct HomeFeature {
                 state.selectedProviderID = preference.providerID ?? AIProviderAPI.default.id
                 state.selectedModelID = preference.modelID
                 state.reasoningModel = preference.reasoningModel
+                state.sidePanel.modelSupportsReasoning =
+                    state.selectedModelOption?.supportsReasoning == true
 
                 // Load the model catalog. The effect resolves the provider and
                 // secret at call time so the result is always up to date.
@@ -227,6 +222,8 @@ struct HomeFeature {
 
             case let .catalogLoaded(models):
                 state.catalogModels = models
+                state.sidePanel.modelSupportsReasoning =
+                    state.selectedModelOption?.supportsReasoning == true
                 return .none
 
             case let .modelPopupPresented(isPresented):

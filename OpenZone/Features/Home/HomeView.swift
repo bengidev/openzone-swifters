@@ -102,16 +102,6 @@ struct HomeView: View {
             .accessibilityLabel("Show sidebar")
 
             Spacer()
-
-            Button {
-                store.send(.settingsButtonTapped)
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(palette.textPrimary)
-            }
-            .accessibilityLabel("Settings")
-            .accessibilityIdentifier("home-settings-button")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)

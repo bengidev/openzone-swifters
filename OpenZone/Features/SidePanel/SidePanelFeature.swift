@@ -12,6 +12,9 @@ import Foundation
 /// translates them into chat/home state changes.
 @Reducer
 struct SidePanelFeature {
+    @Dependency(CredentialStoreClient.self) private var credentialStore
+    @Dependency(AIProviderPreferenceClient.self) private var providerPreference
+
     @ObservableState
     struct State: Equatable {
         /// The session browser scope (saved-conversation list + sidebar).
@@ -20,22 +23,29 @@ struct SidePanelFeature {
         /// Presented settings sheet, when non-nil.
         @Presents var setting: SidePanelSettingFeature.State?
 
+        /// Whether the parent's selected model supports reasoning. Mirrored from
+        /// Home so the settings sheet can gate the reasoning control.
+        var modelSupportsReasoning = false
+
         /// Convenience mirror of the session scope's sidebar visibility, so the
         /// parent and views can read it without reaching into the sub-scope.
         var isSidebarVisible: Bool { session.isSidebarVisible }
 
         init(
             session: SidePanelSessionFeature.State = .init(),
-            setting: SidePanelSettingFeature.State? = nil
+            setting: SidePanelSettingFeature.State? = nil,
+            modelSupportsReasoning: Bool = false
         ) {
             self.session = session
             self.setting = setting
+            self.modelSupportsReasoning = modelSupportsReasoning
         }
     }
 
     enum Action: Equatable {
         case session(SidePanelSessionFeature.Action)
         case setting(PresentationAction<SidePanelSettingFeature.Action>)
+        case settingsButtonTapped
         case delegate(Delegate)
 
         /// Outputs the parent (Home) acts on.
@@ -58,8 +68,16 @@ struct SidePanelFeature {
         Scope(state: \.session, action: \.session) {
             SidePanelSessionFeature()
         }
-        Reduce { _, action in
+        Reduce { state, action in
             switch action {
+            case .settingsButtonTapped, .session(.settingsButtonTapped):
+                state.setting = SidePanelSettingFeature.State(
+                    hasStoredKey: credentialStore.secret() != nil,
+                    reasoningModel: providerPreference.preference().reasoningModel,
+                    modelSupportsReasoning: state.modelSupportsReasoning
+                )
+                return .none
+
             // Forward the session scope's delegate outputs up to the parent.
             case let .session(.delegate(.openConversation(conversation))):
                 return .send(.delegate(.openConversation(conversation)))

@@ -58,6 +58,7 @@ struct SidePanelSessionFeature {
     enum Action: Equatable {
         case sidebarToggleTapped
         case sidebarDismissed
+        case settingsButtonTapped
         case conversationsLoaded([ChatConversation])
         case conversationSelected(ChatConversation)
         case historySearchQueryChanged(String)
@@ -95,6 +96,9 @@ struct SidePanelSessionFeature {
 
             case .sidebarDismissed:
                 state.isSidebarVisible = false
+                return .none
+
+            case .settingsButtonTapped:
                 return .none
 
             case let .conversationsLoaded(conversations):
