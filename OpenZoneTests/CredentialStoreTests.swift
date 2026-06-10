@@ -43,36 +43,40 @@ struct CredentialStoreTests {
         #expect(store.secret() == nil)
     }
 
-    @Test("CredentialStoreClient.wrap forwards reads, saves, and clears")
+    @Test("CredentialStoreClient with per-provider factory forwards reads, saves, and clears")
     func clientForwards() throws {
         let backing = InMemoryCredentialStore()
-        let client = CredentialStoreClient.wrap(backing)
+        let client = CredentialStoreClient(
+            secret: { _ in backing.secret() },
+            save: { _, secret in try backing.save(secret: secret) },
+            clear: { _ in try backing.clear() }
+        )
 
-        #expect(client.secret() == nil)
-        try client.save("sk-xyz")
-        #expect(client.secret() == "sk-xyz")
+        #expect(client.secret("openrouter") == nil)
+        try client.save("openrouter", "sk-xyz")
+        #expect(client.secret("openrouter") == "sk-xyz")
         #expect(backing.secret() == "sk-xyz")
-        try client.clear()
-        #expect(client.secret() == nil)
+        try client.clear("openrouter")
+        #expect(client.secret("openrouter") == nil)
         #expect(backing.secret() == nil)
     }
 
-    @Test("AIProviderCredentialAPI.keychain resolves the store at call time")
+    @Test("AIProviderCredentialAPI resolves the store at call time via providerID")
     func providerResolvesLazily() throws {
         let store = InMemoryCredentialStore()
-        let provider = AIProviderCredentialAPI.keychain(store)
+        let provider = AIProviderCredentialAPI { _ in store.secret() }
 
         // No key yet -> resolves to nil.
-        #expect(provider.resolve() == nil)
+        #expect(provider.resolve("openrouter") == nil)
 
         // Key entered after the provider was built -> next resolve sees it,
         // proving the secret is read at request time, never captured at
         // construction.
         try store.save(secret: "sk-late")
-        #expect(provider.resolve() == "sk-late")
+        #expect(provider.resolve("openrouter") == "sk-late")
 
         // Updating again is reflected on the next resolve with no stale value.
         try store.save(secret: "sk-updated")
-        #expect(provider.resolve() == "sk-updated")
+        #expect(provider.resolve("openrouter") == "sk-updated")
     }
 }

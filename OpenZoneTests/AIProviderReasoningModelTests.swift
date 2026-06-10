@@ -84,7 +84,11 @@ struct HomeReasoningSelectionTests {
             HomeFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
         }
         store.exhaustivity = .off
 
@@ -107,7 +111,11 @@ struct HomeReasoningSelectionTests {
             HomeFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
         }
         store.exhaustivity = .off
 
@@ -130,7 +138,11 @@ struct HomeReasoningSelectionTests {
             HomeFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
         }
         store.exhaustivity = .off
 
@@ -154,7 +166,11 @@ struct SettingsReasoningControlTests {
             SidePanelSettingFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
         }
         store.exhaustivity = .off
 
@@ -173,7 +189,11 @@ struct SettingsReasoningControlTests {
             SidePanelSettingFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
         }
         store.exhaustivity = .off
 

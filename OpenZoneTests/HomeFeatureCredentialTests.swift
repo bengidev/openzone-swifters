@@ -13,7 +13,11 @@ struct HomeFeatureCredentialTests {
         TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0.credentialStore = .wrap(backing)
+            $0.credentialStore = CredentialStoreClient(
+                secret: { _ in backing.secret() },
+                save: { _, secret in try backing.save(secret: secret) },
+                clear: { _ in try backing.clear() }
+            )
         }
     }
 
@@ -57,7 +61,11 @@ struct HomeFeatureCredentialTests {
         ) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = .wrap(backing)
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in backing.secret() },
+                save: { _, secret in try backing.save(secret: secret) },
+                clear: { _ in try backing.clear() }
+            )
         }
         store.exhaustivity = .off
 

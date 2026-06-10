@@ -16,7 +16,11 @@ struct SidePanelSettingFeatureTests {
         TestStore(initialState: initialState) {
             SidePanelSettingFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = .wrap(backing)
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in backing.secret() },
+                save: { _, secret in try backing.save(secret: secret) },
+                clear: { _ in try backing.clear() }
+            )
         }
     }
 

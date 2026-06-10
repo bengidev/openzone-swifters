@@ -157,11 +157,16 @@ struct HomeModelSelectionTests {
     @Test("Selecting a model persists it to the preference store and opens the model gate")
     func selectingModelPersists() async {
         let backing = InMemoryAIProviderPreferenceStore()
+        let credentialStore = InMemoryCredentialStore(secret: "sk-existing")
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore(secret: "sk-existing"))
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in credentialStore.secret() },
+                save: { _, secret in try credentialStore.save(secret: secret) },
+                clear: { _ in try credentialStore.clear() }
+            )
         }
         store.exhaustivity = .off
 
@@ -186,7 +191,11 @@ struct HomeModelSelectionTests {
             HomeFeature()
         } withDependencies: {
             $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
         }
         store.exhaustivity = .off
 

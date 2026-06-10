@@ -338,7 +338,11 @@ struct HomeFeatureCatalogTests {
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore(secret: "sk-test"))
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in InMemoryCredentialStore(secret: "sk-test").secret() },
+                save: { _, _ in },
+                clear: { _ in }
+            )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
             $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
         }
@@ -399,7 +403,11 @@ struct HomeFeatureCatalogTests {
         let store = TestStore(initialState: initial) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
             $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
             $0.continuousClock = ImmediateClock()
@@ -421,7 +429,11 @@ struct HomeFeatureCatalogTests {
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = .wrap(InMemoryCredentialStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
             $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
             $0.continuousClock = clock
