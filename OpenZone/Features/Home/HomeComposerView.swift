@@ -20,7 +20,7 @@ struct HomeComposerView: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 8)
         .padding(.top, 8)
-        .padding(.bottom, 10)
+        .safeAreaPadding(.bottom, 8)
     }
 
     private func dismissKeyboard() {
@@ -186,6 +186,7 @@ private struct HomeComposerContextRail: View {
             }
         }
         .padding(.horizontal, 2)
+        .padding(.bottom, 4)
         .overlay(alignment: .bottomTrailing) {
             if isContextUsagePresented {
                 HomeComposerContextUsagePopover(usage: store.contextUsage)
