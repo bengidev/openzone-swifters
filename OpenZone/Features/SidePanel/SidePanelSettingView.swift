@@ -3,6 +3,9 @@ import SwiftUI
 
 /// Settings sheet for secure provider credential entry.
 ///
+/// Provider selection is a menu picker over the built-in `AIProviderAPI` catalog.
+/// Users choose from app-shipped providers only; custom endpoints are out of scope.
+///
 /// A single secure field accepts the API key; saving persists it to the Keychain
 /// via the reducer. The field is never pre-filled with the stored secret — the
 /// secret is write-only from the UI's perspective — and shows only whether a key
