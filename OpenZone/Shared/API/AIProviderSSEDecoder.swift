@@ -1,6 +1,6 @@
 import Foundation
 
-/// Externals networking primitive: it knows nothing about chat, models,
+/// Shared API primitive: it knows nothing about chat, models,
 /// or any feature vocabulary. It buffers raw bytes arriving across arbitrary
 /// network chunk boundaries, splits them into complete lines on `\n`, and
 /// interprets each line under the SSE wire rules:

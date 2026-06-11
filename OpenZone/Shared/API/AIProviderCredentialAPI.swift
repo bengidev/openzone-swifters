@@ -7,7 +7,7 @@ import Foundation
 /// stored value — editing the key takes effect on the next send with no stale
 /// value, and the secret never lives in the request value itself.
 ///
-/// Externals networking primitive; it names no chat domain types.
+/// Shared API primitive; it names no chat domain types.
 nonisolated struct AIProviderCredentialAPI: Sendable {
     /// Returns the current secret for the given provider id, or `nil` when none
     /// is available.

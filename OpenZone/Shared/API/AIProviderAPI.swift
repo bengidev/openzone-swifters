@@ -8,7 +8,7 @@ import Foundation
 /// parameterized by this descriptor, so adding another OpenAI-compatible
 /// backend is a value, not a new client.
 ///
-/// Lives in `Externals/Networking` as feature-neutral infrastructure configuration;
+/// Lives in `Shared/API` as feature-neutral infrastructure configuration;
 /// it names no chat domain types.
 nonisolated struct AIProviderAPI: Equatable, Sendable {
     /// How the credential is presented on the wire.

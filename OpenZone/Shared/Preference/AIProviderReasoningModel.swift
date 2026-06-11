@@ -6,7 +6,7 @@ import Foundation
 /// with `off` meaning "send no reasoning parameter at all". There are no
 /// fabricated higher tiers: this is the complete, closed set the app exposes.
 ///
-/// Lives in `Externals/Preference/` because it is persisted cross-feature.
+/// Lives in `Shared/Preference/` because it is persisted cross-feature.
 /// `HomeComposerReasoningLevel` is a typealias so composer call sites stay stable.
 nonisolated enum AIProviderReasoningModel: String, CaseIterable, Equatable, Identifiable, Sendable, Codable {
     case off

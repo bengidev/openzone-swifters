@@ -4,7 +4,7 @@ import Security
 
 /// A minimal secure store for a single provider secret.
 ///
-/// Externals security abstraction behind which the live Keychain adapter
+/// Shared credential abstraction behind which the live Keychain adapter
 /// and an in-memory test double both sit. It names no chat domain types and is
 /// feature-neutral: it stores, reads, and clears one opaque secret string.
 ///
