@@ -41,6 +41,10 @@ struct HomeFeature {
         /// The live catalog loaded by `HomeModelCatalogClient`. Falls back to the
         /// curated list (via `availableModels`) when empty.
         var catalogModels: [ChatModel] = []
+        /// Non-nil when the catalog fetch failed with an actionable error
+        /// (e.g. 403 — key present but plan doesn't include API access).
+        /// Cleared on successful load or provider change.
+        var catalogError: String?
 
         /// Whether the model popup is currently presented.
         var isModelPopupPresented = false
@@ -115,6 +119,7 @@ struct HomeFeature {
         case speedModeSelected(HomeComposerSpeedMode)
         case onAppear
         case catalogLoaded([ChatModel])
+        case catalogLoadFailed(String)
         case modelPopupPresented(Bool)
         case modelSearchQueryChanged(String)
         case searchQueryDebounced(String)
@@ -187,6 +192,7 @@ struct HomeFeature {
                 providerPreference.setModelID(nil)
                 state.selectedModelID = nil
                 state.catalogModels = []
+                state.catalogError = nil
                 state.shouldAutoSelectDefaultModel = true
                 state.sidePanel.selectedProviderID = providerID
                 state.sidePanel.modelSupportsReasoning = false
@@ -194,10 +200,12 @@ struct HomeFeature {
                 let provider = AIProviderAPI.resolve(id: providerID)
                 let secret = credentialStore.secret(providerID)
                 let cachePreference = modelCatalogCachePreference
-                let catalogClient = modelCatalog
                 return .run { send in
-                    let models = await catalogClient.listModels(provider, secret, cachePreference, .shared)
-                    await send(.catalogLoaded(models))
+                    let result = await modelCatalog.listModels(provider, secret, cachePreference, .shared)
+                    if let errorHint = result.errorHint {
+                        await send(.catalogLoadFailed(errorHint))
+                    }
+                    await send(.catalogLoaded(result.models))
                 }
 
             case .sidePanel:
@@ -250,12 +258,16 @@ struct HomeFeature {
                 let cachePreference = modelCatalogCachePreference
                 let catalogClient = modelCatalog
                 return .run { send in
-                    let models = await catalogClient.listModels(provider, secret, cachePreference, .shared)
-                    await send(.catalogLoaded(models))
+                    let result = await catalogClient.listModels(provider, secret, cachePreference, .shared)
+                    if let errorHint = result.errorHint {
+                        await send(.catalogLoadFailed(errorHint))
+                    }
+                    await send(.catalogLoaded(result.models))
                 }
 
             case let .catalogLoaded(models):
                 state.catalogModels = models
+                state.catalogError = nil
                 reconcileModelSelection(
                     state: &state,
                     preference: providerPreference,
@@ -265,6 +277,10 @@ struct HomeFeature {
                 state.sidePanel.modelSupportsReasoning =
                     state.selectedModelOption?.supportsReasoning == true
                 state.sidePanel.selectedProviderID = state.selectedProviderID
+                return .none
+
+            case let .catalogLoadFailed(hint):
+                state.catalogError = hint
                 return .none
 
             case let .modelPopupPresented(isPresented):

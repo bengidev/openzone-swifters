@@ -76,12 +76,27 @@ nonisolated let modelCatalogCacheTTL: TimeInterval = 60 * 60 // 1 hour
 
 /// TCA dependency for fetching the provider model catalog for the Home composer.
 nonisolated struct HomeModelCatalogClient: Sendable {
+    /// The result of a catalog fetch, carrying either the models list (possibly
+    /// the curated fallback) and an optional error hint when the fetch failed
+    /// with an actionable problem (e.g. 403 — key present but plan lacks access).
+    nonisolated struct CatalogResult: Equatable, Sendable {
+        let models: [ChatModel]
+        /// Non-nil when the live fetch failed and the user should be notified.
+        /// E.g. "Your Command Code Go plan doesn't include API access."
+        let errorHint: String?
+
+        init(models: [ChatModel], errorHint: String? = nil) {
+            self.models = models
+            self.errorHint = errorHint
+        }
+    }
+
     var listModels: @Sendable (
         _ provider: AIProviderAPI,
         _ secret: String?,
         _ cachePreference: HomeModelCatalogCachePreferenceClient,
         _ urlSession: URLSession
-    ) async -> [ChatModel]
+    ) async -> CatalogResult
 
     init(
         listModels: @escaping @Sendable (
@@ -89,7 +104,7 @@ nonisolated struct HomeModelCatalogClient: Sendable {
             _ secret: String?,
             _ cachePreference: HomeModelCatalogCachePreferenceClient,
             _ urlSession: URLSession
-        ) async -> [ChatModel]
+        ) async -> CatalogResult
     ) {
         self.listModels = listModels
     }
@@ -98,7 +113,7 @@ nonisolated struct HomeModelCatalogClient: Sendable {
 extension HomeModelCatalogClient {
     static let live = HomeModelCatalogClient { provider, secret, cachePreference, urlSession in
         guard let secret else {
-            return ChatModel.curatedFallback(for: provider.id)
+            return CatalogResult(models: ChatModel.curatedFallback(for: provider.id))
         }
 
         let now = Date()
@@ -107,7 +122,7 @@ extension HomeModelCatalogClient {
            cached.providerID == provider.id,
            !cached.isStale(maxAge: modelCatalogCacheTTL, now: now),
            !cached.models.isEmpty {
-            return cached.models
+            return CatalogResult(models: cached.models)
         }
 
         do {
@@ -116,7 +131,9 @@ extension HomeModelCatalogClient {
                 secret: secret,
                 urlSession: urlSession
             )
-            guard !models.isEmpty else { return ChatModel.curatedFallback(for: provider.id) }
+            guard !models.isEmpty else {
+                return CatalogResult(models: ChatModel.curatedFallback(for: provider.id))
+            }
 
             let catalog = ModelCatalogCachePreference(
                 providerID: provider.id,
@@ -124,15 +141,33 @@ extension HomeModelCatalogClient {
                 fetchedAt: now
             )
             cachePreference.setCachedCatalog(catalog)
-            return models
+            return CatalogResult(models: models)
+        } catch let catalogError as CatalogFetchError {
+            if let cached = cachePreference.cachedCatalog(),
+               cached.providerID == provider.id,
+               !cached.models.isEmpty {
+                return CatalogResult(models: cached.models, errorHint: catalogError.errorHint)
+            }
+            return CatalogResult(
+                models: ChatModel.curatedFallback(for: provider.id),
+                errorHint: catalogError.errorHint
+            )
         } catch {
             if let cached = cachePreference.cachedCatalog(),
                cached.providerID == provider.id,
                !cached.models.isEmpty {
-                return cached.models
+                return CatalogResult(models: cached.models)
             }
-            return ChatModel.curatedFallback(for: provider.id)
+            return CatalogResult(models: ChatModel.curatedFallback(for: provider.id))
         }
+    }
+
+    /// An actionable catalog-fetch error that carries a user-facing hint.
+    /// Thrown by `fetchModels` when the server returns a status that
+    /// indicates a plan or permission problem (e.g. 403 on Command Code
+    /// when the Go plan lacks API access).
+    nonisolated struct CatalogFetchError: Error, Sendable {
+        let errorHint: String
     }
 
     private static func fetchModels(
@@ -155,6 +190,15 @@ extension HomeModelCatalogClient {
 
         if let http = response as? HTTPURLResponse,
            !(200...299).contains(http.statusCode) {
+            // 403 with a key present usually means the plan doesn't include
+            // API access (e.g. Command Code Go plan). Surface a hint so the
+            // user knows to upgrade rather than wondering why models don't work.
+            if http.statusCode == 403 {
+                let providerMessage = OpenAICompatibleStreamingClient.decodeErrorBody(data)
+                let hint = providerMessage
+                    ?? "Your plan doesn't include API access. Upgrade to use these endpoints."
+                throw CatalogFetchError(errorHint: hint)
+            }
             throw URLError(.badServerResponse)
         }
 
@@ -174,8 +218,8 @@ extension HomeModelCatalogClient {
 
 extension HomeModelCatalogClient: DependencyKey {
     static let liveValue = HomeModelCatalogClient.live
-    static let testValue = HomeModelCatalogClient { _, _, _, _ in ChatModel.curatedFallback }
-    static let previewValue = HomeModelCatalogClient { _, _, _, _ in ChatModel.curatedFallback }
+    static let testValue = HomeModelCatalogClient { _, _, _, _ in CatalogResult(models: ChatModel.curatedFallback) }
+    static let previewValue = HomeModelCatalogClient { _, _, _, _ in CatalogResult(models: ChatModel.curatedFallback) }
 }
 
 extension DependencyValues {

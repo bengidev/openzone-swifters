@@ -201,7 +201,7 @@ struct ModelCatalogClientTests {
     func noKeyReturnsFallback() async {
         let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, nil, makeCachePreference(), .shared)
-        #expect(result == ChatModel.curatedFallback)
+        #expect(result.models == ChatModel.curatedFallback)
     }
 
     // MARK: Live fetch
@@ -236,21 +236,21 @@ struct ModelCatalogClientTests {
         let result = await client.listModels(.openRouter, "sk-test", cacheClient, session)
 
         // Both models should be present.
-        #expect(result.contains { $0.id == "openai/gpt-4o" })
-        #expect(result.contains { $0.id == "meta-llama/llama-3.3-70b-instruct:free" })
+        #expect(result.models.contains { $0.id == "openai/gpt-4o" })
+        #expect(result.models.contains { $0.id == "meta-llama/llama-3.3-70b-instruct:free" })
 
         // Free model is correctly identified.
-        let freeModel = result.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
+        let freeModel = result.models.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
         #expect(freeModel?.isFree == true)
 
         // Paid model is correctly identified.
-        let paidModel = result.first { $0.id == "openai/gpt-4o" }
+        let paidModel = result.models.first { $0.id == "openai/gpt-4o" }
         #expect(paidModel?.isFree == false)
 
         // Cache was written.
         #expect(cacheStore.cachedCatalog() != nil)
         #expect(cacheStore.cachedCatalog()?.providerID == "openrouter")
-        #expect(cacheStore.cachedCatalog()?.models.count == result.count)
+        #expect(cacheStore.cachedCatalog()?.models.count == result.models.count)
     }
 
     @Test("Returns cached catalog when fresh, skipping the network")
@@ -274,7 +274,7 @@ struct ModelCatalogClientTests {
         )
 
         // Should return cached models, not the network ones.
-        #expect(result == cachedModels)
+        #expect(result.models == cachedModels)
     }
 
     @Test("Fetches fresh catalog when cache is stale")
@@ -300,8 +300,8 @@ struct ModelCatalogClientTests {
         )
 
         // Should have bypassed the stale cache and returned the fresh network result.
-        #expect(result.contains { $0.id == "fresh/model" })
-        #expect(!result.contains { $0.id == "stale/model" })
+        #expect(result.models.contains { $0.id == "fresh/model" })
+        #expect(!result.models.contains { $0.id == "stale/model" })
     }
 
     @Test("Falls back to curated list on network error")
@@ -310,7 +310,7 @@ struct ModelCatalogClientTests {
         let session = makeSession(responseJSON: "", statusCode: 500)
         let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
-        #expect(result == ChatModel.curatedFallback)
+        #expect(result.models == ChatModel.curatedFallback)
     }
 
     @Test("Falls back to stale cache on network error before curated list")
@@ -330,7 +330,21 @@ struct ModelCatalogClientTests {
             .openRouter, "sk-test", makeCachePreference(cached: staleCache), session
         )
         // Should serve the stale cache rather than the curated fallback.
-        #expect(result == staleModels)
+        #expect(result.models == staleModels)
+    }
+
+    @Test("403 response surfaces upgrade hint in catalog error")
+    func forbiddenSurfacesErrorHint() async {
+        let body = #"{"error":{"message":"Your Go plan doesn't include API access. Upgrade to Provider or higher.","code":"upgrade_required"}}"#
+        let session = makeSession(responseJSON: body, statusCode: 403)
+        let client = HomeModelCatalogClient.live
+        let result = await client.listModels(.commandCode, "sk-test", makeCachePreference(), session)
+
+        // Should fall back to Command Code curated models.
+        #expect(result.models == ChatModel.curatedFallback(for: "commandcode"))
+        // And surface the error hint.
+        #expect(result.errorHint != nil)
+        #expect(result.errorHint!.contains("Go plan"))
     }
 
     @Test("Reasoning support detected for known model ids")
@@ -347,8 +361,8 @@ struct ModelCatalogClientTests {
         let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
 
-        let r1 = result.first { $0.id == "deepseek/deepseek-r1:free" }
-        let llama = result.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
+        let r1 = result.models.first { $0.id == "deepseek/deepseek-r1:free" }
+        let llama = result.models.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
         #expect(r1?.supportsReasoning == true)
         #expect(llama?.supportsReasoning == false)
     }
@@ -374,7 +388,7 @@ struct HomeFeatureCatalogTests {
                 clear: { _ in }
             )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: expectedModels) }
         }
         store.exhaustivity = .off
 
@@ -461,7 +475,7 @@ struct HomeFeatureCatalogTests {
                 clear: { _ in }
             )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in commandCodeModels }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: commandCodeModels) }
         }
         store.exhaustivity = .off
 
@@ -496,7 +510,7 @@ struct HomeFeatureCatalogTests {
                 clear: { _ in }
             )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
             $0.continuousClock = ImmediateClock()
         }
         store.exhaustivity = .off
@@ -522,7 +536,7 @@ struct HomeFeatureCatalogTests {
                 clear: { _ in }
             )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
             $0.continuousClock = clock
         }
 

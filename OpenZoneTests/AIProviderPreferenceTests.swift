@@ -252,7 +252,7 @@ struct HomeModelSelectionTests {
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: expectedModels) }
         }
         store.exhaustivity = .off
 
@@ -289,7 +289,7 @@ struct HomeModelSelectionTests {
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: expectedModels) }
         }
         store.exhaustivity = .off
 
@@ -326,7 +326,7 @@ struct HomeModelSelectionTests {
                 clear: { _ in }
             )
             // Return empty live catalog so the provider-scoped fallback is used.
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
         }
         store.exhaustivity = .off
 

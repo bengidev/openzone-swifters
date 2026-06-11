@@ -84,8 +84,15 @@ extension ChatModel {
     ]
 
     /// Curated fallback models for Command Code. Model ids match the
-    /// Command Code Provider API catalog (no OpenRouter-style slashes).
+    /// Command Code Provider API catalog per https://commandcode.ai/docs/reference/cli/models.
     nonisolated static let commandCodeFallback: [ChatModel] = [
+        ChatModel(
+            id: "moonshotai/Kimi-K2.5",
+            displayName: "Kimi K2.5",
+            isFree: true,
+            contextLength: 131_072,
+            supportsReasoning: true
+        ),
         ChatModel(
             id: "deepseek/deepseek-v4-flash",
             displayName: "DeepSeek V4 Flash",
@@ -94,31 +101,24 @@ extension ChatModel {
             supportsReasoning: false
         ),
         ChatModel(
-            id: "deepseek/deepseek-r1",
-            displayName: "DeepSeek R1",
-            isFree: true,
-            contextLength: 163_840,
-            supportsReasoning: true
-        ),
-        ChatModel(
-            id: "qwen/qwen3-coder",
-            displayName: "Qwen3 Coder",
-            isFree: true,
+            id: "deepseek/deepseek-v4-pro",
+            displayName: "DeepSeek V4 Pro",
+            isFree: false,
             contextLength: 131_072,
             supportsReasoning: true
         ),
         ChatModel(
-            id: "google/gemini-2.5-flash",
-            displayName: "Gemini 2.5 Flash",
-            isFree: true,
-            contextLength: 1_048_576,
-            supportsReasoning: false
+            id: "Qwen/Qwen3.7-Max",
+            displayName: "Qwen 3.7 Max",
+            isFree: false,
+            contextLength: 131_072,
+            supportsReasoning: true
         ),
         ChatModel(
-            id: "google/gemini-2.5-pro",
-            displayName: "Gemini 2.5 Pro",
+            id: "claude-sonnet-4-6",
+            displayName: "Claude Sonnet 4.6",
             isFree: false,
-            contextLength: 1_048_576,
+            contextLength: 200_000,
             supportsReasoning: true
         )
     ]
