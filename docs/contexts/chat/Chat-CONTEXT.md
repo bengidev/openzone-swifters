@@ -28,9 +28,9 @@ The chat feature owns the live conversation workflow: composing a request, strea
 
 ## Boundaries
 
-- Chat domain types stay in `Features/Chat/`; do not move them to `Externals/`.
+- Chat domain types stay in `Features/Chat/`; do not move them to `Shared/`.
 - `OpenAICompatibleStreamingClient` stays here because it combines provider wire behavior with chat domain types.
-- Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential adapters from `OpenZone/Externals`.
+- Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential adapters from `OpenZone/Shared` (`API/`, `Credential/`, `Preference/`).
 - Do not depend on other feature reducers directly; integrate through the app shell.
 
 ## Relation to the side panel

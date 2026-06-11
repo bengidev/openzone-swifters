@@ -18,7 +18,7 @@ The setting scope is the app-preferences surface inside the side panel. It was p
 ## Architecture
 
 - State lives in the setting scope's reducer (`SidePanelSettingFeature`); intents are its actions.
-- Preference reads/writes go through `Externals` clients (`AIProviderPreferenceClient`, `CredentialStoreClient`) and the shared theme preference — never direct persistence from views.
+- Preference reads/writes go through Shared clients (`AIProviderPreferenceClient`, `CredentialStoreClient`) and the shared theme preference — never direct persistence from views.
 - The setting view (`SidePanelSettingView`) renders the setting surface from the store.
 
 ## Naming convention
@@ -31,5 +31,5 @@ This scope supersedes the former standalone settings feature. Existing `Settings
 
 ## Boundaries
 
-- Owns app preferences presentation only. Secure credential storage and provider preference persistence stay in `OpenZone/Externals`.
+- Owns app preferences presentation only. Secure credential storage and provider preference persistence stay in `OpenZone/Shared` (`Credential/`, `Preference/`).
 - Reuse theme and UI primitives from `OpenZone/Shared`.

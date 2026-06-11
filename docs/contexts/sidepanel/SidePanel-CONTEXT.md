@@ -47,5 +47,5 @@ All symbols and files in this module carry the `SidePanel` scope prefix, and the
 ## Boundaries
 
 - The side panel owns navigation across saved conversations and app settings; it does not own the live chat stream (that is [Chat](../chat/Chat-CONTEXT.md)) or the landing composer (that is [Home](../home/Home-CONTEXT.md)).
-- Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential/preference adapters from `OpenZone/Externals`.
+- Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential/preference adapters from `OpenZone/Shared` (`API/`, `Credential/`, `Preference/`).
 - Do not depend on other feature reducers directly; integrate through the app shell.

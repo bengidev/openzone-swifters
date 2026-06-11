@@ -28,7 +28,7 @@ The home feature owns the main landing surface: the welcome state, the composer 
 ## Boundaries
 
 - Home owns the landing and composer workflow only. Live streaming belongs to [Chat](../chat/Chat-CONTEXT.md).
-- Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential adapters from `OpenZone/Externals`.
+- Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential adapters from `OpenZone/Shared` (`API/`, `Credential/`, `Preference/`).
 - Do not depend on other feature reducers directly; integrate through the app shell.
 
 ## Relation to the side panel
