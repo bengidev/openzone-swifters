@@ -58,8 +58,10 @@ OpenZone/
 │   ├── Chat/                  # Live conversation, streaming, history persistence
 │   └── SidePanel/             # Slide-in panel: Session + Setting scopes
 │                              #   SidePanelSession… (ex "history chat") + SidePanelSetting…
-├── Externals/                 # External integrations (Networking, Preference, Security)
-└── Shared/                    # Theme + UI primitives only
+└── Shared/                    # Cross-cutting primitives (API, credentials, preferences, theme, UI)
+    ├── API/                   # AI provider descriptors and SSE decoding
+    ├── Credential/            # Keychain-backed credential store
+    ├── Preference/            # Provider/model preference persistence
     ├── Theme/                 # Palette, typography, app theme preference
     └── UI/                    # Buttons, badges, patterns, backgrounds
 OpenZoneTests/                 # Unit tests

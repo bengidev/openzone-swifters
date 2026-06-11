@@ -40,11 +40,10 @@ OpenZone/
 │       ├── SidePanelSessionSidebarView.swift
 │       ├── SidePanelSettingFeature.swift
 │       └── SidePanelSettingView.swift
-├── Externals/                # External integrations (internal module)
-│   ├── Networking/
-│   ├── Preference/
-│   └── Security/
-└── Shared/
+└── Shared/                   # Cross-cutting primitives (internal module)
+    ├── API/
+    ├── Credential/
+    ├── Preference/
     ├── Theme/
     └── UI/
 ```
@@ -83,31 +82,26 @@ So within a module only the single reducer file carries `Feature`; every other f
 
 A feature owns one product workflow. Its folder holds all of the feature's files directly (flat) — reducers, `@ObservableState`, actions, value types, feature-scoped clients, and SwiftUI views. Use scope-prefixed file names (e.g. `HomeFeature`, `HomeComposerView`, `ChatHistoryClient`) so responsibility is clear without boundary subfolders.
 
-Feature code may depend on `OpenZone/Externals`, `OpenZone/Shared`, Swift standard libraries, Apple frameworks, TCA, and its own feature folders. Feature code must not depend on another feature directly unless a clear integration boundary is introduced.
+Feature code may depend on `OpenZone/Shared`, Swift standard libraries, Apple frameworks, TCA, and its own feature folders. Feature code must not depend on another feature directly unless a clear integration boundary is introduced.
 
 #### `OpenZone/Features/SidePanel/`
 
 The side panel is one feature module that hosts two sub-scopes, each scope-prefixed:
 
 - **Session** (`SidePanelSession…`) — saved-conversation browsing, formerly "history chat". Lists and groups persisted conversations and hands off to Chat to open a thread. Consumes Chat's history persistence (`ChatHistoryClient`); does not own the live stream.
-- **Setting** (`SidePanelSetting…`) — app preferences. Reads/writes through `Externals` clients and the shared theme preference.
-
-### `OpenZone/Externals/`
-
-Externals contains feature-neutral adapters for systems outside the app:
-
-- `Networking/` — `AIProviderAPI`, `AIProviderCredentialAPI`, `AIProviderSSEDecoder`.
-- `Preference/` — `AIProviderPreference`, `AIProviderReasoningModel`, `AIProviderPreferenceStore`, and `AIProviderPreferenceClient`.
-- `Security/` — `CredentialStore` and `CredentialStoreClient`.
-
-Externals must not reference feature UI or reducers. Chat domain types (e.g. `ChatModel`) belong in `Features/Chat/`. Home-scoped orchestration (e.g. `HomeModelCatalogClient`) belongs in `Features/Home/`. Chat streaming (`OpenAICompatibleStreamingClient`) and chat history persistence (`ChatHistoryClient`) stay in `Features/Chat/` because they combine provider wire behavior with chat domain types. The side panel's session scope consumes that persistence; it does not duplicate it.
+- **Setting** (`SidePanelSetting…`) — app preferences. Reads/writes through Shared clients (`AIProviderPreferenceClient`, `CredentialStoreClient`) and the shared theme preference.
 
 ### `OpenZone/Shared/`
 
-Shared contains app-wide UI primitives that are safe for more than one feature to reuse:
+Shared contains cross-cutting, feature-neutral code that more than one feature may depend on:
 
+- `API/` — `AIProviderAPI`, `AIProviderCredentialAPI`, `AIProviderSSEDecoder`.
+- `Credential/` — `CredentialStore` and `CredentialStoreClient`.
+- `Preference/` — `AIProviderPreference`, `AIProviderReasoningModel`, `AIProviderPreferenceStore`, and `AIProviderPreferenceClient`.
 - `Theme/` — palette, theme preference, typography, color helpers, SwiftUI environment keys.
 - `UI/` — reusable visual primitives, patterns, and button styles.
+
+Shared must not reference feature UI or reducers. Chat domain types (e.g. `ChatModel`) belong in `Features/Chat/`. Home-scoped orchestration (e.g. `HomeModelCatalogClient`) belongs in `Features/Home/`. Chat streaming (`OpenAICompatibleStreamingClient`) and chat history persistence (`ChatHistoryClient`) stay in `Features/Chat/` because they combine provider wire behavior with chat domain types. The side panel's session scope consumes that persistence; it does not duplicate it.
 
 Shared code must not import or reference feature code. If a component contains onboarding-specific copy, state, or workflow behavior, keep it in `Features/<FeatureName>` instead of `Shared`.
 
@@ -119,10 +113,9 @@ Do not add empty `enum SharedModule {}` or `enum FeatureModules {}` files just t
 
 If module boundaries need compiler enforcement, promote these folders in this order:
 
-1. Promote `OpenZone/Externals/` to an internal Xcode framework or Swift Package.
-2. Promote `OpenZone/Shared/` (Theme + UI) to an internal `OpenZoneShared` library.
-3. Promote `OpenZone/Features/<FeatureName>/` to feature targets.
-4. Wire dependencies: features → `Externals`, `OpenZoneShared`, TCA.
-5. Make the app target depend on the feature libraries.
+1. Promote `OpenZone/Shared/` to an internal `OpenZoneShared` Xcode framework or Swift Package.
+2. Promote `OpenZone/Features/<FeatureName>/` to feature targets.
+3. Wire dependencies: features → `OpenZoneShared`, TCA.
+4. Make the app target depend on the feature libraries.
 
 Keep those libraries private to this repo unless a feature becomes reusable across multiple apps. Remote packages add versioning, CI, and cross-repo coordination overhead, so they should be introduced only when reuse justifies it.

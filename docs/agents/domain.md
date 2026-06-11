@@ -23,8 +23,7 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 ├── docs/architecture/swift-6-strictness.md ← Swift 6 concurrency/memory-safety rules
 ├── docs/contexts/
 │   ├── app/App-CONTEXT.md              ← app shell glossary
-│   ├── externals/Externals-CONTEXT.md ← external integrations glossary
-│   ├── shared/Shared-CONTEXT.md       ← shared UI/theme glossary
+│   ├── shared/Shared-CONTEXT.md       ← shared primitives glossary (API, credentials, preferences, theme, UI)
 │   ├── onboarding/Onboarding-CONTEXT.md ← onboarding glossary
 │   ├── home/Home-CONTEXT.md           ← home/landing glossary
 │   ├── chat/Chat-CONTEXT.md           ← chat/streaming glossary
@@ -33,8 +32,7 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 │       ├── SidePanelSession-CONTEXT.md ← session scope (ex "history chat")
 │       └── SidePanelSetting-CONTEXT.md ← setting scope
 └── OpenZone/
-    ├── Externals/                       ← external integrations (Networking, Preference, Security)
-    ├── Shared/                        ← theme + UI primitives (Theme/, UI/)
+    ├── Shared/                        ← API, Credential, Preference, Theme, UI
     └── Features/                       ← Onboarding, Home, Chat, SidePanel
 ```
 
