@@ -98,7 +98,7 @@ nonisolated struct HomeModelCatalogClient: Sendable {
 extension HomeModelCatalogClient {
     static let live = HomeModelCatalogClient { provider, secret, cachePreference, urlSession in
         guard let secret else {
-            return ChatModel.curatedFallback
+            return ChatModel.curatedFallback(for: provider.id)
         }
 
         let now = Date()
@@ -116,7 +116,7 @@ extension HomeModelCatalogClient {
                 secret: secret,
                 urlSession: urlSession
             )
-            guard !models.isEmpty else { return ChatModel.curatedFallback }
+            guard !models.isEmpty else { return ChatModel.curatedFallback(for: provider.id) }
 
             let catalog = ModelCatalogCachePreference(
                 providerID: provider.id,
@@ -131,7 +131,7 @@ extension HomeModelCatalogClient {
                !cached.models.isEmpty {
                 return cached.models
             }
-            return ChatModel.curatedFallback
+            return ChatModel.curatedFallback(for: provider.id)
         }
     }
 

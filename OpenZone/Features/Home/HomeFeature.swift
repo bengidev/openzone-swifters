@@ -78,7 +78,7 @@ struct HomeFeature {
         /// Uses the live catalog when available, curated fallback otherwise.
         var availableModels: [HomeModelOption] {
             let source = catalogModels.isEmpty
-                ? ChatModel.curatedFallback
+                ? ChatModel.curatedFallback(for: selectedProviderID)
                 : catalogModels
             return source.map { HomeModelOption(model: $0) }
         }
@@ -186,7 +186,8 @@ struct HomeFeature {
                 providerPreference.setProviderID(providerID)
                 providerPreference.setModelID(nil)
                 state.selectedModelID = nil
-                state.shouldAutoSelectDefaultModel = false
+                state.catalogModels = []
+                state.shouldAutoSelectDefaultModel = true
                 state.sidePanel.selectedProviderID = providerID
                 state.sidePanel.modelSupportsReasoning = false
                 state.hasAPIKey = credentialStore.secret(providerID) != nil

@@ -47,14 +47,10 @@ nonisolated struct HomeModelOption: Equatable, Identifiable, Sendable {
 enum HomeModelCatalog {
     /// Curated fallback models offered for the given provider id. Unknown/absent
     /// providers fall back to the default provider's list. Sourced from the
-    /// shared `ChatModel.curatedFallback` so there is one fallback definition.
+    /// shared `ChatModel.curatedFallback(for:)` so each provider gets its own
+    /// curated list instead of the same generic catalog.
     static func models(for providerID: String?) -> [HomeModelOption] {
-        switch providerID ?? AIProviderAPI.default.id {
-        case AIProviderAPI.openRouter.id:
-            return ChatModel.curatedFallback.map { HomeModelOption(model: $0) }
-        default:
-            return ChatModel.curatedFallback.map { HomeModelOption(model: $0) }
-        }
+        ChatModel.curatedFallback(for: providerID).map { HomeModelOption(model: $0) }
     }
 
     /// Resolves a stored model id to its presentation option for the provider,

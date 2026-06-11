@@ -303,8 +303,8 @@ struct HomeModelSelectionTests {
         #expect(store.state.selectedModelOption?.title == "Test A")
     }
 
-    @Test("Provider change clears the persisted model selection")
-    func providerChangedClearsPersistedModel() async {
+    @Test("Provider change clears the old model and auto-selects from the new provider's catalog")
+    func providerChangedAutoSelectsNewProviderModel() async {
         let known = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
         let backing = InMemoryAIProviderPreferenceStore(
             preference: AIProviderPreference(
@@ -313,6 +313,7 @@ struct HomeModelSelectionTests {
             )
         )
         var initial = HomeFeature.State()
+        initial.selectedProviderID = AIProviderAPI.openRouter.id
         initial.selectedModelID = known.id
 
         let store = TestStore(initialState: initial) {
@@ -324,17 +325,22 @@ struct HomeModelSelectionTests {
                 save: { _, _ in },
                 clear: { _ in }
             )
+            // Return empty live catalog so the provider-scoped fallback is used.
             $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
         }
         store.exhaustivity = .off
 
-        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.openCode.id)))) { state in
-            state.selectedProviderID = AIProviderAPI.openCode.id
-            state.selectedModelID = nil
-            state.sidePanel.selectedProviderID = AIProviderAPI.openCode.id
-            state.sidePanel.modelSupportsReasoning = false
-        }
+        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.openCode.id))))
 
-        #expect(backing.preference().modelID == nil)
+        // The catalog loads (empty → falls back to OpenCode curated list),
+        // and the first model is auto-selected because shouldAutoSelectDefaultModel
+        // was set to true by the provider change.
+        await store.receive(\.catalogLoaded)
+
+        let expectedModel = ChatModel.curatedFallback(for: AIProviderAPI.openCode.id).first!
+        #expect(store.state.selectedProviderID == AIProviderAPI.openCode.id)
+        #expect(store.state.selectedModelID == expectedModel.id)
+        #expect(backing.preference().modelID == expectedModel.id)
+        #expect(backing.preference().providerID == AIProviderAPI.openCode.id)
     }
 }

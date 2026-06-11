@@ -38,6 +38,29 @@ struct ChatModelTests {
         #expect(HomeModelCatalog.displayTitle(for: "openai/gpt-4o:free") == "gpt 4o")
         #expect(HomeModelCatalog.displayTitle(for: "meta-llama/llama-3.3-70b-instruct:free") == "llama 3.3 70b instruct")
     }
+
+    @Test("Command Code curated fallback is never empty and differs from OpenRouter fallback")
+    func commandCodeFallbackDiffersFromOpenRouter() {
+        #expect(!ChatModel.commandCodeFallback.isEmpty)
+        let openRouterIDs = Set(ChatModel.curatedFallback.map(\.id))
+        let commandCodeIDs = Set(ChatModel.commandCodeFallback.map(\.id))
+        #expect(openRouterIDs != commandCodeIDs)
+    }
+
+    @Test("curatedFallback(for:) returns provider-specific catalogs")
+    func curatedFallbackProviderScoped() {
+        let openRouter = ChatModel.curatedFallback(for: AIProviderAPI.openRouter.id)
+        let commandCode = ChatModel.curatedFallback(for: AIProviderAPI.commandCode.id)
+        let openCode = ChatModel.curatedFallback(for: AIProviderAPI.openCode.id)
+
+        #expect(openRouter == ChatModel.curatedFallback)
+        #expect(commandCode == ChatModel.commandCodeFallback)
+        #expect(openCode == ChatModel.openCodeFallback)
+
+        // Unknown provider falls back to default (OpenRouter)
+        #expect(ChatModel.curatedFallback(for: "unknown") == ChatModel.curatedFallback)
+        #expect(ChatModel.curatedFallback(for: nil) == ChatModel.curatedFallback)
+    }
 }
 
 
@@ -396,6 +419,63 @@ struct HomeFeatureCatalogTests {
         state.appliedSearchQuery = ""
         state.modelFilterFreeOnly = false
         #expect(state.filteredModels.count == ChatModel.curatedFallback.count)
+    }
+
+    @Test("Empty catalog falls back to provider-scoped curated list")
+    func emptyCatalogFallsBackToProviderScoped() {
+        var state = HomeFeature.State()
+        state.catalogModels = []
+        state.appliedSearchQuery = ""
+        state.modelFilterFreeOnly = false
+
+        // Default provider (OpenRouter) uses the generic fallback.
+        #expect(state.availableModels.count == ChatModel.curatedFallback.count)
+
+        // Command Code provider uses its own fallback.
+        state.selectedProviderID = AIProviderAPI.commandCode.id
+        #expect(state.availableModels.count == ChatModel.commandCodeFallback.count)
+        #expect(state.availableModels.first?.id == ChatModel.commandCodeFallback.first?.id)
+
+        // OpenCode provider uses its own fallback.
+        state.selectedProviderID = AIProviderAPI.openCode.id
+        #expect(state.availableModels.count == ChatModel.openCodeFallback.count)
+    }
+
+    @Test("Provider change triggers catalog fetch and auto-selects first model")
+    func providerChangeTriggersCatalogFetch() async {
+        let commandCodeModels = [
+            ChatModel(id: "deepseek/deepseek-v4-flash", displayName: "DeepSeek V4 Flash", isFree: true),
+            ChatModel(id: "deepseek/deepseek-r1", displayName: "DeepSeek R1", isFree: true, supportsReasoning: true)
+        ]
+        var initial = HomeFeature.State()
+        initial.selectedProviderID = AIProviderAPI.openRouter.id
+        initial.selectedModelID = "meta-llama/llama-3.3-70b-instruct:free"
+        initial.catalogModels = [ChatModel(id: "meta-llama/llama-3.3-70b-instruct:free", displayName: "Llama 3.3 70B", isFree: true)]
+
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in commandCodeModels }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.commandCode.id))))
+
+        // The catalog should load for the new provider and auto-select the first model.
+        await store.receive(\.catalogLoaded) { state in
+            state.catalogModels = commandCodeModels
+            state.selectedModelID = commandCodeModels[0].id
+            state.sidePanel.selectedProviderID = AIProviderAPI.commandCode.id
+        }
+
+        #expect(store.state.selectedProviderID == AIProviderAPI.commandCode.id)
+        #expect(store.state.selectedModelID == "deepseek/deepseek-v4-flash")
     }
 
     @Test("modelPopupPresented resets search state")
