@@ -73,7 +73,7 @@ struct SidePanelSettingView: View {
                     Text(provider.displayName).tag(provider.id)
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
             .accessibilityIdentifier("settings-provider-picker")
         }
     }
