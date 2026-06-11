@@ -343,4 +343,50 @@ struct HomeModelSelectionTests {
         #expect(backing.preference().modelID == expectedModel.id)
         #expect(backing.preference().providerID == AIProviderAPI.openCode.id)
     }
+
+    @Test("Model popup auto-enables free-only for OpenRouter")
+    func popupAutoEnablesFreeOnlyForOpenRouter() async {
+        var initial = HomeFeature.State()
+        initial.selectedProviderID = AIProviderAPI.openRouter.id
+        initial.modelFilterFreeOnly = false
+
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.modelPopupPresented(true))
+        #expect(store.state.modelFilterFreeOnly == true)
+    }
+
+    @Test("Model popup does not auto-enable free-only for Command Code")
+    func popupDoesNotAutoEnableFreeOnlyForCommandCode() async {
+        var initial = HomeFeature.State()
+        initial.selectedProviderID = AIProviderAPI.commandCode.id
+        initial.modelFilterFreeOnly = false
+
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.modelPopupPresented(true))
+        #expect(store.state.modelFilterFreeOnly == false)
+    }
 }

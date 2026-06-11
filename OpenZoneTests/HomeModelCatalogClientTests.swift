@@ -347,6 +347,31 @@ struct ModelCatalogClientTests {
         #expect(result.errorHint!.contains("Go plan"))
     }
 
+    @Test("Model is free only when both prompt and completion pricing are zero")
+    func isFreeRequiresBothPricingZero() async {
+        let json = """
+        {"data": [
+            {"id": "test/free-model", "name": "Free Model",
+             "pricing": {"prompt": "0", "completion": "0"}},
+            {"id": "test/partially-free", "name": "Partially Free",
+             "pricing": {"prompt": "0", "completion": "0.000001"}},
+            {"id": "test/paid-model", "name": "Paid Model",
+             "pricing": {"prompt": "0.000005", "completion": "0.00001"}}
+        ]}
+        """
+        let session = makeSession(responseJSON: json)
+        let client = HomeModelCatalogClient.live
+        let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
+
+        let free = result.models.first { $0.id == "test/free-model" }
+        let partial = result.models.first { $0.id == "test/partially-free" }
+        let paid = result.models.first { $0.id == "test/paid-model" }
+
+        #expect(free?.isFree == true)
+        #expect(partial?.isFree == false)
+        #expect(paid?.isFree == false)
+    }
+
     @Test("Reasoning support detected for known model ids")
     func reasoningSupport() async {
         let json = """
@@ -515,11 +540,12 @@ struct HomeFeatureCatalogTests {
         }
         store.exhaustivity = .off
 
-        // Opening the popup resets search query and filter.
+        // Opening the popup resets search query and auto-enables free-only
+        // for the default provider (OpenRouter).
         await store.send(.modelPopupPresented(true)) { state in
             state.modelSearchQuery = ""
             state.appliedSearchQuery = ""
-            state.modelFilterFreeOnly = false
+            state.modelFilterFreeOnly = true
             state.isModelPopupPresented = true
         }
     }

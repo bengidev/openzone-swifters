@@ -286,10 +286,14 @@ struct HomeFeature {
             case let .modelPopupPresented(isPresented):
                 state.isModelPopupPresented = isPresented
                 if isPresented {
-                    // Reset search/filter whenever the popup opens.
+                    // Reset search whenever the popup opens.
                     state.modelSearchQuery = ""
                     state.appliedSearchQuery = ""
-                    state.modelFilterFreeOnly = false
+                    // Auto-enable free-only filter for OpenRouter — it offers
+                    // both free and paid models and users on free tier want to
+                    // see only the free ones first. Other providers don't have
+                    // the same free/paid split so leave the filter off.
+                    state.modelFilterFreeOnly = state.selectedProviderID == AIProviderAPI.openRouter.id
                 }
                 return .none
 

@@ -28,12 +28,15 @@ private nonisolated struct ProviderModelEntry: Decodable, Sendable {
     nonisolated struct Pricing: Decodable, Sendable {
         let prompt: String?
         let completion: String?
-        let promo: String?
     }
 
     var isFree: Bool {
-        // If pricing info exists (OpenRouter style), use it.
-        if let pricing { return pricing.promo == "0" || pricing.completion == "0" }
+        // OpenRouter-style: prompt and completion pricing both "0" means free.
+        if let pricing {
+            let promptFree = pricing.prompt == "0"
+            let completionFree = pricing.completion == "0"
+            return promptFree && completionFree
+        }
         // For providers without pricing info, check if name contains "free"
         if let name { return name.lowercased().contains("free") }
         return false
