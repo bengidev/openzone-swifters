@@ -75,6 +75,25 @@ struct AIProviderPreferenceTests {
         #expect(AIProviderAPI.resolve(id: nil) == .default)
         #expect(AIProviderAPI.resolve(id: "does-not-exist") == .default)
         #expect(AIProviderAPI.resolve(id: AIProviderAPI.openRouter.id) == .openRouter)
+        #expect(AIProviderAPI.resolve(id: AIProviderAPI.commandCode.id) == .commandCode)
+    }
+
+    @Test("Command Code provider exposes OpenAI-compatible endpoints")
+    func commandCodeEndpoints() {
+        let provider = AIProviderAPI.commandCode
+
+        #expect(provider.id == "commandcode")
+        #expect(provider.displayName == "Command Code")
+        #expect(provider.authScheme == .bearer)
+        #expect(provider.defaultHeaders.isEmpty)
+        #expect(
+            provider.chatCompletionsURL.absoluteString
+                == "https://api.commandcode.ai/provider/v1/chat/completions"
+        )
+        #expect(
+            provider.modelsURL.absoluteString == "https://api.commandcode.ai/provider/v1/models"
+        )
+        #expect(AIProviderAPI.all.contains(provider))
     }
 
     // MARK: - Model catalog
