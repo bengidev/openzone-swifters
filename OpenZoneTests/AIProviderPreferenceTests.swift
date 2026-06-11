@@ -204,4 +204,118 @@ struct HomeModelSelectionTests {
         #expect(store.state.selectedModelID == known.id)
         #expect(store.state.hasSelectedModel == true)
     }
+
+    @Test("Unknown stored model id still resolves a composer option")
+    func unknownStoredModelResolvesSyntheticOption() {
+        var state = HomeFeature.State()
+        state.selectedModelID = "openai/gpt-4o:free"
+
+        let option = state.selectedModelOption
+
+        #expect(option?.id == "openai/gpt-4o:free")
+        #expect(option?.title == "gpt 4o")
+        #expect(state.hasSelectedModel == true)
+    }
+
+    @Test("catalogLoaded auto-selects the first model when none is stored")
+    func catalogLoadedAutoSelectsDefaultModel() async {
+        let expectedModels = [
+            ChatModel(id: "test/model-a", displayName: "Test A", isFree: true),
+            ChatModel(id: "test/model-b", displayName: "Test B", isFree: false)
+        ]
+        let backing = InMemoryAIProviderPreferenceStore()
+        let store = TestStore(initialState: HomeFeature.State()) {
+            HomeFeature()
+        } withDependencies: {
+            $0[AIProviderPreferenceClient.self] = .wrap(backing)
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.catalogLoaded(expectedModels)) { state in
+            state.catalogModels = expectedModels
+            state.selectedModelID = expectedModels[0].id
+            state.sidePanel.selectedProviderID = state.selectedProviderID
+        }
+
+        #expect(backing.preference().modelID == expectedModels[0].id)
+        #expect(store.state.selectedModelOption?.title == "Test A")
+    }
+
+    @Test("catalogLoaded replaces an invalid stored model with the first available option")
+    func catalogLoadedReplacesInvalidSelection() async {
+        let expectedModels = [
+            ChatModel(id: "test/model-a", displayName: "Test A", isFree: true)
+        ]
+        let backing = InMemoryAIProviderPreferenceStore(
+            preference: AIProviderPreference(
+                providerID: AIProviderAPI.openRouter.id,
+                modelID: "stale/model-id"
+            )
+        )
+        var initial = HomeFeature.State()
+        initial.selectedModelID = "stale/model-id"
+
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0[AIProviderPreferenceClient.self] = .wrap(backing)
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.catalogLoaded(expectedModels)) { state in
+            state.catalogModels = expectedModels
+            state.selectedModelID = expectedModels[0].id
+            state.sidePanel.selectedProviderID = state.selectedProviderID
+        }
+
+        #expect(backing.preference().modelID == expectedModels[0].id)
+        #expect(store.state.selectedModelOption?.title == "Test A")
+    }
+
+    @Test("Provider change clears the persisted model selection")
+    func providerChangedClearsPersistedModel() async {
+        let known = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
+        let backing = InMemoryAIProviderPreferenceStore(
+            preference: AIProviderPreference(
+                providerID: AIProviderAPI.openRouter.id,
+                modelID: known.id
+            )
+        )
+        var initial = HomeFeature.State()
+        initial.selectedModelID = known.id
+
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0[AIProviderPreferenceClient.self] = .wrap(backing)
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.openCode.id)))) { state in
+            state.selectedProviderID = AIProviderAPI.openCode.id
+            state.selectedModelID = nil
+            state.sidePanel.selectedProviderID = AIProviderAPI.openCode.id
+            state.sidePanel.modelSupportsReasoning = false
+        }
+
+        #expect(backing.preference().modelID == nil)
+    }
 }

@@ -32,7 +32,14 @@ struct ChatModelTests {
         let decoded = try JSONDecoder().decode(ChatModel.self, from: data)
         #expect(decoded == model)
     }
+
+    @Test("displayTitle humanizes wire model ids")
+    func displayTitleHumanizesModelID() {
+        #expect(HomeModelCatalog.displayTitle(for: "openai/gpt-4o:free") == "gpt 4o")
+        #expect(HomeModelCatalog.displayTitle(for: "meta-llama/llama-3.3-70b-instruct:free") == "llama 3.3 70b instruct")
+    }
 }
+
 
 // MARK: - ModelCatalogCachePreference
 
