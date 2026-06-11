@@ -62,18 +62,40 @@ struct SidePanelSettingView: View {
                 .foregroundStyle(palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Picker(
-                "Provider",
-                selection: Binding(
-                    get: { store.selectedProviderID },
-                    set: { store.send(.providerSelected($0)) }
-                )
-            ) {
-                ForEach(AIProviderAPI.all, id: \.id) { provider in
-                    Text(provider.displayName).tag(provider.id)
+            HStack(spacing: 8) {
+                Picker(
+                    "Provider",
+                    selection: Binding(
+                        get: { store.selectedProviderID },
+                        set: { store.send(.providerSelected($0)) }
+                    )
+                ) {
+                    ForEach(AIProviderAPI.all, id: \.id) { provider in
+                        Text(provider.displayName).tag(provider.id)
+                    }
                 }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(palette.textPrimary)
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(palette.textTertiary)
+                    .accessibilityHidden(true)
             }
-            .pickerStyle(.menu)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(palette.surfaceRaised.opacity(palette.isDark ? 0.5 : 0.85))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(palette.lineSoft.opacity(palette.isDark ? 0.45 : 0.6), lineWidth: 1)
+            }
             .accessibilityIdentifier("settings-provider-picker")
         }
     }
