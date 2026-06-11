@@ -83,11 +83,6 @@ struct SidePanelSettingView: View {
                 .foregroundStyle(palette.textPrimary)
 
                 Spacer(minLength: 0)
-
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(palette.textTertiary)
-                    .accessibilityHidden(true)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
