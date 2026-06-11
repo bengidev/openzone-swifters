@@ -23,6 +23,18 @@ OpenZone/Externals/
 - **Reasoning model** — the closed `AIProviderReasoningModel` enum mapped to `reasoning.effort` on the wire.
 - **Credential store** — secure storage for the provider API secret (`CredentialStore`).
 
+## Built-in AI providers
+
+Shipped backends are values on `AIProviderAPI` and appear automatically in the settings provider picker via `AIProviderAPI.all`:
+
+| ID | Display name | Base URL |
+| --- | --- | --- |
+| `openrouter` | OpenRouter | `https://openrouter.ai/api/v1` |
+| `opencode` | OpenCode | `https://opencode.ai/zen/v1` |
+| `commandcode` | Command Code | `https://api.commandcode.ai/provider/v1` |
+
+Command Code uses the [Provider API](https://commandcode.ai/docs/provider-api) (`POST /chat/completions`, `GET /models`) with bearer auth. Credentials are stored per provider id in the Keychain.
+
 ## Architecture
 
 - Externals code must not import or reference feature UI or TCA reducers.
