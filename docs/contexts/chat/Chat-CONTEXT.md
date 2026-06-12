@@ -22,7 +22,7 @@ OpenZone/Features/Chat/
 │   ├── ChatConversation.swift               # Domain conversation value type
 │   ├── ChatMessage.swift                    # Domain message value type
 │   ├── ChatModel.swift                      # Model metadata (id, name, capabilities)
-│   └── OpenAICompatibleStreamingClient.swift # OpenAI-compatible wire streaming client
+│   └── ChatOpenAICompatibleStreamingClient.swift # OpenAI-compatible wire streaming client
 ├── Views/
 │   ├── ChatThreadView.swift                 # Full conversation screen
 │   ├── ChatMessageRowView.swift             # Single message bubble
@@ -168,6 +168,6 @@ Chat uses `ExternalAIProviderReasoningModel` from the Externals boundary for rea
 
 - Restructured into role-based subfolders (Core/Models/Views/Utilities)
 - Entities renamed to `ChatHistoryConversationEntity` and `ChatHistoryMessageEntity` (ChatHistory sub-scope)
-- `OpenAICompatibleStreamingClient` uses technical name (no prefix) — describes wire protocol, not domain
+- `OpenAICompatibleStreamingClient` renamed to `ChatOpenAICompatibleStreamingClient` for prefix consistency
 - Removed `public` modifiers (internal access by default)
 - ChatDomainModel.swift → `ChatMessage` with associated values for different message types

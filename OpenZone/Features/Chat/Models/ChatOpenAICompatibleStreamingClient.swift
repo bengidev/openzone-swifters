@@ -15,7 +15,7 @@ import Foundation
 ///     `reasoning_content`) to `.thinkingDelta`, the `[DONE]` sentinel to `.done`;
 ///   - maps HTTP 401, non-2xx responses, mid-stream `error` objects, and
 ///     transport failures to `.error`.
-nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Sendable {
+nonisolated struct ChatOpenAICompatibleStreamingClient: ChatAPIClientProtocol, Sendable {
     let credentialProvider: ExternalAIProviderCredentialAPI
     let urlSession: URLSession
 

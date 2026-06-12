@@ -55,8 +55,8 @@ nonisolated final class StubURLProtocol: URLProtocol, @unchecked Sendable {
     override func stopLoading() {}
 }
 
-@Suite("OpenAI-Compatible Streaming Client", .serialized)
-struct OpenAICompatibleStreamingClientTests {
+@Suite("Chat OpenAI-Compatible Streaming Client", .serialized)
+struct ChatOpenAICompatibleStreamingClientTests {
 
     private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
@@ -64,8 +64,8 @@ struct OpenAICompatibleStreamingClientTests {
         return URLSession(configuration: configuration)
     }
 
-    private func makeClient(secret: String? = "test-key") -> OpenAICompatibleStreamingClient {
-        OpenAICompatibleStreamingClient(
+    private func makeClient(secret: String? = "test-key") -> ChatOpenAICompatibleStreamingClient {
+        ChatOpenAICompatibleStreamingClient(
             credentialProvider: ExternalAIProviderCredentialAPI { _ in secret },
             urlSession: makeSession()
         )

@@ -27,7 +27,7 @@ extension ChatAPIClient: DependencyKey {
   /// unauthenticated. Test/preview replay a deterministic canned-event stub so
   /// they never touch the network.
   static let liveValue = ChatAPIClient.wrap(
-    OpenAICompatibleStreamingClient(
+    ChatOpenAICompatibleStreamingClient(
       credentialProvider: ExternalAIProviderCredentialAPI { providerID in
         ExternalKeychainCredentialStore(
           service: "io.github.bengidev.OpenZone",

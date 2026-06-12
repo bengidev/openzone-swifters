@@ -197,7 +197,7 @@ extension HomeModelCatalogClient {
             // API access (e.g. Command Code Go plan). Surface a hint so the
             // user knows to upgrade rather than wondering why models don't work.
             if http.statusCode == 403 {
-                let providerMessage = OpenAICompatibleStreamingClient.decodeErrorBody(data)
+                let providerMessage = ChatOpenAICompatibleStreamingClient.decodeErrorBody(data)
                 let hint = providerMessage
                     ?? "Your plan doesn't include API access. Upgrade to use these endpoints."
                 throw CatalogFetchError(errorHint: hint)
