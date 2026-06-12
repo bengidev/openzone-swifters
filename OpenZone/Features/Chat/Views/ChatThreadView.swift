@@ -21,6 +21,14 @@ struct ChatThreadView: View {
                     .listRowBackground(palette.surfaceBase)
                     .listRowSeparator(.hidden)
                 }
+
+                if showLoadingIndicator {
+                    ChatLoadingIndicatorView()
+                        .id("loading-indicator")
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(palette.surfaceBase)
+                        .listRowSeparator(.hidden)
+                }
             }
             .listStyle(.plain)
             .environment(\.defaultMinListRowHeight, 0)
@@ -37,7 +45,21 @@ struct ChatThreadView: View {
             .onChange(of: store.streamingStatus) { _, _ in
                 scrollToLast(proxy: proxy, animate: true)
             }
+            .onChange(of: showLoadingIndicator) { _, showing in
+                if showing {
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        proxy.scrollTo("loading-indicator", anchor: .bottom)
+                    }
+                }
+            }
         }
+    }
+
+    private var showLoadingIndicator: Bool {
+        guard store.streamingStatus == .running else { return false }
+        // Show indicator only when no assistant response yet — the last message
+        // must be a user message (covers both fresh send and retry).
+        return store.messages.last?.role == .user
     }
 
     private func isLastAssistantMessage(_ message: ChatMessage) -> Bool {
