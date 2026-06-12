@@ -1,34 +1,77 @@
-# Shared App Primitives Context
+# Shared Context
 
 | | |
 | --- | --- |
-| **Context** | Shared app primitives |
+| **Context** | Cross-feature reusable UI |
 | **Code** | `OpenZone/Shared/` |
 | **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
 | **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
+| **Dependency** | None |
 
-`OpenZone/Shared` contains app-wide theme and UI primitives that are safe for multiple features to reuse.
+The Shared context contains UI primitives, theme definitions, and utilities that are used by multiple features. Types in this boundary use the `Shared` prefix to indicate they are cross-feature reusable components.
 
 ```text
 OpenZone/Shared/
-├── Theme/    # palette, typography, color helpers, environment keys
-└── UI/       # button styles, badges, patterns, backgrounds
+├── Theme/
+│   ├── SharedAppTheme.swift
+│   ├── SharedOpenZonePalette.swift
+│   ├── SharedOpenZoneTypography.swift
+│   └── Color+Hex.swift
+└── UI/
+    ├── SharedBadge.swift
+    ├── SharedButtonStyles.swift
+    ├── SharedCardChrome.swift
+    ├── SharedDiagonalHatchPattern.swift
+    ├── SharedPixelGridBackground.swift
+    ├── SharedSignalGlitchModifier.swift
+    └── SharedThemeToggleButton.swift
 ```
 
-External integrations live in `OpenZone/Externals/` — see [Externals context](../externals/Externals-CONTEXT.md).
+## Dependencies
 
-## Language
+None. Shared is a leaf dependency — it must not import any feature code.
 
-- **Shared primitive** — reusable, feature-neutral UI or theme code.
-- **Theme** — app-wide color scheme preference, palette, typography, and environment keys.
-- **UI primitive** — reusable visual building block such as a button style, badge, card chrome, or background pattern.
+## Type Prefix Convention
 
-## Architecture
+All public types use the `Shared` prefix:
+- `SharedAppTheme` — theme mode and system integration
+- `SharedOpenZonePalette` — color palette and SwiftUI environment key
+- `SharedOpenZoneTypography` — font definitions
+- `SharedBadge`, `SharedCardChrome`, `SharedButtonStyles`, etc.
 
-- Shared code must not import or reference feature code.
-- Shared code must not contain feature-specific copy, workflow state, or TCA reducers.
-- Feature-specific UI remains inside `OpenZone/Features/<FeatureName>/`.
+## Key Responsibilities
 
-## TCA boundary
+- **Theme management** — `SharedAppTheme` handles light/dark/system themes
+- **Color palette** — `SharedOpenZonePalette` defines OpenZone brand colors
+- **Typography** — `SharedOpenZoneTypography` provides font scale
+- **UI components** — Reusable SwiftUI modifiers and views (`SharedBadge`, `SharedCardChrome`, etc.)
 
-Shared UI can be used by TCA-backed feature views, but Shared should remain state-management agnostic unless a reusable component explicitly requires a binding or action closure.
+## Usage Pattern
+
+Features import Shared types directly:
+
+```swift
+struct HomeView: View {
+    @Environment(\\.sharedAppTheme) var theme
+    @Environment(\\.sharedPalette) var palette
+    
+    var body: some View {
+        SharedCardChrome {
+            SharedBadge("Status")
+        }
+        .background(palette.surface)
+    }
+}
+```
+
+## Constraints
+
+- **No feature imports** — Shared must never import `Home`, `Chat`, `Onboarding`, or `SidePanel`
+- **No business logic** — Only UI primitives and theme definitions
+- **No state management** — No `@Model`, reducers, or persistence code
+
+## Recent Changes
+
+- Added `Shared` prefix to all public types to clarify cross-feature reusability
+- Removed `public` modifiers (internal by default per architecture rules)
+- Reorganized into `Theme/` and `UI/` subdirectories
