@@ -23,13 +23,13 @@ The chat feature owns the live conversation workflow: composing a request, strea
 - State lives in `ChatFeature.State`; intents are `ChatFeature.Action`.
 - Streaming, persistence, and provider wiring run as effects from the `ChatFeature` reducer.
 - Value types: `ChatConversation`, `ChatMessage`, `ChatModel`, `ChatRequest`, `ChatStreamingEvent`, `ChatStreamError`, `ChatTextMessages`, `ChatMessageIdentity`, `ChatMessagePayload`.
-- Clients (streaming + persistence): `ChatAPIClient`, `OpenAICompatibleStreamingClient`, `ChatHistoryClient`, `ChatHistoryEntities`, `ChatCannedEventClient`.
+- Clients (streaming + persistence): `ChatAPIClient`, `ChatOpenAICompatibleStreamingClient`, `ChatHistoryClient`, `ChatHistoryConversationEntity`, `ChatHistoryMessageEntity`, `ChatHistoryMessageKind`, `ChatCannedEventClient`.
 - Views: `ChatThreadView`, `ChatMessageRowView`, `ChatReasoningCardView`, `ChatErrorBannerView`.
 
 ## Boundaries
 
 - Chat domain types stay in `Features/Chat/`; do not move them to `Externals/`.
-- `OpenAICompatibleStreamingClient` stays here because it combines provider wire behavior with chat domain types.
+- `ChatOpenAICompatibleStreamingClient` stays here because it combines provider wire behavior with chat domain types.
 - Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential adapters from `OpenZone/Externals`.
 - Do not depend on other feature reducers directly; integrate through the app shell.
 

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Context** | OpenZone app shell |
-| **Code** | `OpenZone/` (root app target sources outside feature folders) |
+| **Code** | `OpenZone/App/` |
 | **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
 | **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
 
@@ -12,8 +12,8 @@ The app shell owns entry-point wiring, global routing, SwiftData `ModelContainer
 ## Language
 
 - **App shell** — `OpenZoneApp`, root `StoreOf<AppFeature>`, and routing that decides which top-level screen is shown.
-- **App feature** — root TCA reducer (`AppFeature`) that composes child features and handles cross-feature routing.
-- **Main content** — post-onboarding primary UI (`ContentView` today); temporary until product workflows replace it.
+- **App feature** — root TCA reducer (`AppFeature`) that composes child features and handles cross-feature routing; it keeps the conventional TCA root name instead of becoming `AppAppFeature` or `OpenZoneAppFeature`.
+- **Root view** — `AppRootView`, the app-shell view that routes between onboarding and the post-onboarding home surface.
 
 ## Architecture
 

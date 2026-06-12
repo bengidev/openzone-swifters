@@ -10,13 +10,16 @@
 The side panel is the single navigation surface that slides in alongside the main content. It is one module that hosts two sub-scopes that were previously separate: **session** (saved-conversation browsing, formerly "history chat") and **setting** (app preferences).
 
 ```text
-OpenZone/Features/SidePanel/   # flat — no boundary subfolders
-├── SidePanelFeature.swift          # host reducer: composes session + setting
-├── SidePanelSessionFeature.swift   # session scope reducer (owns the list)
-├── SidePanelSessionSection.swift
-├── SidePanelSessionSidebarView.swift
-├── SidePanelSettingFeature.swift   # setting scope reducer
-└── SidePanelSettingView.swift
+OpenZone/Features/SidePanel/
+├── Core/
+│   ├── SidePanelFeature.swift
+│   ├── Session/SidePanelSessionFeature.swift
+│   └── Setting/SidePanelSettingFeature.swift
+├── Models/
+│   └── Session/SidePanelSessionSection.swift
+└── Views/
+    ├── Session/SidePanelSessionSidebarView.swift
+    └── Setting/SidePanelSettingView.swift
 ```
 
 ## Sub-scopes
