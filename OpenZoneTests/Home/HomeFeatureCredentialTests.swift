@@ -13,7 +13,7 @@ struct HomeFeatureCredentialTests {
         TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0.credentialStore = ExternalCredentialStoreClient(
+            $0.externalCredentialStore = ExternalCredentialStoreClient(
                 secret: { _ in backing.secret() },
                 save: { _, secret in try backing.save(secret: secret) },
                 clear: { _ in try backing.clear() }
