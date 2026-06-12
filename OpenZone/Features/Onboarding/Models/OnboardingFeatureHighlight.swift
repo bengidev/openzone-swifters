@@ -1,7 +1,7 @@
 import Foundation
 
 /// A feature highlight badge shown at the bottom of onboarding pages.
-public struct OnboardingFeatureHighlight: Equatable, Sendable, Identifiable {
+struct OnboardingFeatureHighlight: Equatable, Sendable, Identifiable {
     public var id: String { title }
     public let title: String
     public let detail: String

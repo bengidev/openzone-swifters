@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Client for persisting onboarding progress.
-public struct OnboardingPersistenceClient: Sendable {
+struct OnboardingPersistenceClient: Sendable {
     public let isCompleted: @Sendable () async throws -> Bool
     public let complete: @Sendable () async throws -> Void
 

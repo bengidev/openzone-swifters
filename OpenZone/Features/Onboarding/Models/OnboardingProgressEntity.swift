@@ -3,7 +3,7 @@ import SwiftData
 
 /// SwiftData model for persisting onboarding completion state.
 @Model
-public final class OnboardingProgressEntity {
+final class OnboardingProgressEntity {
     public var id: UUID
     public var createdAt: Date
     public var completedAt: Date?

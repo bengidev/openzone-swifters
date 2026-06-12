@@ -1,7 +1,7 @@
 import Foundation
 
 /// Queue item shown in the Prompt Queue page demo.
-public struct OnboardingQueueItem: Equatable, Sendable, Identifiable {
+struct OnboardingQueueItem: Equatable, Sendable, Identifiable {
     public enum Status: String, Equatable, Sendable {
         case running = "RUNNING"
         case next = "NEXT"

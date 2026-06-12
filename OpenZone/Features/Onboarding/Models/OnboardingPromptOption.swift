@@ -1,7 +1,7 @@
 import Foundation
 
 /// Prompt option chip shown in the Idea Studio page.
-public struct OnboardingPromptOption: Equatable, Sendable, Identifiable {
+struct OnboardingPromptOption: Equatable, Sendable, Identifiable {
     public var id: String { prompt }
     public let label: String
     public let prompt: String

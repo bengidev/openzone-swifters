@@ -1,7 +1,7 @@
 import Foundation
 
 /// Data model for a single onboarding page.
-public struct OnboardingPage: Equatable, Sendable, Identifiable {
+struct OnboardingPage: Equatable, Sendable, Identifiable {
     public let id: String
     public let type: OnboardingPageType
     public let indexLabel: String
