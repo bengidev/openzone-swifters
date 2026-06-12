@@ -2,7 +2,7 @@
 
 Part of this repo's multi-context documentation. See [CONTEXT-MAP.md](../../CONTEXT-MAP.md) for per-feature glossaries and [docs/agents/domain.md](../agents/domain.md) for how agents consume domain docs.
 
-OpenZone uses feature-oriented folders inside the app target today. The folders are intentionally shaped like modules so they can be promoted to internal Swift Package or Xcode framework targets later without rewriting the feature boundaries.
+OpenZone uses feature-oriented folders inside the app target. The folders are intentionally shaped like modules so they can be promoted to internal Swift Package or Xcode framework targets later without rewriting the feature boundaries.
 
 State management is implemented with [The Composable Architecture (TCA)](https://github.com/pointfreeco/swift-composable-architecture). New product workflows should follow the same reducer/store pattern.
 
@@ -27,31 +27,34 @@ App
 
 ```text
 OpenZone/
-├── OpenZoneApp.swift
-├── ContentView.swift
-├── Item.swift
+├── App/                      # App shell
+│   ├── OpenZoneApp.swift
+│   └── Core/
+│       └── AppFeature.swift
 ├── Features/
-│   ├── AppFeature.swift
-│   ├── Onboarding/           # OnboardingFeature, pages, visuals, persistence
-│   ├── Home/                 # HomeFeature, composer, model catalog
-│   ├── Chat/                 # ChatFeature, streaming, history persistence
-│   └── SidePanel/            # hosts Session + Setting sub-scopes
-│       ├── SidePanelSessionSection.swift
-│       ├── SidePanelSessionSidebarView.swift
-│       ├── SidePanelSettingFeature.swift
-│       └── SidePanelSettingView.swift
+│   ├── Onboarding/           # Role-based
+│   │   └── (Core/Models/Views/Utilities)
+│   ├── Home/                 # Role-based
+│   │   └── (Core/Models/Views)
+│   ├── Chat/                 # Role-based
+│   │   └── (Core/Models/Views/Utilities)
+│   └── SidePanel/            # Hosts Session + Setting sub-scopes
+│       ├── Session/          # Role-based
+│       │   └── (Core/Views)
+│       └── Setting/          # Role-based
+│           └── (Core/Views)
 ├── Externals/                # External integrations (internal module)
 │   ├── Networking/
 │   ├── Preference/
 │   └── Security/
-└── Shared/
+└── Shared/                   # Cross-cutting UI primitives
     ├── Theme/
     └── UI/
 ```
 
-> Flat feature folders: each feature folder holds its files directly — no `Domain/Application/Infrastructure/Presenter` boundary subfolders. File responsibility is conveyed by the scope-prefixed name, not by a folder layer.
+> **Role-based folders**: Each feature organizes files by responsibility — `Core/` (reducers, clients), `Models/` (domain types, entities), `Views/` (SwiftUI), `Utilities/` (helpers, factories). This structure supports future SPM package extraction.
 >
-> Scope prefixes: every symbol/file carries its module scope. The side panel's sub-scopes extend the parent prefix — `SidePanelSession…` for the session (ex "history chat") scope and `SidePanelSetting…` for the setting scope.
+> **Type prefixes**: Boundary prefixes clarify ownership — `Shared…` for cross-cutting types (`SharedOpenZonePalette`, `SharedAppTheme`), `External…` for integration adapters (`ExternalAIProviderAPI`, `ExternalCredentialStore`). Features use scope prefixes (`HomeComposerView`, `ChatMessage`). Sub-scopes extend the parent (`SidePanelSessionView`).
 
 ## State management rules
 
@@ -74,14 +77,12 @@ One type per file; the file name matches its primary type. The suffix conveys th
 So within a module only the single reducer file carries `Feature`; every other file is named by its role. This is why most files have no `Feature` suffix — they aren't reducers.
 
 > Note: a literal "Feature" inside a domain name (e.g. `OnboardingFeatureHighlight`, `OnboardingFeaturePageView` — "feature highlight" as a product concept) is part of the noun, not the reducer suffix, and does not imply a reducer.
->
-> A few clients are deliberately named for what they do rather than their module: `OpenAICompatibleStreamingClient` keeps its descriptive technical name (OpenAI-compatible wire protocol) and lives in `Features/Chat/` because it combines provider wire behavior with chat domain types.
 
 ## Ownership rules
 
 ### `OpenZone/Features/<FeatureName>/`
 
-A feature owns one product workflow. Its folder holds all of the feature's files directly (flat) — reducers, `@ObservableState`, actions, value types, feature-scoped clients, and SwiftUI views. Use scope-prefixed file names (e.g. `HomeFeature`, `HomeComposerView`, `ChatHistoryClient`) so responsibility is clear without boundary subfolders.
+A feature owns one product workflow. Its folder organizes files by role — reducers in `Core/`, domain types in `Models/`, SwiftUI in `Views/`, helpers in `Utilities/`. Use scope-prefixed type names (e.g. `HomeFeature`, `HomeComposerView`, `ChatHistoryClient`).
 
 Feature code may depend on `OpenZone/Externals`, `OpenZone/Shared`, Swift standard libraries, Apple frameworks, TCA, and its own feature folders. Feature code must not depend on another feature directly unless a clear integration boundary is introduced.
 
@@ -96,20 +97,25 @@ The side panel is one feature module that hosts two sub-scopes, each scope-prefi
 
 Externals contains feature-neutral adapters for systems outside the app:
 
-- `Networking/` — `AIProviderAPI`, `AIProviderCredentialAPI`, `AIProviderSSEDecoder`.
-- `Preference/` — `AIProviderPreference`, `AIProviderReasoningModel`, `AIProviderPreferenceStore`, and `AIProviderPreferenceClient`.
-- `Security/` — `CredentialStore` and `CredentialStoreClient`.
+- `Networking/` — `ExternalAIProviderAPI`, `ExternalAIProviderCredentialAPI`, `ExternalAIProviderSSEDecoder`.
+- `Preference/` — `ExternalAIProviderPreference`, `ExternalAIProviderReasoningModel`, `ExternalAIProviderPreferenceStore`, and `ExternalAIProviderPreferenceClient`.
+- `Security/` — `ExternalCredentialStore` and `ExternalCredentialStoreClient`.
 
-Externals must not reference feature UI or reducers. Chat domain types (e.g. `ChatModel`) belong in `Features/Chat/`. Home-scoped orchestration (e.g. `HomeModelCatalogClient`) belongs in `Features/Home/`. Chat streaming (`OpenAICompatibleStreamingClient`) and chat history persistence (`ChatHistoryClient`) stay in `Features/Chat/` because they combine provider wire behavior with chat domain types. The side panel's session scope consumes that persistence; it does not duplicate it.
+Externals must not reference feature UI or reducers. Chat domain types (e.g. `ChatModel`) belong in `Features/Chat/Models/`. Home-scoped orchestration (e.g. `HomeModelCatalogClient`) belongs in `Features/Home/Core/`. Chat streaming (`ChatOpenAICompatibleStreamingClient`) and chat history persistence (`ChatHistoryClient`) stay in `Features/Chat/` because they combine provider wire behavior with chat domain types. The side panel's session scope consumes that persistence; it does not duplicate it.
+
 
 ### `OpenZone/Shared/`
 
 Shared contains app-wide UI primitives that are safe for more than one feature to reuse:
 
-- `Theme/` — palette, theme preference, typography, color helpers, SwiftUI environment keys.
+- `Theme/` — palette, theme preference, typography, color helpers, SwiftUI environment keys (`.sharedPalette`, `.sharedAppTheme`).
 - `UI/` — reusable visual primitives, patterns, and button styles.
 
 Shared code must not import or reference feature code. If a component contains onboarding-specific copy, state, or workflow behavior, keep it in `Features/<FeatureName>` instead of `Shared`.
+
+## Access control
+
+All types default to `internal`. Use `public` only when promoting a module to an internal framework or Swift Package boundary. This keeps the API surface implicit until you deliberately expose it across a package boundary.
 
 ## Why not marker enum files?
 

@@ -1,43 +1,98 @@
-# Home Context
+# Home Feature Context
 
 | | |
 | --- | --- |
-| **Context** | Home feature |
 | **Code** | `OpenZone/Features/Home/` |
+| **Role-based layout** | `Core/`, `Models/`, `Views/`, `Utilities/` |
 | **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
 | **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
 
-The home feature owns the main landing surface: the welcome state, the composer that starts a conversation, model selection, and the entry point into the side panel.
+The Home feature manages the main landing screen where users start new conversations, configure AI provider preferences, and view recent chat history.
 
-## Language
+## Folder Structure
 
-- **Composer** — the input surface (`HomeComposerView`) for starting a message, with speed mode, reasoning level, and context-usage indicators.
-- **Speed mode** — `HomeComposerSpeedMode`, the latency/quality tradeoff selected for a request.
-- **Reasoning level** — `HomeComposerReasoningLevel`, the reasoning tier surfaced in the composer.
-- **Context usage** — `HomeComposerContextUsage`, the live token/context budget indicator.
-- **Model option** — `HomeModelOption`, a selectable model presented in the model popup.
-- **Welcome** — the empty/first-load state (`HomeWelcomeView`) shown before a conversation begins.
+```text
+OpenZone/Features/Home/
+├── Core/
+│   ├── HomeFeature.swift                    # Reducer + state management
+│   ├── HomeModelCatalogClient.swift         # Model catalog fetching
+│   └── HomeModelCatalogCachePreference.swift # Cache preferences
+├── Models/
+│   ├── HomeModelOption.swift                # Model selection value type
+│   ├── HomeComposerSpeedMode.swift          # Speed mode selection
+│   └── HomeComposerContextUsage.swift       # Context usage display
+└── Views/
+    ├── HomeView.swift                       # Main view container
+    ├── HomeWelcomeView.swift                # Welcome state view
+    ├── HomeComposerView.swift               # Message composer interface
+    ├── HomeModelPopupView.swift             # Model selection popover
+    └── HomeParticleOrbView.swift            # Animated orb visual
+```
 
-## Architecture
+## Dependencies
 
-- State lives in `HomeFeature.State`; intents are `HomeFeature.Action`.
-- Value types: `HomeComposerSpeedMode`, `HomeComposerReasoningLevel`, `HomeComposerContextUsage`, `HomeModelOption`.
-- Clients: `HomeModelCatalogClient`, `HomeModelCatalogCachePreferenceClient` (model catalog fetch + cache).
-- Views: `HomeView`, `HomeWelcomeView`, `HomeComposerView`, `HomeModelPopupView`, `HomeParticleOrbView`.
+**Required:**
+- `OpenZone/Externals/` - Uses `ExternalAIProviderPreferenceStore`, `ExternalCredentialStore`
+- `OpenZone/Shared/` - Uses `SharedAppTheme`, `SharedOpenZonePalette`
 
-## Boundaries
+**Feature Dependencies:**
+- `OpenZone/Features/Chat/` - Calls `ChatFeature.send()` to start conversations
+- `OpenZone/Features/SidePanel/` - Embeds sidebar view for recent chats
 
-- Home owns the landing and composer workflow only. Live streaming belongs to [Chat](../chat/Chat-CONTEXT.md).
-- Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential adapters from `OpenZone/Externals`.
-- Do not depend on other feature reducers directly; integrate through the app shell.
+## State Management (TCA)
 
-## Relation to the side panel
+The Home feature uses a single reducer pattern:
 
-Saved-conversation browsing and the settings sheet have moved out of Home into the side panel module. Home composes `SidePanelFeature` as a child (`sidePanel: SidePanelFeature.State` + `Scope`) and renders its surfaces (`SidePanelSessionSidebarView`, `SidePanelSettingView`) scoped to the panel's state.
+```swift
+@Reducer
+struct HomeFeature {
+    @ObservableState
+    struct State: Equatable {
+        var composerMode: HomeComposerMode = .text
+        var composerText: String = ""
+        var speedMode: HomeComposerSpeedMode = .high
+        var modelCatalog: HomeModelCatalog?
+        var selectedProviderID: ProviderID = .openRouter
+        // ... more state
+    }
+    
+    enum Action {
+        case onAppear
+        case composerTextChanged(String)
+        case speedModeChanged(HomeComposerSpeedMode)
+        case sendMessage
+        case delegate(Delegate)
+        
+        enum Delegate {
+            case openChat(threadID: ThreadID)
+        }
+    }
+}
+```
 
-Home no longer owns that state. It only:
-- forwards the toggle/settings-button intents into the panel,
-- handles the panel's `delegate` outputs — opening the chosen conversation in [Chat](../chat/Chat-CONTEXT.md), re-reading credentials on change, refreshing the reasoning chip,
-- syncs the active-conversation id into the session scope so the sidebar highlights the open thread.
+## External Integrations
 
-The session list and its grouping live under [SidePanel context](../sidepanel/SidePanel-CONTEXT.md).
+- **AI Provider API** - Fetches model catalog via `HomeModelCatalogClient`
+- **Provider Preferences** - Reads/writes current provider ID via `ExternalAIProviderPreferenceStore`
+- **Credentials** - Validates API keys via `ExternalCredentialStore` before sending messages
+- **Chat History** - Reads recent threads to populate sidebar (uses Chat feature's persistence API)
+
+## Cross-Feature Communication
+
+Home communicates with other features through **delegate actions**:
+
+```swift
+// User taps on recent chat message
+store.send(.delegate(.openChat(threadID: selectedThreadID)))
+
+// Parent AppFeature routes to Chat feature
+case .home(.delegate(.openChat(let threadID))):
+    state.path.append(.chat(ChatFeature.State(threadID: threadID)))
+```
+
+## Recent Architecture Changes
+
+- Restructured into role-based subfolders (Core/Models/Views/Utilities)
+- Removed `HomeComposerReasoningLevel` shim - now uses `ExternalAIProviderReasoningModel`
+- Renamed types to use `Home` prefix consistently
+- Removed `public` modifiers (internal access by default)

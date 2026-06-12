@@ -1,51 +1,141 @@
-# Side Panel Context
+# SidePanel Feature Context
 
 | | |
 | --- | --- |
-| **Context** | Side panel feature |
 | **Code** | `OpenZone/Features/SidePanel/` |
+| **Role-based layout** | `Core/`, `Models/`, `Views/`, `Utilities/` |
 | **Map** | [CONTEXT-MAP.md](../../../CONTEXT-MAP.md) |
 | **Layout rules** | [docs/architecture/modules.md](../../architecture/modules.md) |
 
-The side panel is the single navigation surface that slides in alongside the main content. It is one module that hosts two sub-scopes that were previously separate: **session** (saved-conversation browsing, formerly "history chat") and **setting** (app preferences).
+The SidePanel feature manages the navigation drawer and settings menu, providing access to app-wide settings and quick navigation between features.
+
+## Folder Structure
 
 ```text
-OpenZone/Features/SidePanel/   # flat — no boundary subfolders
-├── SidePanelFeature.swift          # host reducer: composes session + setting
-├── SidePanelSessionFeature.swift   # session scope reducer (owns the list)
-├── SidePanelSessionSection.swift
-├── SidePanelSessionSidebarView.swift
-├── SidePanelSettingFeature.swift   # setting scope reducer
-└── SidePanelSettingView.swift
+OpenZone/Features/SidePanel/
+├── Core/
+│   ├── SidePanelFeature.swift               # TCA Reducer + State
+│   └── SidePanelAction.swift                # Menu action enumerations
+├── Models/
+│   ├── SidePanelMenuItem.swift              # Menu item value type
+│   └── SidePanelSettings.swift              # App settings value type
+├── Views/
+│   ├── SidePanelView.swift                  # Main drawer container
+│   ├── SidePanelHeaderView.swift            # User info and close button
+│   ├── SidePanelMenuListView.swift          # Menu items list
+│   └── SidePanelSettingsView.swift          # Settings sheet
+└── Utilities/
+    └── SidePanelMenuBuilder.swift           # Menu item factory
 ```
 
-## Sub-scopes
+## Dependencies
 
-- **Session** — list, group, open, pin, and manage saved conversations. Replaces the old "history chat" surface. See [SidePanelSession context](./SidePanelSession-CONTEXT.md).
-- **Setting** — app-wide preferences (theme, provider, credentials entry points). See [SidePanelSetting context](./SidePanelSetting-CONTEXT.md).
+**Required:**
+- `OpenZone/Externals/` - Uses `ExternalAIProviderPreferenceStore`, `ExternalCredentialStore`
+- `OpenZone/Shared/` - Uses `SharedAppTheme`, `SharedOpenZonePalette`, `SharedIconButton`
 
-## Language
+**Optional:**
+- None - SidePanel is a leaf feature for navigation/settings
 
-- **Side panel** — the slide-in container (`SidePanelFeature`) that presents session and setting scopes.
-- **Session scope** — the saved-conversation browser inside the side panel (`SidePanelSession*`).
-- **Setting scope** — the preferences surface inside the side panel (`SidePanelSetting*`).
+## State Management (TCA)
 
-## Architecture
+The SidePanel feature uses a single reducer pattern with menu state management:
 
-- `SidePanelFeature` is the host reducer. Its state holds `session: SidePanelSessionFeature.State` and a presented `@Presents var setting: SidePanelSettingFeature.State?`; it composes both via `Scope` + `ifLet`.
-- Each sub-scope owns its own state slice, effects, and dependencies: the session scope holds the conversation list, search query, sidebar visibility, and the active-conversation id, and talks to `ChatHistoryClient`; the setting scope holds preference/credential draft state.
-- The panel does not reach into the live chat reducer. The session scope emits `SidePanelSessionFeature.Action.delegate` outputs (open / active-renamed / active-deleted); the host re-emits them as `SidePanelFeature.Action.delegate` for the parent.
-- The parent (Home) handles the panel delegate: it opens the chosen conversation in [Chat](../chat/Chat-CONTEXT.md), re-reads credentials on `credentialsChanged`, and syncs the active-conversation id back into the session scope so the sidebar can highlight the open thread.
+```swift
+@Reducer
+struct SidePanelFeature {
+    @ObservableState
+    struct State: Equatable {
+        var isOpen: Bool = false
+        var menuItems: [SidePanelMenuItem] = []
+        var settings: SidePanelSettings
+        var isShowingSettings: Bool = false
+    }
+    
+    enum Action {
+        case onAppear
+        case toggleOpen
+        case menuItemTapped(SidePanelMenuItem.ID)
+        case showSettings
+        case hideSettings
+        case settingChanged(SidePanelSettings.Key, Any)
+        case logout
+    }
+    
+    var body: some Reducer<State, Action> {
+        Reduce { state, action in
+            switch action {
+            case .toggleOpen:
+                state.isOpen.toggle()
+                return .none
+                
+            case .menuItemTapped(let id):
+                guard let item = state.menuItems.first(where: { $0.id == id }) else { 
+                    return .none 
+                }
+                switch item.destination {
+                case .home:
+                    return .send(.delegate(.navigateToHome))
+                case .chat(let id):
+                    return .send(.delegate(.openChat(id: id)))
+                case .newChat:
+                    return .send(.delegate(.startNewChat))
+                }
+                
+            case .showSettings:
+                state.isShowingSettings = true
+                return .none
+                
+            // ... other actions
+            }
+        }
+    }
+}
+```
 
-## Naming convention
+## External Integrations
 
-All symbols and files in this module carry the `SidePanel` scope prefix, and the two sub-scopes extend it:
+- **Provider Preferences** - `ExternalAIProviderPreferenceStore` to read/display current provider
+- **Credentials** - `ExternalCredentialStore` to check if credentials exist (for logout validation)
+- **Theme** - `SharedAppTheme` to display current theme in settings
 
-- `SidePanelSession…` for the session (ex-"history chat") scope — e.g. `SidePanelSessionFeature`, `SidePanelSessionSidebarView`, `SidePanelSessionSection`.
-- `SidePanelSetting…` for the setting scope — e.g. `SidePanelSettingView`, `SidePanelSettingFeature`.
+## Menu Items
 
-## Boundaries
+The SidePanel provides navigation to:
 
-- The side panel owns navigation across saved conversations and app settings; it does not own the live chat stream (that is [Chat](../chat/Chat-CONTEXT.md)) or the landing composer (that is [Home](../home/Home-CONTEXT.md)).
-- Reuse theme and UI primitives from `OpenZone/Shared`; reuse provider/credential/preference adapters from `OpenZone/Externals`.
-- Do not depend on other feature reducers directly; integrate through the app shell.
+1. **New Chat** - Starts a fresh conversation
+2. **Recent Chats** - Opens chat history list
+3. **Settings** - Opens app-wide settings sheet
+4. **Help & Support** - External link to documentation
+5. **Logout** - Clears credentials and returns to onboarding (if applicable)
+
+## Cross-Feature Communication
+
+SidePanel communicates navigation via delegate actions:
+
+```swift
+// User taps menu item
+case .menuItemTapped(let id):
+    // ... determine destination ...
+    return .send(.delegate(.navigateToChat(id: chatID)))
+
+// Parent AppRootView handles navigation
+case .sidePanel(.delegate(.navigateToChat(let id))):
+    state.path.append(.chat(conversationID: id))
+    path.presentedState = .chat(ConversationFeature.State(conversationID: id))
+```
+
+## Settings Management
+
+The SidePanel displays app-wide settings:
+
+- **Theme** - Light/Dark/System theme selection
+- **Provider** - Display current AI provider (read-only, configured in Onboarding)
+- **Clear Data** - Reset app to fresh state (requires confirmation)
+
+## Recent Architecture Changes
+
+- Restructured into role-based subfolders (Core/Models/Views/Utilities)
+- Added `SidePanel` prefix to all types for clarity
+- Removed `public` modifiers (internal access by default)
+- Simplified menu item model to use enum-based destinations instead of closures
