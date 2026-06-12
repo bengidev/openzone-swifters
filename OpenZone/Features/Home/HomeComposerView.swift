@@ -5,6 +5,8 @@ struct HomeComposerView: View {
     @Bindable var store: StoreOf<HomeFeature>
     let isComposerFocused: FocusState<Bool>.Binding
 
+    @Environment(\.palette) private var palette
+
     var body: some View {
         VStack(spacing: 8) {
             HomeComposerPromptPanel(
@@ -16,11 +18,13 @@ struct HomeComposerView: View {
                 dismissKeyboard: dismissKeyboard
             )
         }
+        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: 620)
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 8)
         .padding(.top, 8)
-        .safeAreaPadding(.bottom, 8)
+        .padding(.bottom, 8)
+        .background(palette.surfaceBase)
     }
 
     private func dismissKeyboard() {

@@ -75,6 +75,25 @@ struct AIProviderPreferenceTests {
         #expect(AIProviderAPI.resolve(id: nil) == .default)
         #expect(AIProviderAPI.resolve(id: "does-not-exist") == .default)
         #expect(AIProviderAPI.resolve(id: AIProviderAPI.openRouter.id) == .openRouter)
+        #expect(AIProviderAPI.resolve(id: AIProviderAPI.commandCode.id) == .commandCode)
+    }
+
+    @Test("Command Code provider exposes OpenAI-compatible endpoints")
+    func commandCodeEndpoints() {
+        let provider = AIProviderAPI.commandCode
+
+        #expect(provider.id == "commandcode")
+        #expect(provider.displayName == "Command Code")
+        #expect(provider.authScheme == .bearer)
+        #expect(provider.defaultHeaders.isEmpty)
+        #expect(
+            provider.chatCompletionsURL.absoluteString
+                == "https://api.commandcode.ai/provider/v1/chat/completions"
+        )
+        #expect(
+            provider.modelsURL.absoluteString == "https://api.commandcode.ai/provider/v1/models"
+        )
+        #expect(AIProviderAPI.all.contains(provider))
     }
 
     // MARK: - Model catalog
@@ -233,7 +252,7 @@ struct HomeModelSelectionTests {
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: expectedModels) }
         }
         store.exhaustivity = .off
 
@@ -270,7 +289,7 @@ struct HomeModelSelectionTests {
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: expectedModels) }
         }
         store.exhaustivity = .off
 
@@ -284,8 +303,8 @@ struct HomeModelSelectionTests {
         #expect(store.state.selectedModelOption?.title == "Test A")
     }
 
-    @Test("Provider change clears the persisted model selection")
-    func providerChangedClearsPersistedModel() async {
+    @Test("Provider change clears the old model and auto-selects from the new provider's catalog")
+    func providerChangedAutoSelectsNewProviderModel() async {
         let known = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
         let backing = InMemoryAIProviderPreferenceStore(
             preference: AIProviderPreference(
@@ -294,6 +313,7 @@ struct HomeModelSelectionTests {
             )
         )
         var initial = HomeFeature.State()
+        initial.selectedProviderID = AIProviderAPI.openRouter.id
         initial.selectedModelID = known.id
 
         let store = TestStore(initialState: initial) {
@@ -305,17 +325,68 @@ struct HomeModelSelectionTests {
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
+            // Return empty live catalog so the provider-scoped fallback is used.
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
         }
         store.exhaustivity = .off
 
-        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.openCode.id)))) { state in
-            state.selectedProviderID = AIProviderAPI.openCode.id
-            state.selectedModelID = nil
-            state.sidePanel.selectedProviderID = AIProviderAPI.openCode.id
-            state.sidePanel.modelSupportsReasoning = false
-        }
+        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.openCode.id))))
 
-        #expect(backing.preference().modelID == nil)
+        // The catalog loads (empty → falls back to OpenCode curated list),
+        // and the first model is auto-selected because shouldAutoSelectDefaultModel
+        // was set to true by the provider change.
+        await store.receive(\.catalogLoaded)
+
+        let expectedModel = ChatModel.curatedFallback(for: AIProviderAPI.openCode.id).first!
+        #expect(store.state.selectedProviderID == AIProviderAPI.openCode.id)
+        #expect(store.state.selectedModelID == expectedModel.id)
+        #expect(backing.preference().modelID == expectedModel.id)
+        #expect(backing.preference().providerID == AIProviderAPI.openCode.id)
+    }
+
+    @Test("Model popup auto-enables free-only for OpenRouter")
+    func popupAutoEnablesFreeOnlyForOpenRouter() async {
+        var initial = HomeFeature.State()
+        initial.selectedProviderID = AIProviderAPI.openRouter.id
+        initial.modelFilterFreeOnly = false
+
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.modelPopupPresented(true))
+        #expect(store.state.modelFilterFreeOnly == true)
+    }
+
+    @Test("Model popup does not auto-enable free-only for Command Code")
+    func popupDoesNotAutoEnableFreeOnlyForCommandCode() async {
+        var initial = HomeFeature.State()
+        initial.selectedProviderID = AIProviderAPI.commandCode.id
+        initial.modelFilterFreeOnly = false
+
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.modelPopupPresented(true))
+        #expect(store.state.modelFilterFreeOnly == false)
     }
 }

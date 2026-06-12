@@ -3,6 +3,9 @@ import SwiftUI
 
 /// Settings sheet for secure provider credential entry.
 ///
+/// Provider selection is a menu picker over the built-in `AIProviderAPI` catalog.
+/// Users choose from app-shipped providers only; custom endpoints are out of scope.
+///
 /// A single secure field accepts the API key; saving persists it to the Keychain
 /// via the reducer. The field is never pre-filled with the stored secret — the
 /// secret is write-only from the UI's perspective — and shows only whether a key
@@ -62,18 +65,35 @@ struct SidePanelSettingView: View {
                 .foregroundStyle(palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Picker(
-                "Provider",
-                selection: Binding(
-                    get: { store.selectedProviderID },
-                    set: { store.send(.providerSelected($0)) }
-                )
-            ) {
-                ForEach(AIProviderAPI.all, id: \.id) { provider in
-                    Text(provider.displayName).tag(provider.id)
+            HStack(spacing: 8) {
+                Picker(
+                    "Provider",
+                    selection: Binding(
+                        get: { store.selectedProviderID },
+                        set: { store.send(.providerSelected($0)) }
+                    )
+                ) {
+                    ForEach(AIProviderAPI.all, id: \.id) { provider in
+                        Text(provider.displayName).tag(provider.id)
+                    }
                 }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(palette.textPrimary)
+
+                Spacer(minLength: 0)
             }
-            .pickerStyle(.segmented)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(palette.surfaceRaised.opacity(palette.isDark ? 0.5 : 0.85))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(palette.lineSoft.opacity(palette.isDark ? 0.45 : 0.6), lineWidth: 1)
+            }
             .accessibilityIdentifier("settings-provider-picker")
         }
     }

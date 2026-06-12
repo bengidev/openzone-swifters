@@ -41,6 +41,10 @@ struct HomeFeature {
         /// The live catalog loaded by `HomeModelCatalogClient`. Falls back to the
         /// curated list (via `availableModels`) when empty.
         var catalogModels: [ChatModel] = []
+        /// Non-nil when the catalog fetch failed with an actionable error
+        /// (e.g. 403 — key present but plan doesn't include API access).
+        /// Cleared on successful load or provider change.
+        var catalogError: String?
 
         /// Whether the model popup is currently presented.
         var isModelPopupPresented = false
@@ -78,7 +82,7 @@ struct HomeFeature {
         /// Uses the live catalog when available, curated fallback otherwise.
         var availableModels: [HomeModelOption] {
             let source = catalogModels.isEmpty
-                ? ChatModel.curatedFallback
+                ? ChatModel.curatedFallback(for: selectedProviderID)
                 : catalogModels
             return source.map { HomeModelOption(model: $0) }
         }
@@ -115,6 +119,7 @@ struct HomeFeature {
         case speedModeSelected(HomeComposerSpeedMode)
         case onAppear
         case catalogLoaded([ChatModel])
+        case catalogLoadFailed(String)
         case modelPopupPresented(Bool)
         case modelSearchQueryChanged(String)
         case searchQueryDebounced(String)
@@ -186,17 +191,21 @@ struct HomeFeature {
                 providerPreference.setProviderID(providerID)
                 providerPreference.setModelID(nil)
                 state.selectedModelID = nil
-                state.shouldAutoSelectDefaultModel = false
+                state.catalogModels = []
+                state.catalogError = nil
+                state.shouldAutoSelectDefaultModel = true
                 state.sidePanel.selectedProviderID = providerID
                 state.sidePanel.modelSupportsReasoning = false
                 state.hasAPIKey = credentialStore.secret(providerID) != nil
                 let provider = AIProviderAPI.resolve(id: providerID)
                 let secret = credentialStore.secret(providerID)
                 let cachePreference = modelCatalogCachePreference
-                let catalogClient = modelCatalog
                 return .run { send in
-                    let models = await catalogClient.listModels(provider, secret, cachePreference, .shared)
-                    await send(.catalogLoaded(models))
+                    let result = await modelCatalog.listModels(provider, secret, cachePreference, .shared)
+                    if let errorHint = result.errorHint {
+                        await send(.catalogLoadFailed(errorHint))
+                    }
+                    await send(.catalogLoaded(result.models))
                 }
 
             case .sidePanel:
@@ -249,12 +258,16 @@ struct HomeFeature {
                 let cachePreference = modelCatalogCachePreference
                 let catalogClient = modelCatalog
                 return .run { send in
-                    let models = await catalogClient.listModels(provider, secret, cachePreference, .shared)
-                    await send(.catalogLoaded(models))
+                    let result = await catalogClient.listModels(provider, secret, cachePreference, .shared)
+                    if let errorHint = result.errorHint {
+                        await send(.catalogLoadFailed(errorHint))
+                    }
+                    await send(.catalogLoaded(result.models))
                 }
 
             case let .catalogLoaded(models):
                 state.catalogModels = models
+                state.catalogError = nil
                 reconcileModelSelection(
                     state: &state,
                     preference: providerPreference,
@@ -266,13 +279,21 @@ struct HomeFeature {
                 state.sidePanel.selectedProviderID = state.selectedProviderID
                 return .none
 
+            case let .catalogLoadFailed(hint):
+                state.catalogError = hint
+                return .none
+
             case let .modelPopupPresented(isPresented):
                 state.isModelPopupPresented = isPresented
                 if isPresented {
-                    // Reset search/filter whenever the popup opens.
+                    // Reset search whenever the popup opens.
                     state.modelSearchQuery = ""
                     state.appliedSearchQuery = ""
-                    state.modelFilterFreeOnly = false
+                    // Auto-enable free-only filter for OpenRouter — it offers
+                    // both free and paid models and users on free tier want to
+                    // see only the free ones first. Other providers don't have
+                    // the same free/paid split so leave the filter off.
+                    state.modelFilterFreeOnly = state.selectedProviderID == AIProviderAPI.openRouter.id
                 }
                 return .none
 

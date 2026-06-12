@@ -173,6 +173,22 @@ struct OpenAICompatibleStreamingClientTests {
         #expect(streamError.message.contains("401"))
     }
 
+    @Test("HTTP 403 with provider body surfaces upgrade message")
+    func http403SurfacesUpgradeMessage() async {
+        let body = #"{"error":{"message":"Your Go plan doesn't include API access. Upgrade to Provider or higher.","code":"upgrade_required"}}"#
+        StubURLProtocol.stub = .init(statusCode: 403, body: Data(body.utf8), headers: [:])
+
+        let events = await collect(makeClient().stream(request: request()))
+
+        #expect(events.count == 1)
+        guard case let .error(streamError) = events.first else {
+            Issue.record("Expected an error event, got \(String(describing: events.first))")
+            return
+        }
+        #expect(streamError.message.contains("403"))
+        #expect(streamError.message.contains("Go plan"))
+    }
+
     @Test("Missing credential short-circuits to an error event")
     func missingCredentialMapsToError() async {
         StubURLProtocol.stub = .init(statusCode: 200, body: Data(), headers: [:])

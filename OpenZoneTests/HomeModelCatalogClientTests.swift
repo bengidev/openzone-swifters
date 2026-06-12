@@ -38,6 +38,29 @@ struct ChatModelTests {
         #expect(HomeModelCatalog.displayTitle(for: "openai/gpt-4o:free") == "gpt 4o")
         #expect(HomeModelCatalog.displayTitle(for: "meta-llama/llama-3.3-70b-instruct:free") == "llama 3.3 70b instruct")
     }
+
+    @Test("Command Code curated fallback is never empty and differs from OpenRouter fallback")
+    func commandCodeFallbackDiffersFromOpenRouter() {
+        #expect(!ChatModel.commandCodeFallback.isEmpty)
+        let openRouterIDs = Set(ChatModel.curatedFallback.map(\.id))
+        let commandCodeIDs = Set(ChatModel.commandCodeFallback.map(\.id))
+        #expect(openRouterIDs != commandCodeIDs)
+    }
+
+    @Test("curatedFallback(for:) returns provider-specific catalogs")
+    func curatedFallbackProviderScoped() {
+        let openRouter = ChatModel.curatedFallback(for: AIProviderAPI.openRouter.id)
+        let commandCode = ChatModel.curatedFallback(for: AIProviderAPI.commandCode.id)
+        let openCode = ChatModel.curatedFallback(for: AIProviderAPI.openCode.id)
+
+        #expect(openRouter == ChatModel.curatedFallback)
+        #expect(commandCode == ChatModel.commandCodeFallback)
+        #expect(openCode == ChatModel.openCodeFallback)
+
+        // Unknown provider falls back to default (OpenRouter)
+        #expect(ChatModel.curatedFallback(for: "unknown") == ChatModel.curatedFallback)
+        #expect(ChatModel.curatedFallback(for: nil) == ChatModel.curatedFallback)
+    }
 }
 
 
@@ -178,7 +201,7 @@ struct ModelCatalogClientTests {
     func noKeyReturnsFallback() async {
         let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, nil, makeCachePreference(), .shared)
-        #expect(result == ChatModel.curatedFallback)
+        #expect(result.models == ChatModel.curatedFallback)
     }
 
     // MARK: Live fetch
@@ -213,21 +236,21 @@ struct ModelCatalogClientTests {
         let result = await client.listModels(.openRouter, "sk-test", cacheClient, session)
 
         // Both models should be present.
-        #expect(result.contains { $0.id == "openai/gpt-4o" })
-        #expect(result.contains { $0.id == "meta-llama/llama-3.3-70b-instruct:free" })
+        #expect(result.models.contains { $0.id == "openai/gpt-4o" })
+        #expect(result.models.contains { $0.id == "meta-llama/llama-3.3-70b-instruct:free" })
 
         // Free model is correctly identified.
-        let freeModel = result.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
+        let freeModel = result.models.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
         #expect(freeModel?.isFree == true)
 
         // Paid model is correctly identified.
-        let paidModel = result.first { $0.id == "openai/gpt-4o" }
+        let paidModel = result.models.first { $0.id == "openai/gpt-4o" }
         #expect(paidModel?.isFree == false)
 
         // Cache was written.
         #expect(cacheStore.cachedCatalog() != nil)
         #expect(cacheStore.cachedCatalog()?.providerID == "openrouter")
-        #expect(cacheStore.cachedCatalog()?.models.count == result.count)
+        #expect(cacheStore.cachedCatalog()?.models.count == result.models.count)
     }
 
     @Test("Returns cached catalog when fresh, skipping the network")
@@ -251,7 +274,7 @@ struct ModelCatalogClientTests {
         )
 
         // Should return cached models, not the network ones.
-        #expect(result == cachedModels)
+        #expect(result.models == cachedModels)
     }
 
     @Test("Fetches fresh catalog when cache is stale")
@@ -277,8 +300,8 @@ struct ModelCatalogClientTests {
         )
 
         // Should have bypassed the stale cache and returned the fresh network result.
-        #expect(result.contains { $0.id == "fresh/model" })
-        #expect(!result.contains { $0.id == "stale/model" })
+        #expect(result.models.contains { $0.id == "fresh/model" })
+        #expect(!result.models.contains { $0.id == "stale/model" })
     }
 
     @Test("Falls back to curated list on network error")
@@ -287,7 +310,7 @@ struct ModelCatalogClientTests {
         let session = makeSession(responseJSON: "", statusCode: 500)
         let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
-        #expect(result == ChatModel.curatedFallback)
+        #expect(result.models == ChatModel.curatedFallback)
     }
 
     @Test("Falls back to stale cache on network error before curated list")
@@ -307,7 +330,46 @@ struct ModelCatalogClientTests {
             .openRouter, "sk-test", makeCachePreference(cached: staleCache), session
         )
         // Should serve the stale cache rather than the curated fallback.
-        #expect(result == staleModels)
+        #expect(result.models == staleModels)
+    }
+
+    @Test("403 response surfaces upgrade hint in catalog error")
+    func forbiddenSurfacesErrorHint() async {
+        let body = #"{"error":{"message":"Your Go plan doesn't include API access. Upgrade to Provider or higher.","code":"upgrade_required"}}"#
+        let session = makeSession(responseJSON: body, statusCode: 403)
+        let client = HomeModelCatalogClient.live
+        let result = await client.listModels(.commandCode, "sk-test", makeCachePreference(), session)
+
+        // Should fall back to Command Code curated models.
+        #expect(result.models == ChatModel.curatedFallback(for: "commandcode"))
+        // And surface the error hint.
+        #expect(result.errorHint != nil)
+        #expect(result.errorHint!.contains("Go plan"))
+    }
+
+    @Test("Model is free only when both prompt and completion pricing are zero")
+    func isFreeRequiresBothPricingZero() async {
+        let json = """
+        {"data": [
+            {"id": "test/free-model", "name": "Free Model",
+             "pricing": {"prompt": "0", "completion": "0"}},
+            {"id": "test/partially-free", "name": "Partially Free",
+             "pricing": {"prompt": "0", "completion": "0.000001"}},
+            {"id": "test/paid-model", "name": "Paid Model",
+             "pricing": {"prompt": "0.000005", "completion": "0.00001"}}
+        ]}
+        """
+        let session = makeSession(responseJSON: json)
+        let client = HomeModelCatalogClient.live
+        let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
+
+        let free = result.models.first { $0.id == "test/free-model" }
+        let partial = result.models.first { $0.id == "test/partially-free" }
+        let paid = result.models.first { $0.id == "test/paid-model" }
+
+        #expect(free?.isFree == true)
+        #expect(partial?.isFree == false)
+        #expect(paid?.isFree == false)
     }
 
     @Test("Reasoning support detected for known model ids")
@@ -324,8 +386,8 @@ struct ModelCatalogClientTests {
         let client = HomeModelCatalogClient.live
         let result = await client.listModels(.openRouter, "sk-test", makeCachePreference(), session)
 
-        let r1 = result.first { $0.id == "deepseek/deepseek-r1:free" }
-        let llama = result.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
+        let r1 = result.models.first { $0.id == "deepseek/deepseek-r1:free" }
+        let llama = result.models.first { $0.id == "meta-llama/llama-3.3-70b-instruct:free" }
         #expect(r1?.supportsReasoning == true)
         #expect(llama?.supportsReasoning == false)
     }
@@ -351,7 +413,7 @@ struct HomeFeatureCatalogTests {
                 clear: { _ in }
             )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in expectedModels }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: expectedModels) }
         }
         store.exhaustivity = .off
 
@@ -398,6 +460,63 @@ struct HomeFeatureCatalogTests {
         #expect(state.filteredModels.count == ChatModel.curatedFallback.count)
     }
 
+    @Test("Empty catalog falls back to provider-scoped curated list")
+    func emptyCatalogFallsBackToProviderScoped() {
+        var state = HomeFeature.State()
+        state.catalogModels = []
+        state.appliedSearchQuery = ""
+        state.modelFilterFreeOnly = false
+
+        // Default provider (OpenRouter) uses the generic fallback.
+        #expect(state.availableModels.count == ChatModel.curatedFallback.count)
+
+        // Command Code provider uses its own fallback.
+        state.selectedProviderID = AIProviderAPI.commandCode.id
+        #expect(state.availableModels.count == ChatModel.commandCodeFallback.count)
+        #expect(state.availableModels.first?.id == ChatModel.commandCodeFallback.first?.id)
+
+        // OpenCode provider uses its own fallback.
+        state.selectedProviderID = AIProviderAPI.openCode.id
+        #expect(state.availableModels.count == ChatModel.openCodeFallback.count)
+    }
+
+    @Test("Provider change triggers catalog fetch and auto-selects first model")
+    func providerChangeTriggersCatalogFetch() async {
+        let commandCodeModels = [
+            ChatModel(id: "deepseek/deepseek-v4-flash", displayName: "DeepSeek V4 Flash", isFree: true),
+            ChatModel(id: "deepseek/deepseek-r1", displayName: "DeepSeek R1", isFree: true, supportsReasoning: true)
+        ]
+        var initial = HomeFeature.State()
+        initial.selectedProviderID = AIProviderAPI.openRouter.id
+        initial.selectedModelID = "meta-llama/llama-3.3-70b-instruct:free"
+        initial.catalogModels = [ChatModel(id: "meta-llama/llama-3.3-70b-instruct:free", displayName: "Llama 3.3 70B", isFree: true)]
+
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0[CredentialStoreClient.self] = CredentialStoreClient(
+                secret: { _ in nil },
+                save: { _, _ in },
+                clear: { _ in }
+            )
+            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: commandCodeModels) }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.commandCode.id))))
+
+        // The catalog should load for the new provider and auto-select the first model.
+        await store.receive(\.catalogLoaded) { state in
+            state.catalogModels = commandCodeModels
+            state.selectedModelID = commandCodeModels[0].id
+            state.sidePanel.selectedProviderID = AIProviderAPI.commandCode.id
+        }
+
+        #expect(store.state.selectedProviderID == AIProviderAPI.commandCode.id)
+        #expect(store.state.selectedModelID == "deepseek/deepseek-v4-flash")
+    }
+
     @Test("modelPopupPresented resets search state")
     func popupOpenResetsSearch() async {
         // Seed state that already has a search query and filter, so the reset
@@ -416,16 +535,17 @@ struct HomeFeatureCatalogTests {
                 clear: { _ in }
             )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
             $0.continuousClock = ImmediateClock()
         }
         store.exhaustivity = .off
 
-        // Opening the popup resets search query and filter.
+        // Opening the popup resets search query and auto-enables free-only
+        // for the default provider (OpenRouter).
         await store.send(.modelPopupPresented(true)) { state in
             state.modelSearchQuery = ""
             state.appliedSearchQuery = ""
-            state.modelFilterFreeOnly = false
+            state.modelFilterFreeOnly = true
             state.isModelPopupPresented = true
         }
     }
@@ -442,7 +562,7 @@ struct HomeFeatureCatalogTests {
                 clear: { _ in }
             )
             $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in [] }
+            $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
             $0.continuousClock = clock
         }
 

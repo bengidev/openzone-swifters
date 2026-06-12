@@ -84,9 +84,19 @@ extension AIProviderAPI {
         ]
     )
 
+    /// Command Code Provider API — OpenAI-compatible chat completions and models
+    /// catalog. Auth is bearer-only per the provider docs; no attribution headers
+    /// are required. See https://commandcode.ai/docs/provider-api
+    static let commandCode = AIProviderAPI(
+        id: "commandcode",
+        displayName: "Command Code",
+        baseURL: URL(string: "https://api.commandcode.ai/provider/v1")!,
+        authScheme: .bearer
+    )
+
     /// Every provider the app knows how to address. Adding an OpenAI-compatible
     /// backend is a value appended here, not a new client.
-    static let all: [AIProviderAPI] = [.openRouter, .openCode]
+    static let all: [AIProviderAPI] = [.openRouter, .openCode, .commandCode]
 
     /// The provider used when no preference has been stored yet.
     static let `default`: AIProviderAPI = .openRouter

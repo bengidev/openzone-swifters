@@ -29,11 +29,7 @@ struct HomeView: View {
                         }
 
                     if showsWelcome {
-                        KeyboardAwareWelcomeContent(
-                            store: store,
-                            isComposerFocused: $isComposerFocused,
-                            dismissKeyboard: dismissComposerKeyboard
-                        )
+                        welcomeContent
                     } else {
                         chatThreadContent
                     }
@@ -62,6 +58,24 @@ struct HomeView: View {
         }
     }
 
+    /// Welcome hero scrolls in the area above a bottom-docked composer.
+    private var welcomeContent: some View {
+        WelcomeScrollContainer(
+            isComposerFocused: isComposerFocused,
+            dismissKeyboard: dismissComposerKeyboard
+        ) { viewportHeight in
+            HomeWelcomeView(
+                store: store,
+                viewportHeight: viewportHeight
+            )
+        } composer: {
+            HomeComposerView(
+                store: store,
+                isComposerFocused: $isComposerFocused
+            )
+        }
+    }
+
     private var chatThreadContent: some View {
         VStack(spacing: 0) {
             if let conversation = store.chat.conversation {
@@ -79,14 +93,18 @@ struct HomeView: View {
                 .onTapGesture {
                     dismissComposerKeyboard()
                 }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                ChatErrorBannerView(store: store.scope(state: \.chat, action: \.chat))
+                    .animation(.easeInOut(duration: 0.2), value: store.chat.streamingStatus)
 
-            ChatErrorBannerView(store: store.scope(state: \.chat, action: \.chat))
-                .animation(.easeInOut(duration: 0.2), value: store.chat.streamingStatus)
-
-            HomeComposerView(
-                store: store,
-                isComposerFocused: $isComposerFocused
-            )
+                HomeComposerView(
+                    store: store,
+                    isComposerFocused: $isComposerFocused
+                )
+            }
         }
     }
 
@@ -132,55 +150,83 @@ struct HomeView: View {
 }
 
 private enum HomeScrollAnchor: Hashable {
-    case composer
+    case welcomeTop
+    case welcomeBottom
 }
 
-private struct KeyboardAwareWelcomeContent: View {
-    @Bindable var store: StoreOf<HomeFeature>
-    let isComposerFocused: FocusState<Bool>.Binding
+private struct WelcomeScrollContainer<Content: View, Composer: View>: View {
+    let isComposerFocused: Bool
     let dismissKeyboard: () -> Void
+    @ViewBuilder let content: (_ viewportHeight: CGFloat) -> Content
+    @ViewBuilder let composer: () -> Composer
+
+    @State private var viewportHeight: CGFloat = 0
 
     var body: some View {
-        GeometryReader { proxy in
-            ScrollViewReader { scrollProxy in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        HomeWelcomeView(store: store)
-                            .frame(minHeight: welcomeMinHeight(for: proxy.size.height))
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                dismissKeyboard()
-                            }
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                Color.clear
+                    .frame(height: 1)
+                    .id(HomeScrollAnchor.welcomeTop)
 
-                        HomeComposerView(
-                            store: store,
-                            isComposerFocused: isComposerFocused
-                        )
-                        .id(HomeScrollAnchor.composer)
-                    }
+                content(viewportHeight)
                     .frame(maxWidth: .infinity)
+                    .frame(minHeight: viewportHeight > 0 ? viewportHeight : nil)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        dismissKeyboard()
+                    }
+
+                Color.clear
+                    .frame(height: 1)
+                    .id(HomeScrollAnchor.welcomeBottom)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .background {
+                GeometryReader { geometry in
+                    Color.clear
+                        .preference(
+                            key: WelcomeViewportHeightKey.self,
+                            value: geometry.size.height
+                        )
                 }
-                .scrollDismissesKeyboard(.interactively)
-                .scrollDisabled(!isComposerFocused.wrappedValue)
-                .scrollIndicators(isComposerFocused.wrappedValue ? .visible : .hidden)
-                .onChange(of: isComposerFocused.wrappedValue) { _, isFocused in
-                    guard isFocused else { return }
-                    scrollComposerIntoView(with: scrollProxy)
+            }
+            .onPreferenceChange(WelcomeViewportHeightKey.self) { viewportHeight = $0 }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                composer()
+            }
+            .onChange(of: isComposerFocused) { _, isFocused in
+                if isFocused {
+                    scrollWelcomeAboveComposer(with: scrollProxy)
+                } else {
+                    scrollWelcomeToTop(with: scrollProxy)
                 }
             }
         }
     }
 
-    private func welcomeMinHeight(for availableHeight: CGFloat) -> CGFloat {
-        max(availableHeight - 170, 420)
-    }
-
-    private func scrollComposerIntoView(with proxy: ScrollViewProxy) {
+    private func scrollWelcomeAboveComposer(with proxy: ScrollViewProxy) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             withAnimation(.easeOut(duration: 0.22)) {
-                proxy.scrollTo(HomeScrollAnchor.composer, anchor: .bottom)
+                proxy.scrollTo(HomeScrollAnchor.welcomeBottom, anchor: .bottom)
             }
         }
+    }
+
+    private func scrollWelcomeToTop(with proxy: ScrollViewProxy) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            withAnimation(.easeOut(duration: 0.22)) {
+                proxy.scrollTo(HomeScrollAnchor.welcomeTop, anchor: .top)
+            }
+        }
+    }
+}
+
+private struct WelcomeViewportHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 

@@ -21,6 +21,12 @@ The setting scope is the app-preferences surface inside the side panel. It was p
 - Preference reads/writes go through `Externals` clients (`AIProviderPreferenceClient`, `CredentialStoreClient`) and the shared theme preference — never direct persistence from views.
 - The setting view (`SidePanelSettingView`) renders the setting surface from the store.
 
+## Provider selection
+
+- The settings sheet exposes a **menu picker** (dropdown) over `AIProviderAPI.all` — not a segmented tab control — so additional built-in providers scale without crowding the layout.
+- Selection writes `providerID` through `AIProviderPreferenceClient`; credentials are keyed per provider in the Keychain.
+- **Custom providers are out of scope:** users cannot add their own base URLs or provider definitions. New backends ship as entries in `AIProviderAPI`.
+
 ## Naming convention
 
 All setting-scope symbols and files use the `SidePanelSetting` prefix, then a role suffix per the [file-naming rules](../../architecture/modules.md#file-naming) — e.g. `SidePanelSettingView` (view), `SidePanelSettingFeature` (reducer).

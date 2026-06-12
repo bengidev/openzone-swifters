@@ -204,6 +204,13 @@ nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Senda
             return "Unauthorized (401). Check that your API key is valid."
         }
 
+        if status == 403 {
+            if let providerMessage = decodeErrorBody(body) {
+                return "Forbidden (403): \(providerMessage)"
+            }
+            return "Forbidden (403). Your plan may not include API access. Upgrade your provider plan to use these endpoints."
+        }
+
         if let providerMessage = decodeErrorBody(body) {
             return "Request failed (\(status)): \(providerMessage)"
         }
