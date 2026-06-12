@@ -120,6 +120,15 @@ struct HomeView: View {
             .accessibilityLabel("Show sidebar")
 
             Spacer()
+
+            Button {
+                store.send(.chat(.clearActiveConversation))
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(palette.textPrimary)
+            }
+            .accessibilityLabel("New conversation")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
