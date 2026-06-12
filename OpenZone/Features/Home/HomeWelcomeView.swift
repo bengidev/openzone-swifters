@@ -1,4 +1,3 @@
-[OpenZone/Features/Home/HomeWelcomeView.swift#A88D]
 import ComposableArchitecture
 import SwiftUI
 
@@ -52,12 +51,24 @@ struct HomeWelcomeLayoutMetrics {
         viewportHeight: CGFloat,
         orbHeight: CGFloat,
         orbBottomPadding: CGFloat
-54-65:    ) -> Self? { .. }
+    ) -> Self? {
+        let heroHeight = orbHeight + orbBottomPadding + heroTextBlockHeight
+        guard heroHeight <= viewportHeight else { return nil }
+
+        let spacing = max(minEdgeSpacing, (viewportHeight - heroHeight) / 2)
+
+        return Self(
+            topSpacerMinLength: spacing,
+            bottomSpacerMinLength: spacing,
+            orbHeight: orbHeight,
+            orbBottomPadding: orbBottomPadding
+        )
+    }
 }
 
 struct HomeWelcomeView: View {
     let store: StoreOf<HomeFeature>
-    let viewportHeight: CGFloat = 0
+    let viewportHeight: CGFloat
 
     @Environment(\.palette) private var palette
 
@@ -65,7 +76,34 @@ struct HomeWelcomeView: View {
         HomeWelcomeLayoutMetrics.resolve(viewportHeight: viewportHeight)
     }
 
-78-107:    var body: some View { .. }
-}
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: layout.topSpacerMinLength)
 
-[38 lines elided; re-read needed ranges with /Users/beng/Documents/iOS Projects/OpenZone/OpenZone/Features/Home/HomeWelcomeView.swift:54-65,78-107]
+            HomeParticleOrbView()
+                .frame(maxWidth: .infinity)
+                .frame(height: layout.orbHeight)
+                .padding(.bottom, layout.orbBottomPadding)
+
+            Text("Hi! How can I help you?")
+                .font(.system(size: 28, weight: .semibold, design: .monospaced))
+                .foregroundStyle(palette.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+
+            Text("Chats are end-to-end encrypted.")
+                .font(.system(size: 11, weight: .regular))
+                .foregroundStyle(palette.textSecondary)
+                .padding(.top, 12)
+
+            Text("Your data is safe.")
+                .font(.system(size: 11, weight: .regular))
+                .foregroundStyle(palette.textSecondary)
+                .padding(.top, 4)
+
+            Spacer(minLength: layout.bottomSpacerMinLength)
+        }
+        .padding(.horizontal, 28)
+        .animation(.easeInOut(duration: 0.2), value: viewportHeight)
+    }
+}
