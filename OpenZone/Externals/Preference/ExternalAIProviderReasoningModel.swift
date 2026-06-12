@@ -1,13 +1,10 @@
 import Foundation
 
 /// Persisted reasoning effort for provider requests.
-///
 /// The four tiers map 1:1 to the provider's `reasoning.effort` wire parameter,
 /// with `off` meaning "send no reasoning parameter at all". There are no
 /// fabricated higher tiers: this is the complete, closed set the app exposes.
-///
 /// Lives in `Externals/Preference/` because it is persisted cross-feature.
-/// `HomeComposerReasoningLevel` is a typealias so composer call sites stay stable.
 nonisolated enum ExternalAIProviderReasoningModel: String, CaseIterable, Equatable, Identifiable, Sendable, Codable {
     case off
     case low

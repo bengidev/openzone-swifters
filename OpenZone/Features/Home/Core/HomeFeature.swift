@@ -28,7 +28,7 @@ struct HomeFeature {
         /// `nil` until a model is chosen; the send gate stays closed while nil.
         var selectedModelID: String?
 
-        var reasoningModel: HomeComposerReasoningLevel = .high
+        var reasoningModel: ExternalAIProviderReasoningModel = .high
         var speedMode: HomeComposerSpeedMode = .standard
         var contextUsage = HomeComposerContextUsage(usedTokens: 107_000, tokenLimit: 258_000)
 
@@ -115,7 +115,7 @@ struct HomeFeature {
         case microphoneTapped
         case attachmentTapped
         case composerModelSelected(String)
-        case reasoningModelSelected(HomeComposerReasoningLevel)
+        case reasoningModelSelected(ExternalAIProviderReasoningModel)
         case speedModeSelected(HomeComposerSpeedMode)
         case onAppear
         case catalogLoaded([ChatModel])
