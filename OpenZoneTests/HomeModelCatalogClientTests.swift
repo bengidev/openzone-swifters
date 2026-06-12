@@ -49,9 +49,9 @@ struct ChatModelTests {
 
     @Test("curatedFallback(for:) returns provider-specific catalogs")
     func curatedFallbackProviderScoped() {
-        let openRouter = ChatModel.curatedFallback(for: AIProviderAPI.openRouter.id)
-        let commandCode = ChatModel.curatedFallback(for: AIProviderAPI.commandCode.id)
-        let openCode = ChatModel.curatedFallback(for: AIProviderAPI.openCode.id)
+        let openRouter = ChatModel.curatedFallback(for: ExternalAIProviderAPI.openRouter.id)
+        let commandCode = ChatModel.curatedFallback(for: ExternalAIProviderAPI.commandCode.id)
+        let openCode = ChatModel.curatedFallback(for: ExternalAIProviderAPI.openCode.id)
 
         #expect(openRouter == ChatModel.curatedFallback)
         #expect(commandCode == ChatModel.commandCodeFallback)
@@ -407,12 +407,12 @@ struct HomeFeatureCatalogTests {
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
-                secret: { _ in InMemoryCredentialStore(secret: "sk-test").secret() },
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
+                secret: { _ in ExternalInMemoryCredentialStore(secret: "sk-test").secret() },
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(ExternalInMemoryAIProviderPreferenceStore())
             $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: expectedModels) }
         }
         store.exhaustivity = .off
@@ -471,12 +471,12 @@ struct HomeFeatureCatalogTests {
         #expect(state.availableModels.count == ChatModel.curatedFallback.count)
 
         // Command Code provider uses its own fallback.
-        state.selectedProviderID = AIProviderAPI.commandCode.id
+        state.selectedProviderID = ExternalAIProviderAPI.commandCode.id
         #expect(state.availableModels.count == ChatModel.commandCodeFallback.count)
         #expect(state.availableModels.first?.id == ChatModel.commandCodeFallback.first?.id)
 
         // OpenCode provider uses its own fallback.
-        state.selectedProviderID = AIProviderAPI.openCode.id
+        state.selectedProviderID = ExternalAIProviderAPI.openCode.id
         #expect(state.availableModels.count == ChatModel.openCodeFallback.count)
     }
 
@@ -487,33 +487,33 @@ struct HomeFeatureCatalogTests {
             ChatModel(id: "deepseek/deepseek-r1", displayName: "DeepSeek R1", isFree: true, supportsReasoning: true)
         ]
         var initial = HomeFeature.State()
-        initial.selectedProviderID = AIProviderAPI.openRouter.id
+        initial.selectedProviderID = ExternalAIProviderAPI.openRouter.id
         initial.selectedModelID = "meta-llama/llama-3.3-70b-instruct:free"
         initial.catalogModels = [ChatModel(id: "meta-llama/llama-3.3-70b-instruct:free", displayName: "Llama 3.3 70B", isFree: true)]
 
         let store = TestStore(initialState: initial) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(ExternalInMemoryAIProviderPreferenceStore())
             $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: commandCodeModels) }
         }
         store.exhaustivity = .off
 
-        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.commandCode.id))))
+        await store.send(.sidePanel(.delegate(.providerChanged(ExternalAIProviderAPI.commandCode.id))))
 
         // The catalog should load for the new provider and auto-select the first model.
         await store.receive(\.catalogLoaded) { state in
             state.catalogModels = commandCodeModels
             state.selectedModelID = commandCodeModels[0].id
-            state.sidePanel.selectedProviderID = AIProviderAPI.commandCode.id
+            state.sidePanel.selectedProviderID = ExternalAIProviderAPI.commandCode.id
         }
 
-        #expect(store.state.selectedProviderID == AIProviderAPI.commandCode.id)
+        #expect(store.state.selectedProviderID == ExternalAIProviderAPI.commandCode.id)
         #expect(store.state.selectedModelID == "deepseek/deepseek-v4-flash")
     }
 
@@ -529,12 +529,12 @@ struct HomeFeatureCatalogTests {
         let store = TestStore(initialState: initial) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(ExternalInMemoryAIProviderPreferenceStore())
             $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
             $0.continuousClock = ImmediateClock()
         }
@@ -556,12 +556,12 @@ struct HomeFeatureCatalogTests {
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }
             )
-            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(ExternalInMemoryAIProviderPreferenceStore())
             $0[HomeModelCatalogClient.self] = HomeModelCatalogClient { _, _, _, _ in .init(models: []) }
             $0.continuousClock = clock
         }

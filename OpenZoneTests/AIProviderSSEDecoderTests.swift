@@ -8,20 +8,20 @@ import Testing
 /// buffering mechanics.
 struct AIProviderSSEDecoderTests {
 
-    private func feed(_ decoder: inout AIProviderSSEDecoder, _ string: String) -> [AIProviderSSEDecoder.Event] {
+    private func feed(_ decoder: inout ExternalAIProviderSSEDecoder, _ string: String) -> [ExternalAIProviderSSEDecoder.Event] {
         decoder.append(Data(string.utf8))
     }
 
     @Test("Emits a data event for a complete data line")
     func emitsDataLine() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
         let events = feed(&decoder, "data: hello\n")
         #expect(events == [.data("hello")])
     }
 
     @Test("Buffers a partial line across chunk boundaries")
     func buffersPartialLineAcrossChunks() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
 
         // First chunk ends mid-line: nothing complete yet.
         let first = feed(&decoder, "data: hel")
@@ -34,35 +34,35 @@ struct AIProviderSSEDecoderTests {
 
     @Test("Splits multiple lines arriving in one chunk")
     func splitsMultipleLinesInOneChunk() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
         let events = feed(&decoder, "data: one\ndata: two\ndata: three\n")
         #expect(events == [.data("one"), .data("two"), .data("three")])
     }
 
     @Test("Skips keep-alive comment lines")
     func skipsKeepAliveComments() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
         let events = feed(&decoder, ": OPENROUTER PROCESSING\ndata: payload\n")
         #expect(events == [.data("payload")])
     }
 
     @Test("Skips blank separator lines")
     func skipsBlankLines() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
         let events = feed(&decoder, "data: a\n\ndata: b\n")
         #expect(events == [.data("a"), .data("b")])
     }
 
     @Test("Terminates on the done sentinel")
     func terminatesOnDoneSentinel() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
         let events = feed(&decoder, "data: last\ndata: [DONE]\n")
         #expect(events == [.data("last"), .done])
     }
 
     @Test("Strips exactly one leading space after the colon")
     func stripsSingleLeadingSpace() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
         // Two spaces => one is preserved as payload content.
         let events = feed(&decoder, "data:  spaced\n")
         #expect(events == [.data(" spaced")])
@@ -70,14 +70,14 @@ struct AIProviderSSEDecoderTests {
 
     @Test("Tolerates CRLF line endings")
     func toleratesCRLF() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
         let events = feed(&decoder, "data: crlf\r\n")
         #expect(events == [.data("crlf")])
     }
 
     @Test("A done sentinel split across chunks still terminates")
     func doneSentinelSplitAcrossChunks() {
-        var decoder = AIProviderSSEDecoder()
+        var decoder = ExternalAIProviderSSEDecoder()
         #expect(feed(&decoder, "data: [DO").isEmpty)
         let events = feed(&decoder, "NE]\n")
         #expect(events == [.done])

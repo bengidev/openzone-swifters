@@ -54,7 +54,7 @@ struct AIProviderPreferenceTests {
 
     @Test("Preference store round-trips provider and model ids")
     func preferenceRoundTrips() {
-        let store = InMemoryAIProviderPreferenceStore()
+        let store = ExternalInMemoryAIProviderPreferenceStore()
         #expect(store.preference().providerID == nil)
         #expect(store.preference().modelID == nil)
 
@@ -72,15 +72,15 @@ struct AIProviderPreferenceTests {
 
     @Test("Unknown or absent provider id resolves to the default provider")
     func providerResolutionFallsBack() {
-        #expect(AIProviderAPI.resolve(id: nil) == .default)
-        #expect(AIProviderAPI.resolve(id: "does-not-exist") == .default)
-        #expect(AIProviderAPI.resolve(id: AIProviderAPI.openRouter.id) == .openRouter)
-        #expect(AIProviderAPI.resolve(id: AIProviderAPI.commandCode.id) == .commandCode)
+        #expect(ExternalAIProviderAPI.resolve(id: nil) == .default)
+        #expect(ExternalAIProviderAPI.resolve(id: "does-not-exist") == .default)
+        #expect(ExternalAIProviderAPI.resolve(id: ExternalAIProviderAPI.openRouter.id) == .openRouter)
+        #expect(ExternalAIProviderAPI.resolve(id: ExternalAIProviderAPI.commandCode.id) == .commandCode)
     }
 
     @Test("Command Code provider exposes OpenAI-compatible endpoints")
     func commandCodeEndpoints() {
-        let provider = AIProviderAPI.commandCode
+        let provider = ExternalAIProviderAPI.commandCode
 
         #expect(provider.id == "commandcode")
         #expect(provider.displayName == "Command Code")
@@ -93,16 +93,16 @@ struct AIProviderPreferenceTests {
         #expect(
             provider.modelsURL.absoluteString == "https://api.commandcode.ai/provider/v1/models"
         )
-        #expect(AIProviderAPI.all.contains(provider))
+        #expect(ExternalAIProviderAPI.all.contains(provider))
     }
 
     // MARK: - Model catalog
 
     @Test("Model catalog resolves a known id and rejects an unknown one")
     func modelCatalogResolution() {
-        let known = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
-        #expect(HomeModelCatalog.option(for: known.id, providerID: AIProviderAPI.openRouter.id) != nil)
-        #expect(HomeModelCatalog.option(for: "ghost-model", providerID: AIProviderAPI.openRouter.id) == nil)
+        let known = HomeModelCatalog.models(for: ExternalAIProviderAPI.openRouter.id).first!
+        #expect(HomeModelCatalog.option(for: known.id, providerID: ExternalAIProviderAPI.openRouter.id) != nil)
+        #expect(HomeModelCatalog.option(for: "ghost-model", providerID: ExternalAIProviderAPI.openRouter.id) == nil)
         #expect(HomeModelCatalog.option(for: nil, providerID: nil) == nil)
     }
 }
@@ -114,15 +114,15 @@ struct AIProviderPreferenceTests {
 struct ChatSendGatingTests {
 
     private func makeStore(
-        preference: AIProviderPreference
+        preference: ExternalAIProviderPreference
     ) -> TestStoreOf<ChatFeature> {
         TestStore(initialState: ChatFeature.State()) {
             ChatFeature()
         } withDependencies: {
             $0.uuid = .incrementing
             $0.date = .constant(Date(timeIntervalSince1970: 0))
-            $0[AIProviderPreferenceClient.self] = .wrap(
-                InMemoryAIProviderPreferenceStore(preference: preference)
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(
+                ExternalInMemoryAIProviderPreferenceStore(preference: preference)
             )
             $0[ChatAPIClient.self] = ChatAPIClient(stream: { _ in
                 AsyncStream { continuation in
@@ -136,7 +136,7 @@ struct ChatSendGatingTests {
 
     @Test("Send is a no-op when no model is selected")
     func sendBlockedWithoutModel() async {
-        let store = makeStore(preference: AIProviderPreference(providerID: "openrouter", modelID: nil))
+        let store = makeStore(preference: ExternalAIProviderPreference(providerID: "openrouter", modelID: nil))
         store.exhaustivity = .off
 
         await store.send(.draftMessageChanged("Hello"))
@@ -150,7 +150,7 @@ struct ChatSendGatingTests {
     @Test("Send proceeds when a model is selected")
     func sendProceedsWithModel() async {
         let store = makeStore(
-            preference: AIProviderPreference(
+            preference: ExternalAIProviderPreference(
                 providerID: "openrouter",
                 modelID: "meta-llama/llama-3.3-70b-instruct:free"
             )
@@ -175,13 +175,13 @@ struct HomeModelSelectionTests {
 
     @Test("Selecting a model persists it to the preference store and opens the model gate")
     func selectingModelPersists() async {
-        let backing = InMemoryAIProviderPreferenceStore()
-        let credentialStore = InMemoryCredentialStore(secret: "sk-existing")
+        let backing = ExternalInMemoryAIProviderPreferenceStore()
+        let credentialStore = ExternalInMemoryCredentialStore(secret: "sk-existing")
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(backing)
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in credentialStore.secret() },
                 save: { _, secret in try credentialStore.save(secret: secret) },
                 clear: { _ in try credentialStore.clear() }
@@ -191,26 +191,26 @@ struct HomeModelSelectionTests {
 
         #expect(store.state.hasSelectedModel == false)
 
-        let model = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
+        let model = HomeModelCatalog.models(for: ExternalAIProviderAPI.openRouter.id).first!
         await store.send(.composerModelSelected(model.id))
 
         #expect(backing.preference().modelID == model.id)
-        #expect(backing.preference().providerID == AIProviderAPI.openRouter.id)
+        #expect(backing.preference().providerID == ExternalAIProviderAPI.openRouter.id)
         #expect(store.state.selectedModelID == model.id)
         #expect(store.state.hasSelectedModel == true)
     }
 
     @Test("onAppear seeds the selection from the stored preference")
     func onAppearSeedsFromPreference() async {
-        let known = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
-        let backing = InMemoryAIProviderPreferenceStore(
-            preference: AIProviderPreference(providerID: AIProviderAPI.openRouter.id, modelID: known.id)
+        let known = HomeModelCatalog.models(for: ExternalAIProviderAPI.openRouter.id).first!
+        let backing = ExternalInMemoryAIProviderPreferenceStore(
+            preference: ExternalAIProviderPreference(providerID: ExternalAIProviderAPI.openRouter.id, modelID: known.id)
         )
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(backing)
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }
@@ -242,12 +242,12 @@ struct HomeModelSelectionTests {
             ChatModel(id: "test/model-a", displayName: "Test A", isFree: true),
             ChatModel(id: "test/model-b", displayName: "Test B", isFree: false)
         ]
-        let backing = InMemoryAIProviderPreferenceStore()
+        let backing = ExternalInMemoryAIProviderPreferenceStore()
         let store = TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(backing)
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }
@@ -271,9 +271,9 @@ struct HomeModelSelectionTests {
         let expectedModels = [
             ChatModel(id: "test/model-a", displayName: "Test A", isFree: true)
         ]
-        let backing = InMemoryAIProviderPreferenceStore(
-            preference: AIProviderPreference(
-                providerID: AIProviderAPI.openRouter.id,
+        let backing = ExternalInMemoryAIProviderPreferenceStore(
+            preference: ExternalAIProviderPreference(
+                providerID: ExternalAIProviderAPI.openRouter.id,
                 modelID: "stale/model-id"
             )
         )
@@ -283,8 +283,8 @@ struct HomeModelSelectionTests {
         let store = TestStore(initialState: initial) {
             HomeFeature()
         } withDependencies: {
-            $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(backing)
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }
@@ -305,22 +305,22 @@ struct HomeModelSelectionTests {
 
     @Test("Provider change clears the old model and auto-selects from the new provider's catalog")
     func providerChangedAutoSelectsNewProviderModel() async {
-        let known = HomeModelCatalog.models(for: AIProviderAPI.openRouter.id).first!
-        let backing = InMemoryAIProviderPreferenceStore(
-            preference: AIProviderPreference(
-                providerID: AIProviderAPI.openRouter.id,
+        let known = HomeModelCatalog.models(for: ExternalAIProviderAPI.openRouter.id).first!
+        let backing = ExternalInMemoryAIProviderPreferenceStore(
+            preference: ExternalAIProviderPreference(
+                providerID: ExternalAIProviderAPI.openRouter.id,
                 modelID: known.id
             )
         )
         var initial = HomeFeature.State()
-        initial.selectedProviderID = AIProviderAPI.openRouter.id
+        initial.selectedProviderID = ExternalAIProviderAPI.openRouter.id
         initial.selectedModelID = known.id
 
         let store = TestStore(initialState: initial) {
             HomeFeature()
         } withDependencies: {
-            $0[AIProviderPreferenceClient.self] = .wrap(backing)
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(backing)
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }
@@ -330,31 +330,31 @@ struct HomeModelSelectionTests {
         }
         store.exhaustivity = .off
 
-        await store.send(.sidePanel(.delegate(.providerChanged(AIProviderAPI.openCode.id))))
+        await store.send(.sidePanel(.delegate(.providerChanged(ExternalAIProviderAPI.openCode.id))))
 
         // The catalog loads (empty → falls back to OpenCode curated list),
         // and the first model is auto-selected because shouldAutoSelectDefaultModel
         // was set to true by the provider change.
         await store.receive(\.catalogLoaded)
 
-        let expectedModel = ChatModel.curatedFallback(for: AIProviderAPI.openCode.id).first!
-        #expect(store.state.selectedProviderID == AIProviderAPI.openCode.id)
+        let expectedModel = ChatModel.curatedFallback(for: ExternalAIProviderAPI.openCode.id).first!
+        #expect(store.state.selectedProviderID == ExternalAIProviderAPI.openCode.id)
         #expect(store.state.selectedModelID == expectedModel.id)
         #expect(backing.preference().modelID == expectedModel.id)
-        #expect(backing.preference().providerID == AIProviderAPI.openCode.id)
+        #expect(backing.preference().providerID == ExternalAIProviderAPI.openCode.id)
     }
 
     @Test("Model popup auto-enables free-only for OpenRouter")
     func popupAutoEnablesFreeOnlyForOpenRouter() async {
         var initial = HomeFeature.State()
-        initial.selectedProviderID = AIProviderAPI.openRouter.id
+        initial.selectedProviderID = ExternalAIProviderAPI.openRouter.id
         initial.modelFilterFreeOnly = false
 
         let store = TestStore(initialState: initial) {
             HomeFeature()
         } withDependencies: {
-            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(ExternalInMemoryAIProviderPreferenceStore())
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }
@@ -370,14 +370,14 @@ struct HomeModelSelectionTests {
     @Test("Model popup does not auto-enable free-only for Command Code")
     func popupDoesNotAutoEnableFreeOnlyForCommandCode() async {
         var initial = HomeFeature.State()
-        initial.selectedProviderID = AIProviderAPI.commandCode.id
+        initial.selectedProviderID = ExternalAIProviderAPI.commandCode.id
         initial.modelFilterFreeOnly = false
 
         let store = TestStore(initialState: initial) {
             HomeFeature()
         } withDependencies: {
-            $0[AIProviderPreferenceClient.self] = .wrap(InMemoryAIProviderPreferenceStore())
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(ExternalInMemoryAIProviderPreferenceStore())
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in nil },
                 save: { _, _ in },
                 clear: { _ in }

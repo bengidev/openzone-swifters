@@ -95,7 +95,7 @@ nonisolated struct HomeModelCatalogClient: Sendable {
     }
 
     var listModels: @Sendable (
-        _ provider: AIProviderAPI,
+        _ provider: ExternalAIProviderAPI,
         _ secret: String?,
         _ cachePreference: HomeModelCatalogCachePreferenceClient,
         _ urlSession: URLSession
@@ -103,7 +103,7 @@ nonisolated struct HomeModelCatalogClient: Sendable {
 
     init(
         listModels: @escaping @Sendable (
-            _ provider: AIProviderAPI,
+            _ provider: ExternalAIProviderAPI,
             _ secret: String?,
             _ cachePreference: HomeModelCatalogCachePreferenceClient,
             _ urlSession: URLSession
@@ -174,7 +174,7 @@ extension HomeModelCatalogClient {
     }
 
     private static func fetchModels(
-        from provider: AIProviderAPI,
+        from provider: ExternalAIProviderAPI,
         secret: String,
         urlSession: URLSession
     ) async throws -> [ChatModel] {

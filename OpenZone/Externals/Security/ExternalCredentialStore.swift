@@ -14,7 +14,7 @@ import Security
 /// Declared `nonisolated` so the live adapter can be read at request time from
 /// the streaming client's `nonisolated`/`@Sendable` credential closure, even
 /// though the app target's default actor isolation is `MainActor`.
-nonisolated protocol CredentialStore: Sendable {
+nonisolated protocol ExternalCredentialStore: Sendable {
     /// The currently stored secret, or `nil` when none is stored.
     func secret() -> String?
     /// Persists `secret`, replacing any existing value.
@@ -26,7 +26,7 @@ nonisolated protocol CredentialStore: Sendable {
 // MARK: - Keychain adapter
 
 /// A typed wrapper over a Keychain `OSStatus` failure.
-nonisolated struct KeychainError: Error, Equatable {
+nonisolated struct ExternalKeychainError: Error, Equatable {
     let status: OSStatus
 
     init(status: OSStatus) {
@@ -34,7 +34,7 @@ nonisolated struct KeychainError: Error, Equatable {
     }
 }
 
-/// Live `CredentialStore` backed by a Keychain generic-password item.
+/// Live `ExternalCredentialStore` backed by a Keychain generic-password item.
 ///
 /// State is process-global and keyed by `service` + `account`, so every
 /// instance configured with the same pair shares the same item. That is how the
@@ -44,7 +44,7 @@ nonisolated struct KeychainError: Error, Equatable {
 ///
 /// The item is stored with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`
 /// so it is never written to iCloud Keychain or device backups.
-nonisolated struct KeychainCredentialStore: CredentialStore {
+nonisolated struct ExternalKeychainCredentialStore: ExternalCredentialStore {
     let service: String
     let account: String
 
@@ -92,11 +92,11 @@ nonisolated struct KeychainCredentialStore: CredentialStore {
             addQuery[kSecValueData as String] = data
             addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-            guard addStatus == errSecSuccess else { throw KeychainError(status: addStatus) }
+            guard addStatus == errSecSuccess else { throw ExternalKeychainError(status: addStatus) }
             return
         }
 
-        throw KeychainError(status: updateStatus)
+        throw ExternalKeychainError(status: updateStatus)
     }
 
     func clear() throws {
@@ -107,16 +107,16 @@ nonisolated struct KeychainCredentialStore: CredentialStore {
         ]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainError(status: status)
+            throw ExternalKeychainError(status: status)
         }
     }
 }
 
-extension KeychainCredentialStore {
+extension ExternalKeychainCredentialStore {
     /// The shared item holding the OpenRouter API key for this app. The Settings
     /// surface and the streaming client both address this exact row.
-    @available(*, deprecated, message: "Use CredentialStoreClient.store(for:) instead")
-    static let openRouter = KeychainCredentialStore(
+    @available(*, deprecated, message: "Use ExternalCredentialStoreClient.store(for:) instead")
+    static let openRouter = ExternalKeychainCredentialStore(
         service: "io.github.bengidev.OpenZone",
         account: "openrouter-api-key"
     )
@@ -124,9 +124,9 @@ extension KeychainCredentialStore {
 
 // MARK: - In-memory test double
 
-/// Thread-safe in-memory `CredentialStore` for tests and previews. Never touches
+/// Thread-safe in-memory `ExternalCredentialStore` for tests and previews. Never touches
 /// the Keychain, so test runs are hermetic and leave no device state behind.
-nonisolated final class InMemoryCredentialStore: CredentialStore, @unchecked Sendable {
+nonisolated final class ExternalInMemoryCredentialStore: ExternalCredentialStore, @unchecked Sendable {
     private let lock = NSLock()
     private var storedSecret: String?
 
@@ -156,10 +156,10 @@ nonisolated final class InMemoryCredentialStore: CredentialStore, @unchecked Sen
 
 // MARK: - TCA dependency
 
-/// Value-typed dependency surface over a `CredentialStore`, mirroring the
+/// Value-typed dependency surface over a `ExternalCredentialStore`, mirroring the
 /// struct-of-closures style used by `ChatAPIClient`. The reducer talks to this;
 /// the concrete adapter behind it is chosen by the dependency environment.
-nonisolated struct CredentialStoreClient: Sendable {
+nonisolated struct ExternalCredentialStoreClient: Sendable {
     var secret: @Sendable (_ providerID: String) -> String?
     var save: @Sendable (_ providerID: String, _ secret: String) throws -> Void
     var clear: @Sendable (_ providerID: String) throws -> Void
@@ -175,42 +175,42 @@ nonisolated struct CredentialStoreClient: Sendable {
     }
 }
 
-extension CredentialStoreClient {
-    nonisolated static func store(for providerID: String) -> KeychainCredentialStore {
-        KeychainCredentialStore(
+extension ExternalCredentialStoreClient {
+    nonisolated static func store(for providerID: String) -> ExternalKeychainCredentialStore {
+        ExternalKeychainCredentialStore(
             service: "io.github.bengidev.OpenZone",
             account: "\(providerID)-api-key"
         )
     }
 }
 
-extension CredentialStoreClient: DependencyKey {
+extension ExternalCredentialStoreClient: DependencyKey {
     /// Live path persists to the Keychain generic-password item.
-    static let liveValue = CredentialStoreClient(
+    static let liveValue = ExternalCredentialStoreClient(
         secret: { providerID in Self.store(for: providerID).secret() },
         save: { providerID, secret in try Self.store(for: providerID).save(secret: secret) },
         clear: { providerID in try Self.store(for: providerID).clear() }
     )
     /// Test/preview paths keep everything in memory so they never touch the Keychain.
-    static let testValue: CredentialStoreClient = {
-        let store = InMemoryCredentialStore()
-        return CredentialStoreClient(
+    static let testValue: ExternalCredentialStoreClient = {
+        let store = ExternalInMemoryCredentialStore()
+        return ExternalCredentialStoreClient(
             secret: { _ in store.secret() },
             save: { _, secret in try store.save(secret: secret) },
             clear: { _ in try store.clear() }
         )
     }()
 
-    static let previewValue = CredentialStoreClient(
-        secret: { _ in InMemoryCredentialStore().secret() },
+    static let previewValue = ExternalCredentialStoreClient(
+        secret: { _ in ExternalInMemoryCredentialStore().secret() },
         save: { _, _ in },
         clear: { _ in }
     )
 }
 
 extension DependencyValues {
-    var credentialStore: CredentialStoreClient {
-        get { self[CredentialStoreClient.self] }
-        set { self[CredentialStoreClient.self] = newValue }
+    var externalCredentialStore: ExternalCredentialStoreClient {
+        get { self[ExternalCredentialStoreClient.self] }
+        set { self[ExternalCredentialStoreClient.self] = newValue }
     }
 }

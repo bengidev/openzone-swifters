@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Settings sheet for secure provider credential entry.
 ///
-/// Provider selection is a menu picker over the built-in `AIProviderAPI` catalog.
+/// Provider selection is a menu picker over the built-in `ExternalAIProviderAPI` catalog.
 /// Users choose from app-shipped providers only; custom endpoints are out of scope.
 ///
 /// A single secure field accepts the API key; saving persists it to the Keychain
@@ -73,7 +73,7 @@ struct SidePanelSettingView: View {
                         set: { store.send(.providerSelected($0)) }
                     )
                 ) {
-                    ForEach(AIProviderAPI.all, id: \.id) { provider in
+                    ForEach(ExternalAIProviderAPI.all, id: \.id) { provider in
                         Text(provider.displayName).tag(provider.id)
                     }
                 }
@@ -106,7 +106,7 @@ struct SidePanelSettingView: View {
 
             Text(store.hasStoredKey
                  ? "A key is stored securely in the Keychain. Enter a new value to replace it."
-                 : "Add your \(AIProviderAPI.resolve(id: store.selectedProviderID).displayName) API key to enable sending. It is stored securely in the Keychain and never leaves this device.")
+                 : "Add your \(ExternalAIProviderAPI.resolve(id: store.selectedProviderID).displayName) API key to enable sending. It is stored securely in the Keychain and never leaves this device.")
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -170,7 +170,7 @@ struct SidePanelSettingView: View {
                     set: { store.send(.reasoningModelSelected($0)) }
                 )
             ) {
-                ForEach(AIProviderReasoningModel.allCases) { level in
+                ForEach(ExternalAIProviderReasoningModel.allCases) { level in
                     Text(level.title).tag(level)
                 }
             }

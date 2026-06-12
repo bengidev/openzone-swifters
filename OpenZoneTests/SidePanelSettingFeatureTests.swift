@@ -11,12 +11,12 @@ struct SidePanelSettingFeatureTests {
     /// hermetic and the same backing store can be asserted against directly.
     private func makeStore(
         initialState: SidePanelSettingFeature.State = .init(),
-        backing: InMemoryCredentialStore
+        backing: ExternalInMemoryCredentialStore
     ) -> TestStoreOf<SidePanelSettingFeature> {
         TestStore(initialState: initialState) {
             SidePanelSettingFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in backing.secret() },
                 save: { _, secret in try backing.save(secret: secret) },
                 clear: { _ in try backing.clear() }
@@ -26,7 +26,7 @@ struct SidePanelSettingFeatureTests {
 
     @Test("onAppear reflects an already-stored key")
     func onAppearReflectsStoredKey() async {
-        let backing = InMemoryCredentialStore(secret: "sk-existing")
+        let backing = ExternalInMemoryCredentialStore(secret: "sk-existing")
         let store = makeStore(backing: backing)
 
         await store.send(.onAppear) {
@@ -36,7 +36,7 @@ struct SidePanelSettingFeatureTests {
 
     @Test("Saving a key persists it and flips hasStoredKey")
     func savePersistsKey() async {
-        let backing = InMemoryCredentialStore()
+        let backing = ExternalInMemoryCredentialStore()
         let store = makeStore(
             initialState: SidePanelSettingFeature.State(draftAPIKey: "sk-new"),
             backing: backing
@@ -51,7 +51,7 @@ struct SidePanelSettingFeatureTests {
 
     @Test("Saving trims surrounding whitespace")
     func saveTrimsWhitespace() async {
-        let backing = InMemoryCredentialStore()
+        let backing = ExternalInMemoryCredentialStore()
         let store = makeStore(
             initialState: SidePanelSettingFeature.State(draftAPIKey: "  sk-trim  "),
             backing: backing
@@ -66,7 +66,7 @@ struct SidePanelSettingFeatureTests {
 
     @Test("Saving a blank draft is a no-op")
     func saveBlankIsNoOp() async {
-        let backing = InMemoryCredentialStore()
+        let backing = ExternalInMemoryCredentialStore()
         let store = makeStore(
             initialState: SidePanelSettingFeature.State(draftAPIKey: "   "),
             backing: backing
@@ -79,7 +79,7 @@ struct SidePanelSettingFeatureTests {
 
     @Test("Clearing removes the stored key and resets state")
     func clearRemovesKey() async {
-        let backing = InMemoryCredentialStore(secret: "sk-existing")
+        let backing = ExternalInMemoryCredentialStore(secret: "sk-existing")
         let store = makeStore(backing: backing)
 
         await store.send(.onAppear) {

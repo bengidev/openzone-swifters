@@ -8,12 +8,12 @@ import Testing
 @Suite("Home Credential Gating")
 struct HomeFeatureCredentialTests {
     private func makeStore(
-        backing: InMemoryCredentialStore
+        backing: ExternalInMemoryCredentialStore
     ) -> TestStoreOf<HomeFeature> {
         TestStore(initialState: HomeFeature.State()) {
             HomeFeature()
         } withDependencies: {
-            $0.credentialStore = CredentialStoreClient(
+            $0.credentialStore = ExternalCredentialStoreClient(
                 secret: { _ in backing.secret() },
                 save: { _, secret in try backing.save(secret: secret) },
                 clear: { _ in try backing.clear() }
@@ -23,7 +23,7 @@ struct HomeFeatureCredentialTests {
 
     @Test("onAppear with no stored key leaves the send gate closed")
     func onAppearNoKeyClosesGate() async {
-        let store = makeStore(backing: InMemoryCredentialStore())
+        let store = makeStore(backing: ExternalInMemoryCredentialStore())
         store.exhaustivity = .off
 
         await store.send(.onAppear)
@@ -32,7 +32,7 @@ struct HomeFeatureCredentialTests {
 
     @Test("onAppear with a stored key opens the send gate")
     func onAppearWithKeyOpensGate() async {
-        let store = makeStore(backing: InMemoryCredentialStore(secret: "sk-existing"))
+        let store = makeStore(backing: ExternalInMemoryCredentialStore(secret: "sk-existing"))
         store.exhaustivity = .off
 
         await store.send(.onAppear)
@@ -41,7 +41,7 @@ struct HomeFeatureCredentialTests {
 
     @Test("Tapping settings presents the sheet seeded with stored state")
     func settingsButtonPresentsSheet() async {
-        let store = makeStore(backing: InMemoryCredentialStore(secret: "sk-existing"))
+        let store = makeStore(backing: ExternalInMemoryCredentialStore(secret: "sk-existing"))
         store.exhaustivity = .off
 
         await store.send(.sidePanel(.settingsButtonTapped))
@@ -51,7 +51,7 @@ struct HomeFeatureCredentialTests {
 
     @Test("Saving a key in the sheet opens the send gate")
     func saveInSheetOpensGate() async {
-        let backing = InMemoryCredentialStore()
+        let backing = ExternalInMemoryCredentialStore()
         let store = TestStore(
             initialState: HomeFeature.State(
                 sidePanel: SidePanelFeature.State(
@@ -61,7 +61,7 @@ struct HomeFeatureCredentialTests {
         ) {
             HomeFeature()
         } withDependencies: {
-            $0[CredentialStoreClient.self] = CredentialStoreClient(
+            $0[ExternalCredentialStoreClient.self] = ExternalCredentialStoreClient(
                 secret: { _ in backing.secret() },
                 save: { _, secret in try backing.save(secret: secret) },
                 clear: { _ in try backing.clear() }
@@ -83,7 +83,7 @@ struct HomeFeatureCredentialTests {
 
     @Test("Clearing the key in the sheet closes the send gate")
     func clearInSheetClosesGate() async {
-        let backing = InMemoryCredentialStore(secret: "sk-existing")
+        let backing = ExternalInMemoryCredentialStore(secret: "sk-existing")
         let store = makeStore(backing: backing)
         store.exhaustivity = .off
 

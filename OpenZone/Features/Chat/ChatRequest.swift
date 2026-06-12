@@ -6,7 +6,7 @@ struct ChatRequest: Equatable, Sendable {
     /// The provider descriptor this request is addressed to. Filled by the
     /// reducer from the preference store, so the request carries its own routing
     /// and the streaming client no longer captures a provider at construction.
-    let provider: AIProviderAPI
+    let provider: ExternalAIProviderAPI
     /// The dynamic model identifier (a free-form string, no longer an enum).
     let modelID: String
     /// The reasoning effort to request, or `nil` to omit the reasoning
@@ -17,7 +17,7 @@ struct ChatRequest: Equatable, Sendable {
     init(
         conversationID: UUID,
         messages: [ChatMessage],
-        provider: AIProviderAPI,
+        provider: ExternalAIProviderAPI,
         modelID: String,
         reasoningEffort: String? = nil
     ) {

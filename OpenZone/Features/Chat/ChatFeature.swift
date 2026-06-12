@@ -8,7 +8,7 @@ nonisolated private enum ChatStreamingCancelID: Hashable, Sendable {
 @Reducer
 struct ChatFeature {
   @Dependency(ChatAPIClient.self) private var apiClient
-  @Dependency(AIProviderPreferenceClient.self) private var providerPreference
+  @Dependency(ExternalAIProviderPreferenceClient.self) private var providerPreference
   @Dependency(ChatHistoryClient.self) private var history
   @Dependency(\.date.now) private var now
   @Dependency(\.uuid) private var uuid
@@ -107,7 +107,7 @@ struct ChatFeature {
         let request = ChatRequest(
           conversationID: conversationID,
           messages: state.messages,
-          provider: AIProviderAPI.resolve(id: preference.providerID),
+          provider: ExternalAIProviderAPI.resolve(id: preference.providerID),
           modelID: modelID,
           reasoningEffort: preference.reasoningModel.effort
         )
@@ -288,7 +288,7 @@ struct ChatFeature {
         let request = ChatRequest(
           conversationID: conversationID,
           messages: state.messages,
-          provider: AIProviderAPI.resolve(id: preference.providerID),
+          provider: ExternalAIProviderAPI.resolve(id: preference.providerID),
           modelID: modelID,
           reasoningEffort: preference.reasoningModel.effort
         )

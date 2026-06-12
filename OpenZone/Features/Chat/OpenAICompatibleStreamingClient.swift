@@ -2,7 +2,7 @@ import Foundation
 
 /// An OpenAI-compatible, provider-agnostic streaming chat client.
 ///
-/// Parameterized by a `AIProviderAPI` descriptor plus a `AIProviderCredentialAPI`,
+/// Parameterized by a `ExternalAIProviderAPI` descriptor plus a `ExternalAIProviderCredentialAPI`,
 /// this single client serves OpenRouter and any other OpenAI-shaped backend. It
 /// conforms to the existing `ChatAPIClientProtocol` seam, so the reducer and UI
 /// never learn which provider is behind them.
@@ -10,17 +10,17 @@ import Foundation
 /// Wire behavior:
 ///   - POSTs an OpenAI `chat/completions` request with `stream: true`;
 ///   - resolves the secret at request time (never captured at construction);
-///   - decodes the SSE byte stream with the generic `AIProviderSSEDecoder`;
+///   - decodes the SSE byte stream with the generic `ExternalAIProviderSSEDecoder`;
 ///   - maps `choices[].delta.content` to `.textDelta`, `delta.reasoning` (and
 ///     `reasoning_content`) to `.thinkingDelta`, the `[DONE]` sentinel to `.done`;
 ///   - maps HTTP 401, non-2xx responses, mid-stream `error` objects, and
 ///     transport failures to `.error`.
 nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Sendable {
-    let credentialProvider: AIProviderCredentialAPI
+    let credentialProvider: ExternalAIProviderCredentialAPI
     let urlSession: URLSession
 
     init(
-        credentialProvider: AIProviderCredentialAPI,
+        credentialProvider: ExternalAIProviderCredentialAPI,
         urlSession: URLSession = .shared
     ) {
         self.credentialProvider = credentialProvider
@@ -63,7 +63,7 @@ nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Senda
                         return
                     }
 
-                    var decoder = AIProviderSSEDecoder()
+                    var decoder = ExternalAIProviderSSEDecoder()
                     var didEmitDone = false
 
                     for try await line in bytes.lines {
@@ -112,7 +112,7 @@ nonisolated struct OpenAICompatibleStreamingClient: ChatAPIClientProtocol, Senda
     // MARK: - Request construction
 
     static func makeURLRequest(
-        provider: AIProviderAPI,
+        provider: ExternalAIProviderAPI,
         secret: String,
         chatRequest: ChatRequest
     ) throws -> URLRequest {

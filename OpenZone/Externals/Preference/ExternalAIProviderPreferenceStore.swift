@@ -3,11 +3,11 @@ import Foundation
 
 /// The persisted selection of provider and model.
 ///
-/// Pure value data: a provider id (matching a `AIProviderAPI` descriptor in the
+/// Pure value data: a provider id (matching a `ExternalAIProviderAPI` descriptor in the
 /// catalog) plus a dynamic model id string. The model id is intentionally a
 /// free-form string — model identity is no longer a closed enum, so any model
 /// the provider exposes can be selected without a code change.
-nonisolated struct AIProviderPreference: Equatable, Sendable {
+nonisolated struct ExternalAIProviderPreference: Equatable, Sendable {
     /// Stable provider identifier (e.g. `"openrouter"`). `nil` until chosen.
     var providerID: String?
     /// Dynamic model identifier (e.g. `"meta-llama/llama-3.3-70b-instruct:free"`).
@@ -15,12 +15,12 @@ nonisolated struct AIProviderPreference: Equatable, Sendable {
     var modelID: String?
     /// Persisted reasoning effort tier. Defaults to `.high` so a capable model
     /// reasons by default; persists across launches once the user changes it.
-    var reasoningModel: AIProviderReasoningModel
+    var reasoningModel: ExternalAIProviderReasoningModel
 
     init(
         providerID: String? = nil,
         modelID: String? = nil,
-        reasoningModel: AIProviderReasoningModel = .high
+        reasoningModel: ExternalAIProviderReasoningModel = .high
     ) {
         self.providerID = providerID
         self.modelID = modelID
@@ -38,22 +38,22 @@ nonisolated struct AIProviderPreference: Equatable, Sendable {
 ///
 /// The preference is read lazily (`preference()`), never cached by callers, so
 /// a change made in one surface takes effect on the next read with no stale
-/// value — mirroring how `CredentialStore` resolves the secret per request.
-nonisolated protocol AIProviderPreferenceStore: Sendable {
+/// value — mirroring how `ExternalCredentialStore` resolves the secret per request.
+nonisolated protocol ExternalAIProviderPreferenceStore: Sendable {
     /// The current stored preference.
-    func preference() -> AIProviderPreference
+    func preference() -> ExternalAIProviderPreference
     /// Persists the selected provider id.
     func setProviderID(_ providerID: String?)
     /// Persists the selected model id.
     func setModelID(_ modelID: String?)
     /// Persists the selected reasoning effort tier.
-    func setReasoningModel(_ model: AIProviderReasoningModel)
+    func setReasoningModel(_ model: ExternalAIProviderReasoningModel)
 }
 
 // MARK: - UserDefaults adapter
 
-/// Live `AIProviderPreferenceStore` backed by `UserDefaults`.
-nonisolated struct UserDefaultsAIProviderPreferenceStore: AIProviderPreferenceStore {
+/// Live `ExternalAIProviderPreferenceStore` backed by `UserDefaults`.
+nonisolated struct ExternalUserDefaultsAIProviderPreferenceStore: ExternalAIProviderPreferenceStore {
     let suiteName: String?
 
     private enum Key {
@@ -70,11 +70,11 @@ nonisolated struct UserDefaultsAIProviderPreferenceStore: AIProviderPreferenceSt
         suiteName.flatMap(UserDefaults.init(suiteName:)) ?? .standard
     }
 
-    func preference() -> AIProviderPreference {
-        AIProviderPreference(
+    func preference() -> ExternalAIProviderPreference {
+        ExternalAIProviderPreference(
             providerID: nonEmpty(defaults.string(forKey: Key.providerID)),
             modelID: nonEmpty(defaults.string(forKey: Key.modelID)),
-            reasoningModel: AIProviderReasoningModel(rawValue: defaults.string(forKey: Key.reasoningLevel) ?? "")
+            reasoningModel: ExternalAIProviderReasoningModel(rawValue: defaults.string(forKey: Key.reasoningLevel) ?? "")
                 ?? .high
         )
     }
@@ -95,7 +95,7 @@ nonisolated struct UserDefaultsAIProviderPreferenceStore: AIProviderPreferenceSt
         }
     }
 
-    func setReasoningModel(_ model: AIProviderReasoningModel) {
+    func setReasoningModel(_ model: ExternalAIProviderReasoningModel) {
         defaults.set(model.rawValue, forKey: Key.reasoningLevel)
     }
 
@@ -108,15 +108,15 @@ nonisolated struct UserDefaultsAIProviderPreferenceStore: AIProviderPreferenceSt
 
 // MARK: - In-memory test double
 
-nonisolated final class InMemoryAIProviderPreferenceStore: AIProviderPreferenceStore, @unchecked Sendable {
+nonisolated final class ExternalInMemoryAIProviderPreferenceStore: ExternalAIProviderPreferenceStore, @unchecked Sendable {
     private let lock = NSLock()
-    private var stored: AIProviderPreference
+    private var stored: ExternalAIProviderPreference
 
-    init(preference: AIProviderPreference = AIProviderPreference()) {
+    init(preference: ExternalAIProviderPreference = ExternalAIProviderPreference()) {
         self.stored = preference
     }
 
-    func preference() -> AIProviderPreference {
+    func preference() -> ExternalAIProviderPreference {
         lock.lock()
         defer { lock.unlock() }
         return stored
@@ -134,7 +134,7 @@ nonisolated final class InMemoryAIProviderPreferenceStore: AIProviderPreferenceS
         stored.modelID = modelID
     }
 
-    func setReasoningModel(_ model: AIProviderReasoningModel) {
+    func setReasoningModel(_ model: ExternalAIProviderReasoningModel) {
         lock.lock()
         defer { lock.unlock() }
         stored.reasoningModel = model
@@ -143,16 +143,16 @@ nonisolated final class InMemoryAIProviderPreferenceStore: AIProviderPreferenceS
 
 // MARK: - TCA dependency
 
-nonisolated struct AIProviderPreferenceClient: Sendable {
-    var preference: @Sendable () -> AIProviderPreference
+nonisolated struct ExternalAIProviderPreferenceClient: Sendable {
+    var preference: @Sendable () -> ExternalAIProviderPreference
     var setProviderID: @Sendable (String?) -> Void
     var setModelID: @Sendable (String?) -> Void
-    var setReasoningModel: @Sendable (AIProviderReasoningModel) -> Void
+    var setReasoningModel: @Sendable (ExternalAIProviderReasoningModel) -> Void
 }
 
-extension AIProviderPreferenceClient {
-    static func wrap(_ store: some AIProviderPreferenceStore) -> AIProviderPreferenceClient {
-        AIProviderPreferenceClient(
+extension ExternalAIProviderPreferenceClient {
+    static func wrap(_ store: some ExternalAIProviderPreferenceStore) -> ExternalAIProviderPreferenceClient {
+        ExternalAIProviderPreferenceClient(
             preference: { store.preference() },
             setProviderID: { store.setProviderID($0) },
             setModelID: { store.setModelID($0) },
@@ -161,15 +161,15 @@ extension AIProviderPreferenceClient {
     }
 }
 
-extension AIProviderPreferenceClient: DependencyKey {
-    static let liveValue = AIProviderPreferenceClient.wrap(UserDefaultsAIProviderPreferenceStore())
-    static let testValue = AIProviderPreferenceClient.wrap(InMemoryAIProviderPreferenceStore())
-    static let previewValue = AIProviderPreferenceClient.wrap(InMemoryAIProviderPreferenceStore())
+extension ExternalAIProviderPreferenceClient: DependencyKey {
+    static let liveValue = ExternalAIProviderPreferenceClient.wrap(ExternalUserDefaultsAIProviderPreferenceStore())
+    static let testValue = ExternalAIProviderPreferenceClient.wrap(ExternalInMemoryAIProviderPreferenceStore())
+    static let previewValue = ExternalAIProviderPreferenceClient.wrap(ExternalInMemoryAIProviderPreferenceStore())
 }
 
 extension DependencyValues {
-    var providerPreference: AIProviderPreferenceClient {
-        get { self[AIProviderPreferenceClient.self] }
-        set { self[AIProviderPreferenceClient.self] = newValue }
+    var externalProviderPreference: ExternalAIProviderPreferenceClient {
+        get { self[ExternalAIProviderPreferenceClient.self] }
+        set { self[ExternalAIProviderPreferenceClient.self] = newValue }
     }
 }

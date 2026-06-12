@@ -8,7 +8,7 @@ import Foundation
 /// value, and the secret never lives in the request value itself.
 ///
 /// Externals networking primitive; it names no chat domain types.
-nonisolated struct AIProviderCredentialAPI: Sendable {
+nonisolated struct ExternalAIProviderCredentialAPI: Sendable {
     /// Returns the current secret for the given provider id, or `nil` when none
     /// is available.
     var resolve: @Sendable (_ providerID: String) -> String?

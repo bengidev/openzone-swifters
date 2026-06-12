@@ -10,7 +10,7 @@ import Foundation
 ///
 /// Lives in `Externals/Networking` as feature-neutral infrastructure configuration;
 /// it names no chat domain types.
-nonisolated struct AIProviderAPI: Equatable, Sendable {
+nonisolated struct ExternalAIProviderAPI: Equatable, Sendable {
     /// How the credential is presented on the wire.
     enum AuthScheme: Equatable, Sendable {
         /// `Authorization: Bearer <token>`.
@@ -55,11 +55,11 @@ nonisolated struct AIProviderAPI: Equatable, Sendable {
     }
 }
 
-extension AIProviderAPI {
+extension ExternalAIProviderAPI {
     /// OpenRouter, configured with bearer auth and recommended attribution
     /// headers. The attribution headers identify the app to OpenRouter and are
     /// safe to commit (they carry no secret).
-    static let openRouter = AIProviderAPI(
+    static let openRouter = ExternalAIProviderAPI(
         id: "openrouter",
         displayName: "OpenRouter",
         baseURL: URL(string: "https://openrouter.ai/api/v1")!,
@@ -73,7 +73,7 @@ extension AIProviderAPI {
     /// OpenCode, configured with bearer auth and recommended attribution
     /// headers. The attribution headers identify the app to OpenCode and are
     /// safe to commit (they carry no secret).
-    static let openCode = AIProviderAPI(
+    static let openCode = ExternalAIProviderAPI(
         id: "opencode",
         displayName: "OpenCode",
         baseURL: URL(string: "https://opencode.ai/zen/v1")!,
@@ -87,7 +87,7 @@ extension AIProviderAPI {
     /// Command Code Provider API — OpenAI-compatible chat completions and models
     /// catalog. Auth is bearer-only per the provider docs; no attribution headers
     /// are required. See https://commandcode.ai/docs/provider-api
-    static let commandCode = AIProviderAPI(
+    static let commandCode = ExternalAIProviderAPI(
         id: "commandcode",
         displayName: "Command Code",
         baseURL: URL(string: "https://api.commandcode.ai/provider/v1")!,
@@ -96,15 +96,15 @@ extension AIProviderAPI {
 
     /// Every provider the app knows how to address. Adding an OpenAI-compatible
     /// backend is a value appended here, not a new client.
-    static let all: [AIProviderAPI] = [.openRouter, .openCode, .commandCode]
+    static let all: [ExternalAIProviderAPI] = [.openRouter, .openCode, .commandCode]
 
     /// The provider used when no preference has been stored yet.
-    static let `default`: AIProviderAPI = .openRouter
+    static let `default`: ExternalAIProviderAPI = .openRouter
 
     /// Resolves a stored provider id to its descriptor, falling back to the
     /// default when the id is unknown or absent (e.g. a stale persisted id from
     /// a removed provider).
-    static func resolve(id: String?) -> AIProviderAPI {
+    static func resolve(id: String?) -> ExternalAIProviderAPI {
         guard let id else { return .default }
         return all.first { $0.id == id } ?? .default
     }

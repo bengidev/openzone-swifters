@@ -8,7 +8,7 @@ import Foundation
 ///
 /// Lives in `Externals/Preference/` because it is persisted cross-feature.
 /// `HomeComposerReasoningLevel` is a typealias so composer call sites stay stable.
-nonisolated enum AIProviderReasoningModel: String, CaseIterable, Equatable, Identifiable, Sendable, Codable {
+nonisolated enum ExternalAIProviderReasoningModel: String, CaseIterable, Equatable, Identifiable, Sendable, Codable {
     case off
     case low
     case medium

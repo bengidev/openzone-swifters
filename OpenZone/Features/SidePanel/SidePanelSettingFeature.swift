@@ -2,13 +2,13 @@ import ComposableArchitecture
 import Foundation
 
 /// Drives the Settings sheet: entering, updating, and clearing the provider API
-/// key. The key is persisted to the Keychain through `CredentialStoreClient`;
+/// key. The key is persisted to the Keychain through `ExternalCredentialStoreClient`;
 /// this reducer never holds the secret beyond the in-flight draft the user is
 /// typing, and surfaces only whether a key is stored — never the value itself.
 @Reducer
 struct SidePanelSettingFeature {
-    @Dependency(CredentialStoreClient.self) private var credentialStore
-    @Dependency(AIProviderPreferenceClient.self) private var providerPreference
+    @Dependency(ExternalCredentialStoreClient.self) private var credentialStore
+    @Dependency(ExternalAIProviderPreferenceClient.self) private var providerPreference
 
     @ObservableState
     struct State: Equatable, Sendable {
@@ -23,7 +23,7 @@ struct SidePanelSettingFeature {
 
         /// The persisted reasoning effort tier, mirrored from the preference
         /// store. Edited here and from the composer; both write the same store.
-        var reasoningModel: AIProviderReasoningModel = .high
+        var reasoningModel: ExternalAIProviderReasoningModel = .high
         /// Whether the currently selected model supports reasoning. Seeded by
         /// the parent when presenting the sheet; the reasoning control is shown
         /// only when this is true, matching the composer-side gate.
@@ -31,7 +31,7 @@ struct SidePanelSettingFeature {
         /// The provider whose credentials are currently being managed. Mirrored
         /// from the parent so the key field targets the active provider, and
         /// updated when the user picks a different provider in this sheet.
-        var selectedProviderID: String = AIProviderAPI.default.id
+        var selectedProviderID: String = ExternalAIProviderAPI.default.id
 
         var canSave: Bool {
             !draftAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -41,9 +41,9 @@ struct SidePanelSettingFeature {
             draftAPIKey: String = "",
             hasStoredKey: Bool = false,
             errorMessage: String? = nil,
-            reasoningModel: AIProviderReasoningModel = .high,
+            reasoningModel: ExternalAIProviderReasoningModel = .high,
             modelSupportsReasoning: Bool = false,
-            selectedProviderID: String = AIProviderAPI.default.id
+            selectedProviderID: String = ExternalAIProviderAPI.default.id
         ) {
             self.draftAPIKey = draftAPIKey
             self.hasStoredKey = hasStoredKey
@@ -59,7 +59,7 @@ struct SidePanelSettingFeature {
         case onAppear
         case saveTapped
         case clearTapped
-        case reasoningModelSelected(AIProviderReasoningModel)
+        case reasoningModelSelected(ExternalAIProviderReasoningModel)
         case providerSelected(String)
     }
 
@@ -72,7 +72,7 @@ struct SidePanelSettingFeature {
 
             case .onAppear:
                 let preference = providerPreference.preference()
-                state.selectedProviderID = preference.providerID ?? AIProviderAPI.default.id
+                state.selectedProviderID = preference.providerID ?? ExternalAIProviderAPI.default.id
                 state.hasStoredKey = credentialStore.secret(state.selectedProviderID) != nil
                 state.reasoningModel = preference.reasoningModel
                 return .none

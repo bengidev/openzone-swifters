@@ -4,8 +4,8 @@ import Foundation
 /// TCA reducer for the post-onboarding home screen and composer.
 @Reducer
 struct HomeFeature {
-    @Dependency(CredentialStoreClient.self) private var credentialStore
-    @Dependency(AIProviderPreferenceClient.self) private var providerPreference
+    @Dependency(ExternalCredentialStoreClient.self) private var credentialStore
+    @Dependency(ExternalAIProviderPreferenceClient.self) private var providerPreference
     @Dependency(HomeModelCatalogClient.self) private var modelCatalog
     @Dependency(HomeModelCatalogCachePreferenceClient.self) private var modelCatalogCachePreference
     @Dependency(\.continuousClock) private var clock
@@ -23,7 +23,7 @@ struct HomeFeature {
 
         /// The selected provider id, mirrored from the preference store. Defaults
         /// to the catalog default until the user (or a stored preference) sets it.
-        var selectedProviderID: String = AIProviderAPI.default.id
+        var selectedProviderID: String = ExternalAIProviderAPI.default.id
         /// The selected dynamic model id, mirrored from the preference store.
         /// `nil` until a model is chosen; the send gate stays closed while nil.
         var selectedModelID: String?
@@ -197,7 +197,7 @@ struct HomeFeature {
                 state.sidePanel.selectedProviderID = providerID
                 state.sidePanel.modelSupportsReasoning = false
                 state.hasAPIKey = credentialStore.secret(providerID) != nil
-                let provider = AIProviderAPI.resolve(id: providerID)
+                let provider = ExternalAIProviderAPI.resolve(id: providerID)
                 let secret = credentialStore.secret(providerID)
                 let cachePreference = modelCatalogCachePreference
                 return .run { send in
@@ -243,7 +243,7 @@ struct HomeFeature {
                 // Seed the selection from the single source of truth so the
                 // composer reflects any previously stored provider/model.
                 let preference = providerPreference.preference()
-                state.selectedProviderID = preference.providerID ?? AIProviderAPI.default.id
+                state.selectedProviderID = preference.providerID ?? ExternalAIProviderAPI.default.id
                 state.selectedModelID = preference.modelID
                 state.shouldAutoSelectDefaultModel = preference.modelID == nil
                 state.reasoningModel = preference.reasoningModel
@@ -253,7 +253,7 @@ struct HomeFeature {
 
                 // Load the model catalog. The effect resolves the provider and
                 // secret at call time so the result is always up to date.
-                let provider = AIProviderAPI.resolve(id: state.selectedProviderID)
+                let provider = ExternalAIProviderAPI.resolve(id: state.selectedProviderID)
                 let secret = credentialStore.secret(state.selectedProviderID)
                 let cachePreference = modelCatalogCachePreference
                 let catalogClient = modelCatalog
@@ -293,7 +293,7 @@ struct HomeFeature {
                     // both free and paid models and users on free tier want to
                     // see only the free ones first. Other providers don't have
                     // the same free/paid split so leave the filter off.
-                    state.modelFilterFreeOnly = state.selectedProviderID == AIProviderAPI.openRouter.id
+                    state.modelFilterFreeOnly = state.selectedProviderID == ExternalAIProviderAPI.openRouter.id
                 }
                 return .none
 
@@ -323,7 +323,7 @@ struct HomeFeature {
 
 private func reconcileModelSelection(
     state: inout HomeFeature.State,
-    preference: AIProviderPreferenceClient,
+    preference: ExternalAIProviderPreferenceClient,
     allowAutoSelect: Bool
 ) {
     let models = state.availableModels

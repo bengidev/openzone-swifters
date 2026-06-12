@@ -21,15 +21,15 @@ extension ChatAPIClient: DependencyKey {
   /// The provider descriptor now rides on each `ChatRequest` (filled by the
   /// reducer from the preference store), so the live client is no longer
   /// constructed against a fixed provider. The secret is resolved at request
-  /// time from the Keychain-backed `CredentialStore`, so a key entered or
+  /// time from the Keychain-backed `ExternalCredentialStore`, so a key entered or
   /// updated in Settings takes effect on the next send. When no key is stored
   /// the send path reports a missing-key error instead of calling out
   /// unauthenticated. Test/preview replay a deterministic canned-event stub so
   /// they never touch the network.
   static let liveValue = ChatAPIClient.wrap(
     OpenAICompatibleStreamingClient(
-      credentialProvider: AIProviderCredentialAPI { providerID in
-        KeychainCredentialStore(
+      credentialProvider: ExternalAIProviderCredentialAPI { providerID in
+        ExternalKeychainCredentialStore(
           service: "io.github.bengidev.OpenZone",
           account: "\(providerID)-api-key"
         ).secret()

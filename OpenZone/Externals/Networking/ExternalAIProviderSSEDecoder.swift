@@ -14,7 +14,7 @@ import Foundation
 /// Partial lines are retained in the buffer until their terminating newline
 /// arrives, so a multi-byte UTF-8 sequence or a half-delivered JSON object is
 /// never decoded prematurely.
-nonisolated struct AIProviderSSEDecoder: Sendable {
+nonisolated struct ExternalAIProviderSSEDecoder: Sendable {
     /// The OpenAI/OpenRouter stream-termination sentinel.
     static let doneSentinel = "[DONE]"
 

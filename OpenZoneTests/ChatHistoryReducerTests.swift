@@ -58,10 +58,10 @@ struct ChatHistoryReducerTests {
         } withDependencies: {
             $0.uuid = .incrementing
             $0.date = .constant(Date(timeIntervalSince1970: 0))
-            $0[AIProviderPreferenceClient.self] = .wrap(
-                InMemoryAIProviderPreferenceStore(
-                    preference: AIProviderPreference(
-                        providerID: AIProviderAPI.openRouter.id,
+            $0[ExternalAIProviderPreferenceClient.self] = .wrap(
+                ExternalInMemoryAIProviderPreferenceStore(
+                    preference: ExternalAIProviderPreference(
+                        providerID: ExternalAIProviderAPI.openRouter.id,
                         modelID: "meta-llama/llama-3.3-70b-instruct:free"
                     )
                 )

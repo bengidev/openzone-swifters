@@ -12,8 +12,8 @@ import Foundation
 /// translates them into chat/home state changes.
 @Reducer
 struct SidePanelFeature {
-    @Dependency(CredentialStoreClient.self) private var credentialStore
-    @Dependency(AIProviderPreferenceClient.self) private var providerPreference
+    @Dependency(ExternalCredentialStoreClient.self) private var credentialStore
+    @Dependency(ExternalAIProviderPreferenceClient.self) private var providerPreference
 
     @ObservableState
     struct State: Equatable {
@@ -28,7 +28,7 @@ struct SidePanelFeature {
         var modelSupportsReasoning = false
         /// The currently selected provider id, mirrored from Home. Drives the
         /// settings sheet so the credential field targets the active provider.
-        var selectedProviderID: String = AIProviderAPI.default.id
+        var selectedProviderID: String = ExternalAIProviderAPI.default.id
 
         /// Convenience mirror of the session scope's sidebar visibility, so the
         /// parent and views can read it without reaching into the sub-scope.
@@ -38,7 +38,7 @@ struct SidePanelFeature {
             session: SidePanelSessionFeature.State = .init(),
             setting: SidePanelSettingFeature.State? = nil,
             modelSupportsReasoning: Bool = false,
-            selectedProviderID: String = AIProviderAPI.default.id
+            selectedProviderID: String = ExternalAIProviderAPI.default.id
         ) {
             self.session = session
             self.setting = setting
@@ -111,7 +111,7 @@ struct SidePanelFeature {
                 return .send(.delegate(.reasoningModelChanged))
 
             case .setting(.presented(.providerSelected)):
-                state.selectedProviderID = providerPreference.preference().providerID ?? AIProviderAPI.default.id
+                state.selectedProviderID = providerPreference.preference().providerID ?? ExternalAIProviderAPI.default.id
                 return .send(.delegate(.providerChanged(state.selectedProviderID)))
 
             case .setting:
