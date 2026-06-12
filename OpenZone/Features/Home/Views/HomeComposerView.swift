@@ -136,7 +136,7 @@ private struct HomeComposerContextRail: View {
                         dismissKeyboard: dismissKeyboard
                     ) {
                         Section("Reasoning") {
-                            ForEach(HomeComposerReasoningLevel.allCases) { level in
+                            ForEach(ExternalAIProviderReasoningModel.allCases) { level in
                                 Button {
                                     dismissKeyboard()
                                     store.send(.reasoningModelSelected(level))

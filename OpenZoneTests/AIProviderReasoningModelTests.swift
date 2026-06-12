@@ -26,9 +26,9 @@ struct AIProviderReasoningModelTests {
         #expect(ExternalAIProviderReasoningModel.allCases == [.off, .low, .medium, .high])
     }
 
-    @Test("HomeComposerReasoningLevel is the shared ExternalAIProviderReasoningModel type")
+    @Test("ExternalAIProviderReasoningModel is the shared ExternalAIProviderReasoningModel type")
     func composerLevelIsSharedType() {
-        let level: HomeComposerReasoningLevel = .medium
+        let level: ExternalAIProviderReasoningModel = .medium
         #expect(level == ExternalAIProviderReasoningModel.medium)
     }
 
