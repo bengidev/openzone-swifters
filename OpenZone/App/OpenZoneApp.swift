@@ -52,7 +52,7 @@ struct OpenZoneApp: App {
     }
 
     private var resolvedColorScheme: ColorScheme? {
-        switch appTheme {
+        switch sharedAppTheme {
         case .system: return nil
         case .light: return .light
         case .dark: return .dark
@@ -68,11 +68,11 @@ struct OpenZoneApp: App {
             AppRootView(
                 store: store,
                 onThemeToggle: {
-                    appTheme = appTheme.next
+                    sharedAppTheme = sharedAppTheme.next
                 }
             )
             .environment(\.sharedPalette, resolvedPalette)
-            .environment(\.sharedAppTheme, appTheme)
+            .environment(\.sharedAppTheme, sharedAppTheme)
             .preferredColorScheme(resolvedColorScheme)
             .task {
                 _ = store.send(.onboarding(.onAppear))
