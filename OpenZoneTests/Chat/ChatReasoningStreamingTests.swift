@@ -130,4 +130,44 @@ struct ChatReasoningStreamingTests {
         #expect(thinkingMessages(store.state).count == 1)
         #expect(thinkingMessages(store.state).first?.content == "abc")
     }
+
+    /// REGRESSION: whitespace-only reasoning deltas must not create thinking rows.
+    /// This prevents empty "Thought" cards from appearing when non-reasoning
+    /// models emit whitespace-only reasoning deltas.
+    @Test("Whitespace-only reasoning does not create thinking row")
+    func whitespaceReasoningSkipped() async {
+        let store = makeStore(events: [
+            .thinkingDelta("   "),
+            .thinkingDelta("\n"),
+            .textDelta("answer"),
+            .done
+        ])
+        store.exhaustivity = .off
+
+        await store.send(.draftMessageChanged("Q"))
+        await store.send(.sendMessageTapped)
+        await store.receive(\.streamCompleted)
+
+        let thinking = thinkingMessages(store.state)
+        #expect(thinking.isEmpty, "Whitespace-only reasoning should not create thinking row")
+        #expect(assistantText(store.state) == "answer")
+    }
+
+    /// REGRESSION: empty string reasoning deltas must not create thinking rows.
+    @Test("Empty reasoning does not create thinking row")
+    func emptyReasoningSkipped() async {
+        let store = makeStore(events: [
+            .thinkingDelta(""),
+            .textDelta("response"),
+            .done
+        ])
+        store.exhaustivity = .off
+
+        await store.send(.draftMessageChanged("Q"))
+        await store.send(.sendMessageTapped)
+        await store.receive(\.streamCompleted)
+
+        let thinking = thinkingMessages(store.state)
+        #expect(thinking.isEmpty, "Empty reasoning should not create thinking row")
+    }
 }

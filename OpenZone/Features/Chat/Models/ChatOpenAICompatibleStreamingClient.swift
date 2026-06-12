@@ -180,7 +180,11 @@ nonisolated struct ChatOpenAICompatibleStreamingClient: ChatAPIClientProtocol, S
 
         var events: [ChatStreamingEvent] = []
         for choice in chunk.choices ?? [] {
-            if let reasoning = choice.delta?.reasoningText, !reasoning.isEmpty {
+            // Filter whitespace-only reasoning deltas — some non-reasoning
+            // models emit empty/whitespace `reasoning` chunks that would
+            // spawn an empty thinking card in the UI.
+            if let reasoning = choice.delta?.reasoningText,
+               !reasoning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 events.append(.thinkingDelta(reasoning))
             }
             if let content = choice.delta?.content, !content.isEmpty {

@@ -297,4 +297,38 @@ struct ChatOpenAICompatibleStreamingClientTests {
         #expect(json["model"] as? String == "deepseek/deepseek-r1:free")
         #expect(json["stream"] as? Bool == true)
     }
+
+    @Test("Whitespace-only reasoning deltas are filtered out")
+    func whitespaceReasoningFiltered() async {
+        let sse = """
+        data: {"choices":[{"delta":{"reasoning":"   "}}]}
+
+        data: {"choices":[{"delta":{"content":"Answer"}}]}
+
+        data: [DONE]
+
+        """
+        StubURLProtocol.stub = .init(statusCode: 200, body: Data(sse.utf8), headers: [:])
+
+        let events = await collect(makeClient().stream(request: request()))
+
+        #expect(events == [.textDelta("Answer"), .done], "Whitespace reasoning should be filtered")
+    }
+
+    @Test("Empty string reasoning deltas are filtered out")
+    func emptyReasoningFiltered() async {
+        let sse = """
+        data: {"choices":[{"delta":{"reasoning":""}}]}
+
+        data: {"choices":[{"delta":{"content":"Hi"}}]}
+
+        data: [DONE]
+
+        """
+        StubURLProtocol.stub = .init(statusCode: 200, body: Data(sse.utf8), headers: [:])
+
+        let events = await collect(makeClient().stream(request: request()))
+
+        #expect(events == [.textDelta("Hi"), .done], "Empty reasoning should be filtered")
+    }
 }

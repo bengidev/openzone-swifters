@@ -141,6 +141,12 @@ struct ChatFeature {
           state.currentPartialThinking += delta
           state.streamingStatus = .running
 
+          // Guard: skip thinking row creation if accumulated content is only
+          // whitespace. This prevents empty "Thought" cards from appearing
+          // when non-reasoning models emit whitespace-only reasoning deltas.
+          let trimmedThinking = state.currentPartialThinking.trimmingCharacters(in: .whitespacesAndNewlines)
+          guard !trimmedThinking.isEmpty else { return .none }
+
           // Merge into the turn's reasoning row by stable ID — never by "last
           // index". A reasoning delta that arrives after answer text began must
           // still land in the original reasoning row, not spawn a new one.
