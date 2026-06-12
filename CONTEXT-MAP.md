@@ -57,27 +57,30 @@ Types use prefixes to indicate ownership and scope:
 
 Suffix: `Entity`
 
+**Entities** (`OpenZone/Features/.../Models/*.swift`):
+- Use `Entity` suffix for SwiftData `@Model` types
+- Prefix with sub-scope name if the type belongs to a sub-domain
+- Example: `ChatHistoryConversationEntity`, `ChatHistoryMessageEntity` (ChatHistory sub-scope of Chat feature)
+
 ```swift
 @Model
-final class ConversationEntity {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var createdAt: Date
-    // ...
+public final class ChatHistoryConversationEntity {
+    @Attribute(.unique) public let id: UUID
+    public var title: String
+    public var lastModified: Date
 }
 
 @Model
-final class MessageEntity {
-    @Attribute(.unique) var id: UUID
-    var content: String
-    var role: String
-    // ...
+public final class ChatHistoryMessageEntity {
+    @Attribute(.unique) public let id: UUID
+    public var content: String
+    public var role: String
 }
 ```
 
-**Pattern:** Domain concept + `Entity` suffix
-- `ConversationEntity` (not `HistoryConversationEntity`)
-- `MessageEntity` (not `HistoryMessageEntity`)
+- `ChatConversationEntity` (not `HistoryConversationEntity`)
+- `ChatMessageEntity` (not `HistoryMessageEntity`)
+- Use sub-scope prefix when needed (e.g., `ChatHistory` for Chat feature's history domain)
 
 #### Dependency Values (Core/)
 

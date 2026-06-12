@@ -16,19 +16,17 @@ OpenZone/Features/Home/
 ├── Core/
 │   ├── HomeFeature.swift                    # Reducer + state management
 │   ├── HomeModelCatalogClient.swift         # Model catalog fetching
-│   ├── HomeModelCatalogCachePreference.swift # Cache preferences
-│   └── HomeWelcomeView.swift                # Welcome state view
+│   └── HomeModelCatalogCachePreference.swift # Cache preferences
 ├── Models/
 │   ├── HomeModelOption.swift                # Model selection value type
 │   ├── HomeComposerSpeedMode.swift          # Speed mode selection
 │   └── HomeComposerContextUsage.swift       # Context usage display
-├── Views/
-│   ├── HomeView.swift                       # Main view container
-│   ├── HomeComposerView.swift               # Message composer interface
-│   ├── HomeMessageListView.swift          # Recent messages sidebar
-│   └── HomeSettingsMenu.swift               # Settings sheet
-└── Utilities/
-    └── HomeMarkdownRenderer.swift           # Markdown rendering utilities
+└── Views/
+    ├── HomeView.swift                       # Main view container
+    ├── HomeWelcomeView.swift                # Welcome state view
+    ├── HomeComposerView.swift               # Message composer interface
+    ├── HomeModelPopupView.swift             # Model selection popover
+    └── HomeParticleOrbView.swift            # Animated orb visual
 ```
 
 ## Dependencies

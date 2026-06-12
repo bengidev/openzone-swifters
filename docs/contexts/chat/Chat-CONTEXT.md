@@ -15,22 +15,21 @@ The Chat feature manages conversation threads with AI providers, handling messag
 OpenZone/Features/Chat/
 ├── Core/
 │   ├── ChatFeature.swift                    # TCA Reducer + State
-│   ├── ChatAction.swift                     # User actions and events
-│   └── ChatAPIClient.swift                  # API integration layer
+│   ├── ChatAPIClient.swift                  # Provider-agnostic chat client protocol
+│   └── ChatHistoryClient.swift              # SwiftData persistence bridge
 ├── Models/
-│   ├── ChatEntity.swift                     # SwiftData @Model for persistence
-│   ├── ChatMessage.swift                    # Message value type
-│   ├── ChatModel.swift                      # Model metadata
-│   └── ChatReasoningLevel.swift             # Reasoning effort enum
+│   ├── ChatHistoryEntities.swift             # SwiftData @Model: ChatHistoryConversationEntity, ChatHistoryMessageEntity
+│   ├── ChatConversation.swift               # Domain conversation value type
+│   ├── ChatMessage.swift                    # Domain message value type
+│   ├── ChatModel.swift                      # Model metadata (id, name, capabilities)
+│   └── OpenAICompatibleStreamingClient.swift # OpenAI-compatible wire streaming client
 ├── Views/
-│   ├── ChatView.swift                       # Full conversation screen
-│   ├── ChatMessageRow.swift                 # Single message bubble
-│   ├── ChatComposer.swift                   # Message input with controls
-│   ├── ChatReasoningLevelView.swift         # Reasoning level selector
-│   └── ChatStreamingTextView.swift          # Markdown rendering view
+│   ├── ChatThreadView.swift                 # Full conversation screen
+│   ├── ChatMessageRowView.swift             # Single message bubble
+│   ├── ChatReasoningCardView.swift          # Reasoning/thinking card
+│   └── ChatErrorBannerView.swift            # Stream error feedback
 └── Utilities/
-    ├── ChatMarkdownRenderer.swift           # Markdown to AttributedString
-    └── ChatMessageFormatter.swift           # Message content formatting
+    └── ChatCannedEventClient.swift          # Test fixture support
 ```
 
 ## Dependencies
@@ -41,6 +40,12 @@ OpenZone/Features/Chat/
 
 **Feature Dependencies:**
 - None - Chat is a feature leaf (Onboarding and Home route into Chat, not reverse)
+
+## Sub-Scopes
+
+The Chat feature contains one sub-scope for history management:
+
+- **ChatHistory** — Persistence layer for saved conversations. Entities use the `ChatHistory` prefix (`ChatHistoryConversationEntity`, `ChatHistoryMessageEntity`, `ChatHistoryClient`). This scope owns SwiftData models and the client that bridges them to domain types. Live streaming and message rendering stay at the Chat root level.
 
 ## State Management (TCA)
 
@@ -157,23 +162,12 @@ case .chat(.delegate(.chatCompleted)):
 
 ## Reasoning Levels
 
-Chat supports three reasoning effort levels:
-
-```swift
-enum ChatReasoningLevel: String, CaseIterable, Sendable {
-    case low = "low"        // Fast responses, minimal reasoning
-    case medium = "medium"  // Balanced speed and quality
-    case high = "high"      // Thorough reasoning, slower responses
-}
-```
-
-Users can adjust reasoning level per conversation through the UI.
+Chat uses `ExternalAIProviderReasoningModel` from the Externals boundary for reasoning effort. The home composer selects the level; Chat reads it when building the streaming request. No Chat-local reasoning enum exists.
 
 ## Recent Architecture Changes
 
 - Restructured into role-based subfolders (Core/Models/Views/Utilities)
-- Renamed persistence entity from `ConversationEntity` to `ChatEntity` for consistency
-- Added `Chat` prefix to all types for clarity
+- Entities renamed to `ChatHistoryConversationEntity` and `ChatHistoryMessageEntity` (ChatHistory sub-scope)
+- `OpenAICompatibleStreamingClient` uses technical name (no prefix) — describes wire protocol, not domain
 - Removed `public` modifiers (internal access by default)
-- Simplified message model to use associated values for different message types
-- Added dedicated Markdown renderer utility for streaming responses
+- ChatDomainModel.swift → `ChatMessage` with associated values for different message types

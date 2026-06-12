@@ -103,6 +103,8 @@ Externals contains feature-neutral adapters for systems outside the app:
 
 Externals must not reference feature UI or reducers. Chat domain types (e.g. `ChatModel`) belong in `Features/Chat/Models/`. Home-scoped orchestration (e.g. `HomeModelCatalogClient`) belongs in `Features/Home/Core/`. Chat streaming (`OpenAICompatibleStreamingClient`) and chat history persistence (`ChatHistoryClient`) stay in `Features/Chat/` because they combine provider wire behavior with chat domain types. The side panel's session scope consumes that persistence; it does not duplicate it.
 
+> **Prefix exception**: `OpenAICompatibleStreamingClient` intentionally keeps its descriptive technical name (it describes the wire protocol, not a domain concept) and carries no feature prefix. It lives in `Features/Chat/Models/` because it combines provider wire behavior with chat domain types. If a type name is already established in the ecosystem (like "OpenAI-compatible"), prefer clarity over prefix consistency.
+
 ### `OpenZone/Shared/`
 
 Shared contains app-wide UI primitives that are safe for more than one feature to reuse:
