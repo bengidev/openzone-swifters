@@ -39,8 +39,8 @@ struct OpenZoneApp: App {
         // pre-populated store.
         let schema = Schema([
             OnboardingProgressEntity.self,
-            ChatConversationEntity.self,
-            ChatMessageEntity.self
+            ChatHistoryConversationEntity.self,
+            ChatHistoryMessageEntity.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

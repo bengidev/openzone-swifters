@@ -25,8 +25,8 @@ struct ChatHistoryPersistenceTests {
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([
             OnboardingProgressEntity.self,
-            ChatConversationEntity.self,
-            ChatMessageEntity.self
+            ChatHistoryConversationEntity.self,
+            ChatHistoryMessageEntity.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: [configuration])
@@ -178,8 +178,8 @@ struct ChatHistoryPersistenceTests {
         // New store at the same URL: adds the two chat entities additively.
         let newSchema = Schema([
             OnboardingProgressEntity.self,
-            ChatConversationEntity.self,
-            ChatMessageEntity.self
+            ChatHistoryConversationEntity.self,
+            ChatHistoryMessageEntity.self
         ])
         let newConfig = ModelConfiguration(schema: newSchema, url: url)
         let newContainer = try ModelContainer(for: newSchema, configurations: [newConfig])

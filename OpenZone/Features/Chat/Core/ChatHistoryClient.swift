@@ -67,7 +67,7 @@ extension ChatHistoryClient {
         Self(
             listConversations: { @MainActor in
                 let context = ModelContext(modelContainer)
-                let descriptor = FetchDescriptor<ChatConversationEntity>(
+                let descriptor = FetchDescriptor<ChatHistoryConversationEntity>(
                     sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
                 )
                 // Pinned conversations float to the top; within each group the
@@ -91,13 +91,13 @@ extension ChatHistoryClient {
             },
             saveConversation: { @MainActor conversation in
                 let context = ModelContext(modelContainer)
-                let entity: ChatConversationEntity
+                let entity: ChatHistoryConversationEntity
                 if let existing = try Self.fetchConversation(conversation.id, in: context) {
                     entity = existing
                     entity.title = conversation.title
                     entity.updatedAt = conversation.updatedAt
                 } else {
-                    entity = ChatConversationEntity(
+                    entity = ChatHistoryConversationEntity(
                         id: conversation.id,
                         title: conversation.title,
                         createdAt: conversation.createdAt,
@@ -160,8 +160,8 @@ extension ChatHistoryClient {
     private static func fetchConversation(
         _ id: UUID,
         in context: ModelContext
-    ) throws -> ChatConversationEntity? {
-        var descriptor = FetchDescriptor<ChatConversationEntity>(
+    ) throws -> ChatHistoryConversationEntity? {
+        var descriptor = FetchDescriptor<ChatHistoryConversationEntity>(
             predicate: #Predicate { $0.id == id }
         )
         descriptor.fetchLimit = 1
@@ -170,7 +170,7 @@ extension ChatHistoryClient {
 
     // MARK: Entity -> Domain
 
-    private static func conversation(from entity: ChatConversationEntity) -> ChatConversation {
+    private static func conversation(from entity: ChatHistoryConversationEntity) -> ChatConversation {
         ChatConversation(
             id: entity.id,
             title: entity.title,
@@ -180,8 +180,8 @@ extension ChatHistoryClient {
         )
     }
 
-    private static func message(from entity: ChatMessageEntity) -> ChatMessage? {
-        guard let kind = ChatMessageKind(rawValue: entity.kindRaw),
+    private static func message(from entity: ChatHistoryMessageEntity) -> ChatMessage? {
+        guard let kind = ChatHistoryMessageKind(rawValue: entity.kindRaw),
               let role = ChatMessageRole(rawValue: entity.roleRaw) else {
             return nil
         }
@@ -213,8 +213,8 @@ extension ChatHistoryClient {
 
     // MARK: Domain -> Entity
 
-    private static func entity(from message: ChatMessage, order: Int) -> ChatMessageEntity {
-        ChatMessageEntity(
+    private static func entity(from message: ChatMessage, order: Int) -> ChatHistoryMessageEntity {
+        ChatHistoryMessageEntity(
             id: message.id,
             kindRaw: kind(of: message).rawValue,
             roleRaw: message.role.rawValue,
@@ -225,7 +225,7 @@ extension ChatHistoryClient {
         )
     }
 
-    private static func apply(_ message: ChatMessage, to entity: ChatMessageEntity) {
+    private static func apply(_ message: ChatMessage, to entity: ChatHistoryMessageEntity) {
         entity.kindRaw = kind(of: message).rawValue
         entity.roleRaw = message.role.rawValue
         entity.content = content(of: message)
@@ -233,7 +233,7 @@ extension ChatHistoryClient {
         entity.timestamp = message.timestamp
     }
 
-    private static func kind(of message: ChatMessage) -> ChatMessageKind {
+    private static func kind(of message: ChatMessage) -> ChatHistoryMessageKind {
         switch message {
         case .text: return .text
         case .thinking: return .thinking
