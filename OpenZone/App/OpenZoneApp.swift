@@ -65,7 +65,7 @@ struct OpenZoneApp: App {
 
     var body: some Scene {
         WindowGroup {
-            OpenZoneRootView(
+            AppRootView(
                 store: store,
                 onThemeToggle: {
                     appTheme = appTheme.next
@@ -83,7 +83,7 @@ struct OpenZoneApp: App {
 }
 
 /// Routes first-time users through onboarding, then shows the app shell.
-private struct OpenZoneRootView: View {
+private struct AppRootView: View {
     let store: StoreOf<AppFeature>
     let onThemeToggle: () -> Void
 
