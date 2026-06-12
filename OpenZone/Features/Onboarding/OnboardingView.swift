@@ -7,7 +7,7 @@ struct OnboardingView: View {
     let store: StoreOf<OnboardingFeature>
     let onThemeToggle: () -> Void
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     init(store: StoreOf<OnboardingFeature>, onThemeToggle: @escaping () -> Void) {
         self.store = store
@@ -28,14 +28,14 @@ struct OnboardingView: View {
                 palette.surfaceBase
                     .ignoresSafeArea()
 
-                PixelGridBackground(
+                SharedPixelGridBackground(
                     spacing: compactHeight ? 18 : 22,
                     dotSize: 1.0,
                     opacity: palette.isDark ? 0.06 : 0.04
                 )
                 .ignoresSafeArea()
 
-                DiagonalHatchPattern(
+                SharedDiagonalHatchPattern(
                     spacing: 10,
                     opacity: palette.isDark ? 0.10 : 0.04
                 )

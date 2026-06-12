@@ -4,7 +4,7 @@ import SwiftUI
 struct OnboardingReasoningLevelSliderView: View {
     @Binding var value: Double
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     private let thumbWidth: CGFloat = 24
     private let thumbHeight: CGFloat = 20

@@ -1,11 +1,11 @@
 import SwiftUI
 
 /// Subtle monochrome luminance shift overlay with sine wave offset — technical signal glitch effect.
-public struct SignalGlitchModifier: ViewModifier {
+struct SharedSignalGlitchModifier: ViewModifier {
     let progress: Double
     let intensity: Double
 
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         content
             .overlay(
                 Rectangle()
@@ -28,7 +28,7 @@ public struct SignalGlitchModifier: ViewModifier {
 }
 
 extension View {
-    public func signalGlitch(progress: Double, intensity: Double = 1) -> some View {
-        modifier(SignalGlitchModifier(progress: progress, intensity: intensity))
+    func signalGlitch(progress: Double, intensity: Double = 1) -> some View {
+        modifier(SharedSignalGlitchModifier(progress: progress, intensity: intensity))
     }
 }

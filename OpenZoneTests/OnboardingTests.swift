@@ -164,22 +164,22 @@ struct OnboardingFeatureTests {
 @Suite("Theme Tests")
 struct ThemeTests {
 
-    @Test("OpenZonePalette light mode has correct base color")
+    @Test("SharedOpenZonePalette light mode has correct base color")
     func lightPalette() {
-        let palette = OpenZonePalette.resolve(.light)
+        let palette = SharedOpenZonePalette.resolve(.light)
         #expect(palette.isDark == false)
     }
 
-    @Test("OpenZonePalette dark mode has correct base color")
+    @Test("SharedOpenZonePalette dark mode has correct base color")
     func darkPalette() {
-        let palette = OpenZonePalette.resolve(.dark)
+        let palette = SharedOpenZonePalette.resolve(.dark)
         #expect(palette.isDark == true)
     }
 
-    @Test("AppTheme cycles correctly")
+    @Test("SharedAppTheme cycles correctly")
     func themeCycle() {
-        #expect(AppTheme.system.next == .light)
-        #expect(AppTheme.light.next == .dark)
-        #expect(AppTheme.dark.next == .system)
+        #expect(SharedAppTheme.system.next == .light)
+        #expect(SharedAppTheme.light.next == .dark)
+        #expect(SharedAppTheme.dark.next == .system)
     }
 }

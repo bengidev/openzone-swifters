@@ -70,7 +70,7 @@ struct HomeWelcomeView: View {
     let store: StoreOf<HomeFeature>
     let viewportHeight: CGFloat
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     private var layout: HomeWelcomeLayoutMetrics {
         HomeWelcomeLayoutMetrics.resolve(viewportHeight: viewportHeight)

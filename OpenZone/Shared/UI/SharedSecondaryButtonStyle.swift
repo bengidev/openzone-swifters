@@ -1,14 +1,14 @@
 import SwiftUI
 
 /// Secondary action button — transparent/paper fill with cool border.
-public struct SecondaryButtonStyle: ButtonStyle {
-    let palette: OpenZonePalette
+struct SharedSecondaryButtonStyle: ButtonStyle {
+    let palette: SharedOpenZonePalette
 
-    public init(palette: OpenZonePalette) {
+    init(palette: SharedOpenZonePalette) {
         self.palette = palette
     }
 
-    public func makeBody(configuration: Configuration) -> some View {
+    func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 13, weight: .semibold, design: .monospaced))
             .monoTracking()

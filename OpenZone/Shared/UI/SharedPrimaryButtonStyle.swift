@@ -1,14 +1,14 @@
 import SwiftUI
 
 /// Primary action button — graphite fill, high contrast, for commit/continue/enter actions.
-public struct PrimaryButtonStyle: ButtonStyle {
-    let palette: OpenZonePalette
+struct SharedPrimaryButtonStyle: ButtonStyle {
+    let palette: SharedOpenZonePalette
 
-    public init(palette: OpenZonePalette) {
+    init(palette: SharedOpenZonePalette) {
         self.palette = palette
     }
 
-    public func makeBody(configuration: Configuration) -> some View {
+    func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 13, weight: .semibold, design: .monospaced))
             .monoTracking()

@@ -2,59 +2,59 @@ import SwiftUI
 
 /// OpenZone design system palette — monochrome: neutral paper base, graphite accent, ink controls.
 /// Fully grayscale (hue-less) ramp; hierarchy carried by lightness and contrast.
-public struct OpenZonePalette: Sendable {
-    public let isDark: Bool
+struct SharedOpenZonePalette: Sendable {
+    let isDark: Bool
 
     // MARK: - Surfaces
 
     /// Main app background — cool off-white / deep blue-black
-    public let surfaceBase: Color
+    let surfaceBase: Color
     /// Paper-like sections — slightly tinted base
-    public let surfacePaper: Color
+    let surfacePaper: Color
     /// Raised panels, grouped content
-    public let surfaceRaised: Color
+    let surfaceRaised: Color
     /// Secondary fills, quiet containers
-    public let surfaceSubtle: Color
+    let surfaceSubtle: Color
     /// Very light neutral wash for selected fields
-    public let surfaceGalaxyTint: Color
+    let surfaceGalaxyTint: Color
 
     // MARK: - Text
 
-    public let textPrimary: Color
-    public let textSecondary: Color
-    public let textTertiary: Color
+    let textPrimary: Color
+    let textSecondary: Color
+    let textTertiary: Color
 
     // MARK: - Lines
 
-    public let lineSoft: Color
-    public let lineStrong: Color
+    let lineSoft: Color
+    let lineStrong: Color
 
     // MARK: - Accent (graphite)
 
     /// Active state, progress, current step, command hint
-    public let accentPrimary: Color
+    let accentPrimary: Color
     /// Pressed accent, strong selection
-    public let accentDeep: Color
+    let accentDeep: Color
     /// Accent background, quiet highlight
-    public let accentSoft: Color
+    let accentSoft: Color
 
     // MARK: - Controls
 
     /// Primary CTA fill (graphite/near-black)
-    public let controlStrong: Color
+    let controlStrong: Color
     /// Text on strong controls
-    public let controlStrongText: Color
+    let controlStrongText: Color
 
     // MARK: - Status
 
-    public let success: Color
-    public let warning: Color
-    public let danger: Color
+    let success: Color
+    let warning: Color
+    let danger: Color
 
     /// Resolve palette for the given color scheme.
-    public static func resolve(_ scheme: ColorScheme) -> OpenZonePalette {
+    static func resolve(_ scheme: ColorScheme) -> SharedOpenZonePalette {
         if scheme == .dark {
-            return OpenZonePalette(
+            return SharedOpenZonePalette(
                 isDark: true,
                 surfaceBase: Color(hex: "0B0B0B"),
                 surfacePaper: Color(hex: "121212"),
@@ -77,7 +77,7 @@ public struct OpenZonePalette: Sendable {
             )
         }
 
-        return OpenZonePalette(
+        return SharedOpenZonePalette(
             isDark: false,
             surfaceBase: Color(hex: "F7F7F7"),
             surfacePaper: Color(hex: "F1F1F1"),

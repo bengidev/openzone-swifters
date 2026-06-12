@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 struct HomeParticleOrbView: UIViewRepresentable {
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
 
@@ -1049,10 +1049,10 @@ private enum ParticleOrbMath {
 
 #Preview {
     ZStack {
-        OpenZonePalette.resolve(.light).surfaceBase.ignoresSafeArea()
+        SharedOpenZonePalette.resolve(.light).surfaceBase.ignoresSafeArea()
         HomeParticleOrbView()
             .frame(height: 240)
             .padding(.horizontal, 28)
-            .environment(\.palette, OpenZonePalette.resolve(.light))
+            .environment(\.sharedPalette, SharedOpenZonePalette.resolve(.light))
     }
 }

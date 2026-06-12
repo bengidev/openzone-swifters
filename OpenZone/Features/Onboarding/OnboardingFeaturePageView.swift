@@ -7,7 +7,7 @@ struct OnboardingFeaturePageView: View {
     let visualHeight: CGFloat
     let store: StoreOf<OnboardingFeature>
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
 
@@ -22,7 +22,7 @@ struct OnboardingFeaturePageView: View {
             VStack(alignment: .leading, spacing: 13) {
                 // Context chip + state code
                 HStack(spacing: 10) {
-                    Badge(title: page.eyebrow, systemImage: badgeSymbol, isActive: true)
+                    SharedBadge(title: page.eyebrow, systemImage: badgeSymbol, isActive: true)
                     Spacer(minLength: 8)
                     Text(page.indexLabel)
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
@@ -64,17 +64,17 @@ struct OnboardingFeaturePageView: View {
                     .offset(y: appeared ? 0 : 8)
 
                 // Demonstration panel
-                CardChrome(cornerRadius: 6) {
+                SharedCardChrome(cornerRadius: 6) {
                     ZStack {
                         palette.surfacePaper
 
-                        PixelGridBackground(
+                        SharedPixelGridBackground(
                             spacing: 15,
                             dotSize: 1.0,
                             opacity: palette.isDark ? 0.06 : 0.04
                         )
 
-                        DiagonalHatchPattern(
+                        SharedDiagonalHatchPattern(
                             spacing: 10,
                             opacity: palette.isDark ? 0.10 : 0.04
                         )

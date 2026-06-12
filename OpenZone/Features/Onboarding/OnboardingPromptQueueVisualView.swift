@@ -5,7 +5,7 @@ struct OnboardingPromptQueueVisualView: View {
     let queuedPromptCount: Int
     let appeared: Bool
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         VStack(spacing: 9) {

@@ -1,12 +1,12 @@
 import SwiftUI
 
 /// Theme preference: system, light, or dark.
-public enum AppTheme: String, Equatable, Sendable {
+enum SharedAppTheme: String, Equatable, Sendable {
     case system
     case light
     case dark
 
-    public func resolveColorScheme(_ systemScheme: ColorScheme) -> ColorScheme {
+    func resolveColorScheme(_ systemScheme: ColorScheme) -> ColorScheme {
         switch self {
         case .system: return systemScheme
         case .light: return .light
@@ -14,7 +14,7 @@ public enum AppTheme: String, Equatable, Sendable {
         }
     }
 
-    public var next: AppTheme {
+    var next: SharedAppTheme {
         switch self {
         case .system: .light
         case .light: .dark
@@ -22,7 +22,7 @@ public enum AppTheme: String, Equatable, Sendable {
         }
     }
 
-    public var displayName: String {
+    var displayName: String {
         switch self {
         case .system: "System"
         case .light: "Light"
@@ -30,18 +30,18 @@ public enum AppTheme: String, Equatable, Sendable {
         }
     }
 
-    public var isDark: Bool {
+    var isDark: Bool {
         self == .dark
     }
 }
 
-private struct AppThemeKey: EnvironmentKey {
-    static let defaultValue: AppTheme = .system
+private struct SharedAppThemeKey: EnvironmentKey {
+    static let defaultValue: SharedAppTheme = .system
 }
 
 extension EnvironmentValues {
-    public var appTheme: AppTheme {
-        get { self[AppThemeKey.self] }
-        set { self[AppThemeKey.self] = newValue }
+    var sharedAppTheme: SharedAppTheme {
+        get { self[SharedAppThemeKey.self] }
+        set { self[SharedAppThemeKey.self] = newValue }
     }
 }

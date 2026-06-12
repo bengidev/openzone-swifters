@@ -5,7 +5,7 @@ struct OnboardingReasoningControlVisualView: View {
     @Binding var reasoningLevel: Double
     let appeared: Bool
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     private var percentage: Int {
         Int((reasoningLevel * 100).rounded())
@@ -33,7 +33,7 @@ struct OnboardingReasoningControlVisualView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(reasoningLabel.uppercased())
-                        .font(OpenZoneTypography.monoSM)
+                        .font(SharedOpenZoneTypography.monoSM)
                         .monoTracking()
                         .foregroundStyle(palette.accentPrimary)
                     Text("Set thinking before run.")

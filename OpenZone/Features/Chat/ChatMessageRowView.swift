@@ -6,7 +6,7 @@ struct ChatMessageRowView: View {
   let streamingStatus: ChatStreamingStatus
   let streamErrorMessage: String?
 
-  @Environment(\.palette) private var palette
+  @Environment(\.sharedPalette) private var palette
   private static let oppositeSpacerMinWidth: CGFloat = 60
   private static let userBubbleCornerRadius: CGFloat = 20
 

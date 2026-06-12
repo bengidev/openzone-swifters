@@ -6,7 +6,7 @@ struct OnboardingQueueRowView: View {
     let index: Int
     let appeared: Bool
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         HStack(spacing: 10) {

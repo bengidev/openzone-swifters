@@ -6,7 +6,7 @@ struct OnboardingEncryptedPairingVisualView: View {
     let appeared: Bool
     let onToggle: () -> Void
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         ZStack {

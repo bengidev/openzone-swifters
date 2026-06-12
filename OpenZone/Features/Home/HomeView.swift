@@ -5,7 +5,7 @@ import SwiftUI
 struct HomeView: View {
     @Bindable var store: StoreOf<HomeFeature>
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     @FocusState private var isComposerFocused: Bool
 
     private let sidebarSwipeActivationWidth: CGFloat = 34
@@ -236,5 +236,5 @@ private struct WelcomeViewportHeightKey: PreferenceKey {
             HomeFeature()
         }
     )
-    .environment(\.palette, .resolve(.light))
+    .environment(\.sharedPalette, .resolve(.light))
 }

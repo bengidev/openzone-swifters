@@ -2,18 +2,18 @@ import SwiftUI
 
 /// Card container with thin cool borders, quiet fills, restrained radius.
 /// Instrument panel aesthetic — no heavy shadows.
-public struct CardChrome<Content: View>: View {
+struct SharedCardChrome<Content: View>: View {
     var cornerRadius: CGFloat = 12
     @ViewBuilder let content: Content
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
-    public init(cornerRadius: CGFloat = 12, @ViewBuilder content: () -> Content) {
+    init(cornerRadius: CGFloat = 12, @ViewBuilder content: () -> Content) {
         self.cornerRadius = cornerRadius
         self.content = content()
     }
 
-    public var body: some View {
+    var body: some View {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)

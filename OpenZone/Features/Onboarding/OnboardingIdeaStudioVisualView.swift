@@ -6,7 +6,7 @@ struct OnboardingIdeaStudioVisualView: View {
     let appeared: Bool
     let onPromptSelected: (Int) -> Void
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var typedCount = 0
 

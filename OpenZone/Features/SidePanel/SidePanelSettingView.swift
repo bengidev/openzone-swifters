@@ -13,7 +13,7 @@ import SwiftUI
 struct SidePanelSettingView: View {
     @Bindable var store: StoreOf<SidePanelSettingFeature>
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isKeyFieldFocused: Bool
 
@@ -221,5 +221,5 @@ struct SidePanelSettingView: View {
             SidePanelSettingFeature()
         }
     )
-    .environment(\.palette, .resolve(.light))
+    .environment(\.sharedPalette, .resolve(.light))
 }

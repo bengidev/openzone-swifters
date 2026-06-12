@@ -5,7 +5,7 @@ import SwiftUI
 struct OnboardingBottomNavigationView: View {
     let store: StoreOf<OnboardingFeature>
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         VStack(spacing: 24) {
@@ -40,7 +40,7 @@ struct OnboardingBottomNavigationView: View {
                             Text("BACK")
                         }
                     }
-                    .buttonStyle(SecondaryButtonStyle(palette: palette))
+                    .buttonStyle(SharedSecondaryButtonStyle(palette: palette))
                     .accessibilityLabel("Previous onboarding page")
                 }
 
@@ -58,7 +58,7 @@ struct OnboardingBottomNavigationView: View {
                         Image(systemName: store.isLastPage ? "arrow.up.right" : "arrow.right")
                     }
                 }
-                .buttonStyle(PrimaryButtonStyle(palette: palette))
+                .buttonStyle(SharedPrimaryButtonStyle(palette: palette))
                 .accessibilityLabel(store.isLastPage ? "Enter OpenZone" : "Continue onboarding")
             }
         }

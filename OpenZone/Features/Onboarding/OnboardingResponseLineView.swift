@@ -6,7 +6,7 @@ struct OnboardingResponseLineView: View {
     let active: Bool
     let delay: Double
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         GeometryReader { proxy in

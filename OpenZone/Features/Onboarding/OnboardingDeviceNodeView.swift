@@ -7,7 +7,7 @@ struct OnboardingDeviceNodeView: View {
     let systemImage: String
     let active: Bool
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         VStack(spacing: 9) {
@@ -25,7 +25,7 @@ struct OnboardingDeviceNodeView: View {
             }
             VStack(spacing: 3) {
                 Text(title)
-                    .font(OpenZoneTypography.monoXS)
+                    .font(SharedOpenZoneTypography.monoXS)
                     .monoTracking()
                     .foregroundStyle(palette.textPrimary)
                 Text(subtitle)

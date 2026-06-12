@@ -5,7 +5,7 @@ struct HomeComposerView: View {
     @Bindable var store: StoreOf<HomeFeature>
     let isComposerFocused: FocusState<Bool>.Binding
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         VStack(spacing: 8) {
@@ -36,7 +36,7 @@ private struct HomeComposerPromptPanel: View {
     @Bindable var store: StoreOf<HomeFeature>
     let isComposerFocused: FocusState<Bool>.Binding
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     @State private var sendFeedbackTrigger = false
 
     private var canSend: Bool {
@@ -213,7 +213,7 @@ private struct HomeComposerMenuChip<MenuItems: View>: View {
     let dismissKeyboard: () -> Void
     let menuItems: MenuItems
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     init(
         title: String,
@@ -295,7 +295,7 @@ private struct HomeComposerContextUsageButton: View {
 private struct HomeComposerContextUsageIndicator: View {
     let usage: HomeComposerContextUsage
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         ZStack {
@@ -332,7 +332,7 @@ private struct HomeComposerContextUsageIndicator: View {
 private struct HomeComposerContextUsagePopover: View {
     let usage: HomeComposerContextUsage
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     private let cornerRadius: CGFloat = 28
 
@@ -391,7 +391,7 @@ private struct HomeComposerContextUsagePopover: View {
 private struct MissingAPIKeyHint: View {
     let openSettings: () -> Void
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         Button(action: openSettings) {
@@ -436,7 +436,7 @@ private struct HomeComposerIconButton: View {
     let accessibilityLabel: String
     let action: () -> Void
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         Button(action: action) {
@@ -454,7 +454,7 @@ private struct HomeComposerSendButton: View {
     let canSend: Bool
     let action: () -> Void
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         Button(action: action) {
@@ -475,7 +475,7 @@ private struct HomeComposerGlassChrome: ViewModifier {
     let cornerRadius: CGFloat
     let shadowOpacity: Double
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     func body(content: Content) -> some View {
         content
@@ -507,7 +507,7 @@ private struct HomeComposerModelButton: View {
     let dismissKeyboard: () -> Void
     let action: () -> Void
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         Button(action: action) {

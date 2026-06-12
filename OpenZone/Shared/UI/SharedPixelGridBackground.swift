@@ -1,20 +1,20 @@
 import SwiftUI
 
 /// Subtle dot grid background — cool technical texture.
-public struct PixelGridBackground: View {
+struct SharedPixelGridBackground: View {
     var spacing: CGFloat = 20
     var dotSize: CGFloat = 1.0
     var opacity = 0.05
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
-    public init(spacing: CGFloat = 20, dotSize: CGFloat = 1.0, opacity: Double = 0.05) {
+    init(spacing: CGFloat = 20, dotSize: CGFloat = 1.0, opacity: Double = 0.05) {
         self.spacing = spacing
         self.dotSize = dotSize
         self.opacity = opacity
     }
 
-    public var body: some View {
+    var body: some View {
         Canvas { context, size in
             for x in stride(from: CGFloat(0), through: size.width, by: spacing) {
                 for y in stride(from: CGFloat(0), through: size.height, by: spacing) {

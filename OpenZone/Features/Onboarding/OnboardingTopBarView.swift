@@ -6,19 +6,19 @@ struct OnboardingTopBarView: View {
     let store: StoreOf<OnboardingFeature>
     let onThemeToggle: () -> Void
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         HStack(spacing: 12) {
             HStack(spacing: 9) {
-                ThemeToggleButton(onTap: onThemeToggle)
+                SharedThemeToggleButton(onTap: onThemeToggle)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("OPENZONE")
                         .font(.system(size: 12, weight: .semibold, design: .default))
                         .foregroundStyle(palette.textPrimary)
                     Text("AI ASSISTANCE")
-                        .font(OpenZoneTypography.monoXS)
+                        .font(SharedOpenZoneTypography.monoXS)
                         .monoTracking()
                         .foregroundStyle(palette.textTertiary)
                 }
@@ -29,7 +29,7 @@ struct OnboardingTopBarView: View {
             Spacer(minLength: 10)
 
             Text("PG.\(zeroPadded(store.currentPage + 1)) / \(zeroPadded(store.totalPages))")
-                .font(OpenZoneTypography.monoSM)
+                .font(SharedOpenZoneTypography.monoSM)
                 .monoTracking()
                 .foregroundStyle(palette.textSecondary)
                 .lineLimit(1)

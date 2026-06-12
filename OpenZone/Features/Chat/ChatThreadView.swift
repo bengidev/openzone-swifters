@@ -4,7 +4,7 @@ import SwiftUI
 struct ChatThreadView: View {
     @Bindable var store: StoreOf<ChatFeature>
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         ScrollViewReader { proxy in

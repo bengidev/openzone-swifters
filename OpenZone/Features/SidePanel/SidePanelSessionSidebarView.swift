@@ -10,7 +10,7 @@ import SwiftUI
 struct SidePanelSessionSidebarView: View {
     @Bindable var store: StoreOf<SidePanelSessionFeature>
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     @State private var renameTarget: ChatConversation?
     @State private var renameText: String = ""

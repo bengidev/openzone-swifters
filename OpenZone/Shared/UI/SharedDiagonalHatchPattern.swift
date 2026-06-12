@@ -2,18 +2,18 @@ import SwiftUI
 
 /// Fine diagonal hatch texture — gives UI a physical surface without hurting readability.
 /// Low opacity, 45-degree angle, technical paper aesthetic.
-public struct DiagonalHatchPattern: View {
+struct SharedDiagonalHatchPattern: View {
     var spacing: CGFloat = 12
     var opacity = 0.04
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
-    public init(spacing: CGFloat = 12, opacity: Double = 0.04) {
+    init(spacing: CGFloat = 12, opacity: Double = 0.04) {
         self.spacing = spacing
         self.opacity = opacity
     }
 
-    public var body: some View {
+    var body: some View {
         Canvas { context, size in
             for x in stride(from: -size.height, through: size.width, by: spacing) {
                 var path = Path()

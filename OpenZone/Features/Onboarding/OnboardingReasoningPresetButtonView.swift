@@ -6,7 +6,7 @@ struct OnboardingReasoningPresetButtonView: View {
     let value: Double
     @Binding var level: Double
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         Button {
@@ -15,7 +15,7 @@ struct OnboardingReasoningPresetButtonView: View {
             }
         } label: {
             Text(title)
-                .font(OpenZoneTypography.monoXS)
+                .font(SharedOpenZoneTypography.monoXS)
                 .monoTracking()
                 .foregroundStyle(abs(level - value) < 0.08 ? palette.controlStrongText : palette.textSecondary)
                 .frame(maxWidth: .infinity)

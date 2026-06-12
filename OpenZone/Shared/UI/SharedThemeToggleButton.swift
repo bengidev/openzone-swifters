@@ -1,11 +1,11 @@
 import SwiftUI
 
 /// Theme toggle control — cycles through system/light/dark with sliding thumb animation.
-public struct ThemeToggleButton: View {
+struct SharedThemeToggleButton: View {
     let onTap: () -> Void
 
-    @Environment(\.palette) private var palette
-    @Environment(\.appTheme) private var appTheme
+    @Environment(\.sharedPalette) private var palette
+    @Environment(\.sharedAppTheme) private var appTheme
     @State private var tapped = false
 
     private var isSystemMode: Bool {
@@ -16,11 +16,11 @@ public struct ThemeToggleButton: View {
         palette.isDark
     }
 
-    public init(onTap: @escaping () -> Void) {
+    init(onTap: @escaping () -> Void) {
         self.onTap = onTap
     }
 
-    public var body: some View {
+    var body: some View {
         ZStack {
             // Track
             RoundedRectangle(cornerRadius: 6, style: .continuous)

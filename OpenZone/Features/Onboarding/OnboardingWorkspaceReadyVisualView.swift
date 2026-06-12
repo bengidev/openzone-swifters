@@ -5,7 +5,7 @@ struct OnboardingWorkspaceReadyVisualView: View {
     let page: OnboardingPage
     let appeared: Bool
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         VStack(spacing: 0) {
@@ -44,7 +44,7 @@ struct OnboardingWorkspaceReadyVisualView: View {
 
                 // Large product name
                 Text(page.headline)
-                    .font(OpenZoneTypography.displayXL)
+                    .font(SharedOpenZoneTypography.displayXL)
                     .displayTracking()
                     .foregroundStyle(palette.textPrimary)
                     .lineLimit(1)
@@ -55,7 +55,7 @@ struct OnboardingWorkspaceReadyVisualView: View {
 
                 // Supporting copy
                 Text(page.body)
-                    .font(OpenZoneTypography.bodyLG)
+                    .font(SharedOpenZoneTypography.bodyLG)
                     .foregroundStyle(palette.textSecondary)
                     .lineSpacing(4)
                     .multilineTextAlignment(.center)

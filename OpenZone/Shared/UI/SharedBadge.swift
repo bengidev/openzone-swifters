@@ -2,20 +2,20 @@ import SwiftUI
 
 /// Eyebrow badge — compact chip for capability/state introduction.
 /// Uses mono text, optional icon, blue dot for active state.
-public struct Badge: View {
+struct SharedBadge: View {
     let title: String
     var systemImage: String?
     var isActive: Bool = false
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
-    public init(title: String, systemImage: String? = nil, isActive: Bool = false) {
+    init(title: String, systemImage: String? = nil, isActive: Bool = false) {
         self.title = title
         self.systemImage = systemImage
         self.isActive = isActive
     }
 
-    public var body: some View {
+    var body: some View {
         HStack(spacing: 7) {
             Circle()
                 .fill(isActive ? palette.accentPrimary : palette.textTertiary)
@@ -27,7 +27,7 @@ public struct Badge: View {
             }
 
             Text(title.uppercased())
-                .font(OpenZoneTypography.monoXS)
+                .font(SharedOpenZoneTypography.monoXS)
                 .monoTracking()
                 .lineLimit(1)
                 .minimumScaleFactor(0.74)

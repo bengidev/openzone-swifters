@@ -6,7 +6,7 @@ struct ChatReasoningCardView: View {
     let isComplete: Bool
     let isStreaming: Bool
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     /// Collapsed by default; auto-expands while reasoning is actively streaming,
     /// then collapses again once thinking completes. User can toggle manually anytime.
     @State private var isExpanded: Bool
@@ -66,7 +66,7 @@ struct ChatReasoningCardView: View {
                 .accessibilityHidden(true)
 
             Text(isComplete ? "Thought" : "Thinking")
-                .font(OpenZoneTypography.monoSM)
+                .font(SharedOpenZoneTypography.monoSM)
                 .foregroundStyle(palette.textSecondary)
                 .monoTracking()
 
@@ -89,7 +89,7 @@ struct ChatReasoningCardView: View {
     private var streamingBody: some View {
         HStack(alignment: .lastTextBaseline, spacing: 0) {
             Text(displayedContent)
-                .font(OpenZoneTypography.monoSM)
+                .font(SharedOpenZoneTypography.monoSM)
                 .foregroundStyle(palette.textSecondary)
                 .lineLimit(nil)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -99,7 +99,7 @@ struct ChatReasoningCardView: View {
 
             if isStreaming {
                 Text("▍")
-                    .font(OpenZoneTypography.monoSM)
+                    .font(SharedOpenZoneTypography.monoSM)
                     .foregroundStyle(palette.accentPrimary)
                     .opacity(streamingCursorOpacity)
                     .accessibilityHidden(true)
@@ -138,7 +138,7 @@ extension ChatReasoningCardView {
 }
 
 private struct ChatReasoningPulseDot: View {
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     @State private var opacity = 0.35
 
     var body: some View {

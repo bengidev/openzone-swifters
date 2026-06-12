@@ -9,7 +9,7 @@ import SwiftUI
 struct ChatErrorBannerView: View {
     @Bindable var store: StoreOf<ChatFeature>
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
 
     var body: some View {
         if store.streamingStatus == .failed, let message = store.streamErrorMessage {

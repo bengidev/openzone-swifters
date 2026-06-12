@@ -11,7 +11,7 @@ import SwiftUI
 
 @main
 struct OpenZoneApp: App {
-    @State private var appTheme: AppTheme = .system
+    @State private var sharedAppTheme: SharedAppTheme = .system
     @State private var store: StoreOf<AppFeature>
     @Environment(\.colorScheme) private var systemColorScheme
 
@@ -59,7 +59,7 @@ struct OpenZoneApp: App {
         }
     }
 
-    private var resolvedPalette: OpenZonePalette {
+    private var resolvedPalette: SharedOpenZonePalette {
         .resolve(resolvedColorScheme ?? systemColorScheme)
     }
 
@@ -71,8 +71,8 @@ struct OpenZoneApp: App {
                     appTheme = appTheme.next
                 }
             )
-            .environment(\.palette, resolvedPalette)
-            .environment(\.appTheme, appTheme)
+            .environment(\.sharedPalette, resolvedPalette)
+            .environment(\.sharedAppTheme, appTheme)
             .preferredColorScheme(resolvedColorScheme)
             .task {
                 _ = store.send(.onboarding(.onAppear))

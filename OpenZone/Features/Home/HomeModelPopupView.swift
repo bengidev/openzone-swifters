@@ -7,7 +7,7 @@ import SwiftUI
 struct HomeModelPopupView: View {
     @Bindable var store: StoreOf<HomeFeature>
 
-    @Environment(\.palette) private var palette
+    @Environment(\.sharedPalette) private var palette
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -172,7 +172,7 @@ struct HomeModelPopupView: View {
 private struct ModelRow: View {
     let option: HomeModelOption
     let isSelected: Bool
-    let palette: OpenZonePalette
+    let palette: SharedOpenZonePalette
     let onSelect: () -> Void
 
     var body: some View {
@@ -260,7 +260,7 @@ private struct ModelRow: View {
 // MARK: - Filter toggle style
 
 private struct FilterToggleStyle: ToggleStyle {
-    let palette: OpenZonePalette
+    let palette: SharedOpenZonePalette
 
     func makeBody(configuration: Configuration) -> some View {
         Button {
