@@ -196,62 +196,74 @@ struct SidePanelSessionSidebarView: View {
     }
 
     private var conversationList: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
-                ForEach(SidePanelSessionSection.grouped(store.filteredConversations, expandedGroups: store.expandedGroups)) { section in
-                    Section {
-                        ForEach(section.conversations) { conversation in
-                            Button {
-                                store.send(.conversationSelected(conversation))
-                            } label: {
-                                conversationRow(conversation, isInGroup: section.id.hasPrefix("group:"))
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu { rowMenu(conversation) }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+        ScrollView(.vertical) {
+            conversationListContent
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+        }
+    }
+
+    @ViewBuilder
+    private var conversationListContent: some View {
+        LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
+            ForEach(SidePanelSessionSection.grouped(store.filteredConversations, expandedGroups: store.expandedGroups)) { section in
+                Section {
+                    ForEach(section.conversations) { conversation in
+                        Button {
+                            store.send(.conversationSelected(conversation))
+                        } label: {
+                            conversationRow(
+                                conversation,
+                                isInGroup: section.id.hasPrefix("group:")
+                            )
                         }
-                        .padding(.leading, section.id.hasPrefix("group:") ? 18 : 0)
-                    } header: {
-                        if section.id.hasPrefix("group:") {
-                            let groupName = String(section.id.dropFirst("group:".count))
-                            let isExpanded = store.expandedGroups.contains(groupName)
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.22)) {
-                                    store.send(.groupHeaderToggled(groupName))
-                                }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "folder.fill")
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(palette.accentSoft)
-                                    Text(groupName.uppercased())
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundStyle(palette.textSecondary)
-                                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                                        .font(.system(size: 9, weight: .semibold))
-                                        .foregroundStyle(palette.textTertiary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 12)
-                                .padding(.top, 12)
-                                .padding(.bottom, 4)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            Text(section.title)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(palette.textTertiary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 12)
-                                .padding(.top, 12)
-                                .padding(.bottom, 4)
-                        }
+                        .buttonStyle(.plain)
+                        .contextMenu { rowMenu(conversation) }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
+                } header: {
+                    groupSectionHeader(section)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
+        }
+    }
+
+    @ViewBuilder
+    private func groupSectionHeader(_ section: SidePanelSessionSection) -> some View {
+        if section.id.hasPrefix("group:") {
+            let groupName = String(section.id.dropFirst("group:".count))
+            let isExpanded = store.expandedGroups.contains(groupName)
+            Button {
+                _ = withAnimation(.easeInOut(duration: 0.22)) {
+                    store.send(.groupHeaderToggled(groupName))
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(palette.accentSoft)
+                    Text(groupName.uppercased())
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(palette.textSecondary)
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(palette.textTertiary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } else {
+            Text(section.title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(palette.textTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
         }
     }
 
@@ -312,7 +324,10 @@ struct SidePanelSessionSidebarView: View {
         }
     }
 
-    private func conversationRow(_ conversation: ChatConversation, isInGroup: Bool) -> some View {
+    private func conversationRow(
+        _ conversation: ChatConversation,
+        isInGroup: Bool
+    ) -> some View {
         let isActive = store.activeConversationID == conversation.id
         return HStack(spacing: 8) {
             if conversation.isPinned {
@@ -339,6 +354,7 @@ struct SidePanelSessionSidebarView: View {
                 .fixedSize()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, isInGroup ? 18 : 0)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(
