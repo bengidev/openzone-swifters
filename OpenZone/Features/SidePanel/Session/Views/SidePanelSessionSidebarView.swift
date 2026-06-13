@@ -208,13 +208,17 @@ struct SidePanelSessionSidebarView: View {
                             }
                             .buttonStyle(.plain)
                             .contextMenu { rowMenu(conversation) }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
+                        .padding(.leading, section.id.hasPrefix("group:") ? 18 : 0)
                     } header: {
                         if section.id.hasPrefix("group:") {
                             let groupName = String(section.id.dropFirst("group:".count))
                             let isExpanded = store.expandedGroups.contains(groupName)
                             Button {
-                                store.send(.groupHeaderToggled(groupName))
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    store.send(.groupHeaderToggled(groupName))
+                                }
                             } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "folder.fill")
