@@ -250,10 +250,11 @@ private struct ModelRow: View {
     }
 
     private func contextLengthLabel(_ tokens: Int) -> String {
-        if tokens >= 1_000_000 {
-            return String(format: "%.0fM ctx", Double(tokens) / 1_000_000)
-        } else if tokens >= 1_000 {
-            return String(format: "%.0fK ctx", Double(tokens) / 1_000)
+        let count = Double(tokens)
+        if count >= 1_000_000 {
+            return "\(Int(count / 1_000_000))M ctx"
+        } else if count >= 1_000 {
+            return "\(Int(count / 1_000))K ctx"
         }
         return "\(tokens) ctx"
     }

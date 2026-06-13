@@ -200,6 +200,7 @@ struct SidePanelSessionSidebarView: View {
             LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
                 ForEach(SidePanelSessionSection.grouped(store.filteredConversations, expandedGroups: store.expandedGroups)) { section in
                     Section {
+                        ForEach(section.conversations) { conversation in
                             Button {
                                 store.send(.conversationSelected(conversation))
                             } label: {

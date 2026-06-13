@@ -150,12 +150,14 @@ extension ChatHistoryClient {
                 try context.save()
             },
             renameConversation: { @MainActor conversationID, title in
+                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
                 let context = ModelContext(modelContainer)
                 guard let entity = try Self.fetchConversation(conversationID, in: context) else {
                     return
                 }
-                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return }
+                entity.title = trimmed
+                entity.updatedAt = .now
                 try context.save()
             },
             setGroup: { @MainActor conversationID, groupName in
