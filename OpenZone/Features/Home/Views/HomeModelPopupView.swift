@@ -18,9 +18,11 @@ struct HomeModelPopupView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 4)
 
-                filterBar
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+                if store.selectedProviderID == ExternalAIProviderAPI.openRouter.id {
+                    filterBar
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                }
 
                 Divider()
                     .overlay(palette.lineSoft)
