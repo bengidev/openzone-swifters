@@ -2,11 +2,12 @@ import ComposableArchitecture
 import SwiftUI
 
 /// Sliding history drawer listing persisted conversations, grouped into a
-/// Pinned section followed by recency buckets (Today, Yesterday, Previous 7
-/// Days, Previous 30 Days, Older). A search field filters by title; each row
-/// offers a long-press menu to rename, pin/unpin, or delete. Tapping a row
-/// emits a session delegate so the parent reopens the conversation in the chat
-/// reducer. All colors are sourced from the shared palette.
+/// Pinned section followed by user-defined groups and recency buckets
+/// (Today, Yesterday, Previous 7 Days, Previous 30 Days, Older). A search
+/// field filters by title; each row offers a long-press menu to pin,
+/// group, or delete. Tapping a row emits a session delegate so the parent
+/// reopens the conversation in the chat reducer. All colors are sourced
+/// from the shared palette.
 struct SidePanelSessionSidebarView: View {
     @Bindable var store: StoreOf<SidePanelSessionFeature>
 
@@ -14,6 +15,8 @@ struct SidePanelSessionSidebarView: View {
 
     @State private var renameTarget: ChatConversation?
     @State private var renameText: String = ""
+    @State private var newGroupText: String = ""
+    @State private var newGroupTargetID: UUID?
 
     private let drawerWidthRatio: CGFloat = 0.82
     private let maxDrawerWidth: CGFloat = 360
@@ -64,6 +67,24 @@ struct SidePanelSessionSidebarView: View {
                 noResultsState
             } else {
                 conversationList
+            }
+        }
+        .alert("Create Group", isPresented: Binding(
+            get: { newGroupTargetID != nil },
+            set: { if !$0 { newGroupTargetID = nil } }
+        )) {
+            TextField("Group name", text: $newGroupText)
+            Button("Cancel", role: .cancel) {
+                newGroupTargetID = nil
+            }
+            Button("Create") {
+                if let targetID = newGroupTargetID {
+                    let trimmed = newGroupText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        store.send(.conversationGroupChanged(id: targetID, group: trimmed))
+                    }
+                    newGroupTargetID = nil
+                }
             }
         }
         .frame(width: width)
@@ -177,7 +198,7 @@ struct SidePanelSessionSidebarView: View {
     private var conversationList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
-                ForEach(SidePanelSessionSection.grouped(store.filteredConversations)) { section in
+                ForEach(SidePanelSessionSection.grouped(store.filteredConversations, expandedGroups: store.expandedGroups)) { section in
                     Section {
                         ForEach(section.conversations) { conversation in
                             Button {
@@ -189,7 +210,39 @@ struct SidePanelSessionSidebarView: View {
                             .contextMenu { rowMenu(conversation) }
                         }
                     } header: {
-                        sectionHeader(section.title)
+                        if section.id.hasPrefix("group:") {
+                            let groupName = String(section.id.dropFirst("group:".count))
+                            let isExpanded = store.expandedGroups.contains(groupName)
+                            Button {
+                                store.send(.groupHeaderToggled(groupName))
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "folder.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(palette.accentSoft)
+                                    Text(groupName.uppercased())
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(palette.textSecondary)
+                                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundStyle(palette.textTertiary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 12)
+                                .padding(.top, 12)
+                                .padding(.bottom, 4)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            Text(section.title)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(palette.textTertiary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 12)
+                                .padding(.top, 12)
+                                .padding(.bottom, 4)
+                        }
                     }
                 }
             }
@@ -212,17 +265,40 @@ struct SidePanelSessionSidebarView: View {
     @ViewBuilder
     private func rowMenu(_ conversation: ChatConversation) -> some View {
         Button {
-            renameText = conversation.title
-            renameTarget = conversation
-        } label: {
-            Label("Rename", systemImage: "pencil")
-        }
-        Button {
             store.send(.conversationPinToggled(conversation))
         } label: {
             Label(
                 conversation.isPinned ? "Unpin" : "Pin",
                 systemImage: conversation.isPinned ? "pin.slash" : "pin"
+            )
+        }
+        Menu {
+            ForEach(store.availableGroups, id: \.self) { group in
+                Button(group) {
+                    store.send(.conversationGroupChanged(
+                        id: conversation.id,
+                        group: conversation.groupName == group ? nil : group
+                    ))
+                }
+            }
+            if let currentGroup = conversation.groupName {
+                Button(role: .destructive) {
+                    store.send(.conversationGroupChanged(id: conversation.id, group: nil))
+                } label: {
+                    Label("Remove from \(currentGroup)", systemImage: "folder.badge.minus")
+                }
+            }
+            Divider()
+            Button {
+                newGroupTargetID = conversation.id
+                newGroupText = ""
+            } label: {
+                Label("New Group...", systemImage: "folder.badge.plus")
+            }
+        } label: {
+            Label(
+                conversation.groupName == nil ? "Move to Group" : "Group: \(conversation.groupName!)",
+                systemImage: "folder"
             )
         }
         Button(role: .destructive) {
@@ -239,6 +315,11 @@ struct SidePanelSessionSidebarView: View {
                 Image(systemName: "pin.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(palette.textTertiary)
+            }
+            if let groupName = conversation.groupName {
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(palette.accentSoft)
             }
             Text(conversation.title)
                 .font(.system(size: 15, weight: isActive ? .semibold : .regular))

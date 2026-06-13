@@ -24,6 +24,9 @@ final class ChatHistoryConversationEntity {
     /// Whether the user pinned this conversation to the top of history.
     /// Additive field — defaults to false so existing stores migrate cleanly.
     var isPinned: Bool = false
+    /// Optional group name for sidebar folder organization. `nil` means ungrouped.
+    /// Additive field — defaults to nil so existing stores migrate cleanly.
+    var groupName: String?
 
     /// Owned messages. Deleting a conversation cascades to its messages so the
     /// store never accumulates orphaned rows.
@@ -36,6 +39,7 @@ final class ChatHistoryConversationEntity {
         createdAt: Date,
         updatedAt: Date,
         isPinned: Bool = false,
+        groupName: String? = nil,
         messages: [ChatHistoryMessageEntity] = []
     ) {
         self.id = id
@@ -43,6 +47,7 @@ final class ChatHistoryConversationEntity {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.isPinned = isPinned
+        self.groupName = groupName
         self.messages = messages
     }
 }

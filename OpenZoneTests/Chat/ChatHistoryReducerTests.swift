@@ -45,7 +45,9 @@ struct ChatHistoryReducerTests {
             appendMessage: { await recorder.append($0, $1) },
             deleteConversation: { _ in },
             setPinned: { _, _ in },
-            renameConversation: { _, _ in }
+            renameConversation: { _, _ in },
+            setGroup: { _, _ in },
+            listGroups: { [] }
         )
     }
 

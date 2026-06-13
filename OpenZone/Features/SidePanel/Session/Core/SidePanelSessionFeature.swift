@@ -32,6 +32,12 @@ struct SidePanelSessionFeature {
         /// parent so the row can render an active highlight. Not owned here.
         var activeConversationID: UUID?
 
+        /// Distinct group names persisted in the history store.
+        var availableGroups: [String] = []
+
+        /// Group folders the user has expanded in the sidebar.
+        var expandedGroups: Set<String> = []
+
         /// Conversations after applying the search filter. Pinned-first ordering
         /// from the client is preserved; sectioning happens in the view.
         var filteredConversations: [ChatConversation] {
@@ -65,6 +71,9 @@ struct SidePanelSessionFeature {
         case conversationPinToggled(ChatConversation)
         case conversationRenamed(id: UUID, title: String)
         case conversationDeleted(UUID)
+        case conversationGroupChanged(id: UUID, group: String?)
+        case groupsLoaded([String])
+        case groupHeaderToggled(String)
         case delegate(Delegate)
 
         /// Outputs the parent acts on. The session scope persists its own list
@@ -92,6 +101,8 @@ struct SidePanelSessionFeature {
                 return .run { send in
                     let conversations = (try? await history.listConversations()) ?? []
                     await send(.conversationsLoaded(conversations))
+                    let groups = (try? await history.listGroups()) ?? []
+                    await send(.groupsLoaded(groups))
                 }
 
             case .sidebarDismissed:
@@ -128,6 +139,8 @@ struct SidePanelSessionFeature {
                     try? await history.setPinned(id, newValue)
                     let conversations = (try? await history.listConversations()) ?? []
                     await send(.conversationsLoaded(conversations))
+                    let groups = (try? await history.listGroups()) ?? []
+                    await send(.groupsLoaded(groups))
                 }
 
             case let .conversationRenamed(id, title):
@@ -163,6 +176,28 @@ struct SidePanelSessionFeature {
                         await send(.conversationsLoaded(conversations))
                     }
                 )
+
+            case let .conversationGroupChanged(id, group):
+                let history = self.chatHistory
+                return .run { send in
+                    try? await history.setGroup(id, group)
+                    let conversations = (try? await history.listConversations()) ?? []
+                    await send(.conversationsLoaded(conversations))
+                    let groups = (try? await history.listGroups()) ?? []
+                    await send(.groupsLoaded(groups))
+                }
+
+            case let .groupsLoaded(groups):
+                state.availableGroups = groups
+                return .none
+
+            case let .groupHeaderToggled(group):
+                if state.expandedGroups.contains(group) {
+                    state.expandedGroups.remove(group)
+                } else {
+                    state.expandedGroups.insert(group)
+                }
+                return .none
 
             case .delegate:
                 return .none

@@ -38,16 +38,19 @@ struct SidePanelSessionFeatureTests {
             appendMessage: { _, _ in },
             deleteConversation: { await recorder.delete($0) },
             setPinned: { await recorder.setPinned($0, $1) },
-            renameConversation: { await recorder.rename($0, $1) }
+            renameConversation: { await recorder.rename($0, $1) },
+            setGroup: { _, _ in },
+            listGroups: { [] }
         )
     }
 
     private func conversation(
         _ title: String,
         id: UUID = UUID(),
-        pinned: Bool = false
+        pinned: Bool = false,
+        groupName: String? = nil
     ) -> ChatConversation {
-        ChatConversation(id: id, title: title, isPinned: pinned)
+        ChatConversation(id: id, title: title, isPinned: pinned, groupName: groupName)
     }
 
     private func makeStore(
@@ -66,13 +69,13 @@ struct SidePanelSessionFeatureTests {
         let seed = [conversation("Alpha"), conversation("Beta")]
         let recorder = Recorder(seed)
         let store = makeStore(recorder: recorder)
-
         await store.send(.sidebarToggleTapped) {
             $0.isSidebarVisible = true
         }
         await store.receive(\.conversationsLoaded) {
             $0.conversations = seed
         }
+        await store.receive(\.groupsLoaded)
     }
 
     @Test("Closing the drawer does not reload")
@@ -129,6 +132,7 @@ struct SidePanelSessionFeatureTests {
 
         await store.send(.conversationPinToggled(target))
         await store.receive(\.conversationsLoaded)
+        await store.receive(\.groupsLoaded)
         #expect(await recorder.pinned.map(\.value) == [true])
     }
 
@@ -192,5 +196,40 @@ struct SidePanelSessionFeatureTests {
         await store.send(.conversationDeleted(id))
         await store.receive(\.conversationsLoaded)
         #expect(await recorder.deleted == [id])
+    }
+
+    @Test("Grouping a conversation persists the group assignment")
+    func groupChangePersistsAndReloads() async throws {
+        let target = conversation("To Group")
+        let recorder = Recorder([target])
+        let store = makeStore(recorder: recorder, state: .init(conversations: [target]))
+
+        await store.send(.conversationGroupChanged(id: target.id, group: "Work"))
+        await store.receive(\.conversationsLoaded)
+        await store.receive(\.groupsLoaded)
+    }
+
+    @Test("Group header toggle expands/collapses")
+    func groupHeaderExpandCollapse() async throws {
+        let recorder = Recorder([])
+        let store = makeStore(recorder: recorder, state: .init())
+
+        await store.send(.groupHeaderToggled("Work")) {
+            $0.expandedGroups.insert("Work")
+        }
+        await store.send(.groupHeaderToggled("Work")) {
+            $0.expandedGroups.remove("Work")
+        }
+    }
+
+    @Test("Removing a group sets groupName to nil")
+    func removeGroup() async throws {
+        let target = conversation("Grouped", groupName: "Work")
+        let recorder = Recorder([target])
+        let store = makeStore(recorder: recorder, state: .init(conversations: [target]))
+
+        await store.send(.conversationGroupChanged(id: target.id, group: nil))
+        await store.receive(\.conversationsLoaded)
+        await store.receive(\.groupsLoaded)
     }
 }
