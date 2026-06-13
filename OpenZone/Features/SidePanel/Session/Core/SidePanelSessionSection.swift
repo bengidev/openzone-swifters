@@ -16,7 +16,9 @@ struct SidePanelSessionSection: Identifiable, Equatable {
     static func grouped(
         _ conversations: [ChatConversation],
         now: Date = Date(),
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        expandedGroups: Set<String> = [],
+        forceExpandGroups: Bool = false
     ) -> [SidePanelSessionSection] {
         var sections: [SidePanelSessionSection] = []
 
@@ -25,11 +27,32 @@ struct SidePanelSessionSection: Identifiable, Equatable {
             sections.append(SidePanelSessionSection(id: "pinned", title: "Pinned", conversations: pinned))
         }
 
+        // Group folders: non-pinned conversations that have a groupName.
+        var groupBuckets: [String: [ChatConversation]] = [:]
+        var groupOrder: [String] = []
+        for conversation in conversations where !conversation.isPinned && conversation.groupName != nil {
+            guard let groupName = conversation.groupName else { continue }
+            if groupBuckets[groupName] == nil { groupOrder.append(groupName) }
+            groupBuckets[groupName, default: []].append(conversation)
+        }
+        for groupName in groupOrder.sorted() {
+            let conversations = groupBuckets[groupName] ?? []
+            let isExpanded = forceExpandGroups || expandedGroups.contains(groupName)
+            let prefix = isExpanded ? "v:" : ">:"
+            sections.append(
+                SidePanelSessionSection(
+                    id: "group:" + groupName,
+                    title: prefix + groupName,
+                    conversations: isExpanded ? conversations : []
+                )
+            )
+        }
+
         // Unpinned conversations bucket by recency. Preserve encounter order so
         // the most-recent-first input stays intact within each bucket.
         var buckets: [RecencyBucket: [ChatConversation]] = [:]
         var order: [RecencyBucket] = []
-        for conversation in conversations where !conversation.isPinned {
+        for conversation in conversations where !conversation.isPinned && conversation.groupName == nil {
             let bucket = RecencyBucket.classify(conversation.updatedAt, now: now, calendar: calendar)
             if buckets[bucket] == nil { order.append(bucket) }
             buckets[bucket, default: []].append(conversation)

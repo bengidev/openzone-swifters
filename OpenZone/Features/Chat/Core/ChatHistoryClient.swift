@@ -24,6 +24,10 @@ struct ChatHistoryClient: Sendable {
     var setPinned: @Sendable (_ conversationID: UUID, _ isPinned: Bool) async throws -> Void
     /// Rename a conversation's title.
     var renameConversation: @Sendable (_ conversationID: UUID, _ title: String) async throws -> Void
+    /// Assign a conversation to a named group, or ungroup if groupName is nil.
+    var setGroup: @Sendable (_ conversationID: UUID, _ groupName: String?) async throws -> Void
+    /// List all distinct group names currently in use across conversations.
+    var listGroups: @Sendable () async throws -> [String]
 }
 
 extension ChatHistoryClient: DependencyKey {
@@ -40,7 +44,9 @@ extension ChatHistoryClient: DependencyKey {
             appendMessage: { _, _ in },
             deleteConversation: { _ in },
             setPinned: { _, _ in },
-            renameConversation: { _, _ in }
+            renameConversation: { _, _ in },
+            setGroup: { _, _ in },
+            listGroups: { [] }
         )
     }
 
@@ -144,14 +150,30 @@ extension ChatHistoryClient {
                 try context.save()
             },
             renameConversation: { @MainActor conversationID, title in
+                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
                 let context = ModelContext(modelContainer)
                 guard let entity = try Self.fetchConversation(conversationID, in: context) else {
                     return
                 }
-                let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return }
                 entity.title = trimmed
+                entity.updatedAt = .now
                 try context.save()
+            },
+            setGroup: { @MainActor conversationID, groupName in
+                let context = ModelContext(modelContainer)
+                guard let entity = try? Self.fetchConversation(conversationID, in: context) else { return }
+                entity.groupName = groupName
+                try context.save()
+            },
+            listGroups: { @MainActor in
+                let context = ModelContext(modelContainer)
+                let descriptor = FetchDescriptor<ChatHistoryConversationEntity>(
+                    predicate: #Predicate { $0.groupName != nil },
+                )
+                let entities = try context.fetch(descriptor)
+                let groups = Set(entities.compactMap(\.groupName))
+                return groups.sorted()
             }
         )
     }
@@ -176,7 +198,8 @@ extension ChatHistoryClient {
             title: entity.title,
             createdAt: entity.createdAt,
             updatedAt: entity.updatedAt,
-            isPinned: entity.isPinned
+            isPinned: entity.isPinned,
+            groupName: entity.groupName
         )
     }
 

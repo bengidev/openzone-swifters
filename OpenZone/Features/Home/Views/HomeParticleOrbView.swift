@@ -464,25 +464,20 @@ private enum ParticleOrbAssetStore {
 
 private extension UIColor {
     func isVisuallyEqual(to other: UIColor) -> Bool {
-        var redA: CGFloat = 0
-        var greenA: CGFloat = 0
-        var blueA: CGFloat = 0
-        var alphaA: CGFloat = 0
-        var redB: CGFloat = 0
-        var greenB: CGFloat = 0
-        var blueB: CGFloat = 0
-        var alphaB: CGFloat = 0
-
-        guard getRed(&redA, green: &greenA, blue: &blueA, alpha: &alphaA),
-              other.getRed(&redB, green: &greenB, blue: &blueB, alpha: &alphaB) else {
+        let epsilon: CGFloat = 0.001
+        
+        // Use cgColor.components to avoid unsafe API warnings in Swift 6
+        let componentsA = cgColor.components ?? [0, 0, 0, 0]
+        let componentsB = other.cgColor.components ?? [0, 0, 0, 0]
+        
+        guard componentsA.count == 4, componentsB.count == 4 else {
             return self == other
         }
-
-        let epsilon: CGFloat = 0.001
-        return abs(redA - redB) < epsilon
-            && abs(greenA - greenB) < epsilon
-            && abs(blueA - blueB) < epsilon
-            && abs(alphaA - alphaB) < epsilon
+        
+        return abs(componentsA[0] - componentsB[0]) < epsilon
+            && abs(componentsA[1] - componentsB[1]) < epsilon
+            && abs(componentsA[2] - componentsB[2]) < epsilon
+            && abs(componentsA[3] - componentsB[3]) < epsilon
     }
 }
 
