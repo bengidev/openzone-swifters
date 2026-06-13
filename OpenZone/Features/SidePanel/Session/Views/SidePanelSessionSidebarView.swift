@@ -206,7 +206,11 @@ struct SidePanelSessionSidebarView: View {
     @ViewBuilder
     private var conversationListContent: some View {
         LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
-            ForEach(SidePanelSessionSection.grouped(store.filteredConversations, expandedGroups: store.expandedGroups)) { section in
+            ForEach(SidePanelSessionSection.grouped(
+                store.filteredConversations,
+                expandedGroups: store.expandedGroups,
+                forceExpandGroups: !store.historySearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            )) { section in
                 Section {
                     ForEach(section.conversations) { conversation in
                         Button {
@@ -257,13 +261,7 @@ struct SidePanelSessionSidebarView: View {
             }
             .buttonStyle(.plain)
         } else {
-            Text(section.title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(palette.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
+            sectionHeader(section.title)
         }
     }
 
@@ -280,6 +278,12 @@ struct SidePanelSessionSidebarView: View {
 
     @ViewBuilder
     private func rowMenu(_ conversation: ChatConversation) -> some View {
+        Button {
+            renameTarget = conversation
+            renameText = conversation.title
+        } label: {
+            Label("Rename", systemImage: "pencil")
+        }
         Button {
             store.send(.conversationPinToggled(conversation))
         } label: {
@@ -335,7 +339,7 @@ struct SidePanelSessionSidebarView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(palette.textTertiary)
             }
-            if !isInGroup, let _ = conversation.groupName {
+            if !isInGroup, conversation.groupName != nil {
                 Image(systemName: "folder.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(palette.accentSoft)

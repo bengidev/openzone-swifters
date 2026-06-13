@@ -18,13 +18,18 @@ struct SidePanelSessionFeatureTests {
     /// closures can capture mutations safely under strict concurrency.
     private actor Recorder {
         var conversations: [ChatConversation]
+        var groups: [String]
         var pinned: [(id: UUID, value: Bool)] = []
         var renamed: [(id: UUID, title: String)] = []
         var deleted: [UUID] = []
 
-        init(_ seed: [ChatConversation]) { self.conversations = seed }
+        init(_ seed: [ChatConversation], groups: [String] = []) {
+            self.conversations = seed
+            self.groups = groups
+        }
 
         func list() -> [ChatConversation] { conversations }
+        func listGroups() -> [String] { groups }
         func setPinned(_ id: UUID, _ value: Bool) { pinned.append((id, value)) }
         func rename(_ id: UUID, _ title: String) { renamed.append((id, title)) }
         func delete(_ id: UUID) { deleted.append(id) }
@@ -40,7 +45,7 @@ struct SidePanelSessionFeatureTests {
             setPinned: { await recorder.setPinned($0, $1) },
             renameConversation: { await recorder.rename($0, $1) },
             setGroup: { _, _ in },
-            listGroups: { [] }
+            listGroups: { await recorder.listGroups() }
         )
     }
 
@@ -180,6 +185,7 @@ struct SidePanelSessionFeatureTests {
         await store.send(.conversationDeleted(id))
         await store.receive(\.delegate.activeConversationDeleted)
         await store.receive(\.conversationsLoaded)
+        await store.receive(\.groupsLoaded)
         #expect(await recorder.deleted == [id])
     }
 
@@ -195,6 +201,25 @@ struct SidePanelSessionFeatureTests {
 
         await store.send(.conversationDeleted(id))
         await store.receive(\.conversationsLoaded)
+        await store.receive(\.groupsLoaded)
+        #expect(await recorder.deleted == [id])
+    }
+
+    @Test("Deleting reloads available groups")
+    func deleteReloadsGroups() async {
+        let id = UUID()
+        let target = conversation("Doomed", id: id, groupName: "Work")
+        let recorder = Recorder([target], groups: ["Archive"])
+        let store = makeStore(
+            recorder: recorder,
+            state: .init(conversations: [target], activeConversationID: UUID())
+        )
+
+        await store.send(.conversationDeleted(id))
+        await store.receive(\.conversationsLoaded)
+        await store.receive(\.groupsLoaded) {
+            $0.availableGroups = ["Archive"]
+        }
         #expect(await recorder.deleted == [id])
     }
 

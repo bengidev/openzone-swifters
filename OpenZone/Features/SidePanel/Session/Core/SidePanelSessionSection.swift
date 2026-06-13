@@ -17,7 +17,8 @@ struct SidePanelSessionSection: Identifiable, Equatable {
         _ conversations: [ChatConversation],
         now: Date = Date(),
         calendar: Calendar = .current,
-        expandedGroups: Set<String> = []
+        expandedGroups: Set<String> = [],
+        forceExpandGroups: Bool = false
     ) -> [SidePanelSessionSection] {
         var sections: [SidePanelSessionSection] = []
 
@@ -36,12 +37,13 @@ struct SidePanelSessionSection: Identifiable, Equatable {
         }
         for groupName in groupOrder.sorted() {
             let conversations = groupBuckets[groupName] ?? []
-            let prefix = expandedGroups.contains(groupName) ? "v:" : ">:"
+            let isExpanded = forceExpandGroups || expandedGroups.contains(groupName)
+            let prefix = isExpanded ? "v:" : ">:"
             sections.append(
                 SidePanelSessionSection(
                     id: "group:" + groupName,
                     title: prefix + groupName,
-                    conversations: expandedGroups.contains(groupName) ? conversations : []
+                    conversations: isExpanded ? conversations : []
                 )
             )
         }

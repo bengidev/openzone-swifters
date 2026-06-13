@@ -13,14 +13,16 @@ struct ChatHistorySectionTests {
     private func convo(
         title: String,
         updatedDaysAgo days: Double,
-        isPinned: Bool = false
+        isPinned: Bool = false,
+        groupName: String? = nil
     ) -> ChatConversation {
         ChatConversation(
             id: UUID(),
             title: title,
             createdAt: now.addingTimeInterval(-days * 86_400 - 10),
             updatedAt: now.addingTimeInterval(-days * 86_400),
-            isPinned: isPinned
+            isPinned: isPinned,
+            groupName: groupName
         )
     }
 
@@ -57,6 +59,25 @@ struct ChatHistorySectionTests {
         let conversations = [convo(title: "today", updatedDaysAgo: 0)]
         let titles = SidePanelSessionSection.grouped(conversations, now: now).map(\.title)
         #expect(titles == ["Today"])
+    }
+
+    @Test("Collapsed groups can be force-expanded for search results")
+    func forceExpandedGroupsExposeMatchingConversations() {
+        let conversations = [
+            convo(title: "Needle", updatedDaysAgo: 0, groupName: "Work")
+        ]
+
+        let collapsed = SidePanelSessionSection.grouped(conversations, now: now)
+        #expect(collapsed.first?.title == ">:Work")
+        #expect(collapsed.first?.conversations.isEmpty == true)
+
+        let expandedForSearch = SidePanelSessionSection.grouped(
+            conversations,
+            now: now,
+            forceExpandGroups: true
+        )
+        #expect(expandedForSearch.first?.title == "v:Work")
+        #expect(expandedForSearch.first?.conversations.map(\.title) == ["Needle"])
     }
 
     @Test("Relative label is compact")

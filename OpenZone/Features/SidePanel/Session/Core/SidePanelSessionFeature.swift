@@ -174,6 +174,8 @@ struct SidePanelSessionFeature {
                         try? await history.deleteConversation(id)
                         let conversations = (try? await history.listConversations()) ?? []
                         await send(.conversationsLoaded(conversations))
+                        let groups = (try? await history.listGroups()) ?? []
+                        await send(.groupsLoaded(groups))
                     }
                 )
 
