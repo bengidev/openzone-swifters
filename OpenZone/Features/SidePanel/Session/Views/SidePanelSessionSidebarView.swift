@@ -200,11 +200,10 @@ struct SidePanelSessionSidebarView: View {
             LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
                 ForEach(SidePanelSessionSection.grouped(store.filteredConversations, expandedGroups: store.expandedGroups)) { section in
                     Section {
-                        ForEach(section.conversations) { conversation in
                             Button {
                                 store.send(.conversationSelected(conversation))
                             } label: {
-                                conversationRow(conversation)
+                                conversationRow(conversation, isInGroup: section.id.hasPrefix("group:"))
                             }
                             .buttonStyle(.plain)
                             .contextMenu { rowMenu(conversation) }
@@ -308,7 +307,7 @@ struct SidePanelSessionSidebarView: View {
         }
     }
 
-    private func conversationRow(_ conversation: ChatConversation) -> some View {
+    private func conversationRow(_ conversation: ChatConversation, isInGroup: Bool) -> some View {
         let isActive = store.activeConversationID == conversation.id
         return HStack(spacing: 8) {
             if conversation.isPinned {
@@ -316,7 +315,7 @@ struct SidePanelSessionSidebarView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(palette.textTertiary)
             }
-            if let groupName = conversation.groupName {
+            if !isInGroup, let _ = conversation.groupName {
                 Image(systemName: "folder.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(palette.accentSoft)
