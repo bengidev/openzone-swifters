@@ -74,13 +74,35 @@ struct SidePanelSessionFeatureTests {
     @Test("Opening the drawer loads the persisted conversation list")
     func toggleLoadsConversations() async {
         let seed = [conversation("Alpha"), conversation("Beta")]
+        let expected = seed.sorted { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+            return lhs.updatedAt > rhs.updatedAt
+        }
         let recorder = Recorder(seed)
         let store = makeStore(recorder: recorder)
         await store.send(.sidebarToggleTapped) {
             $0.isSidebarVisible = true
         }
         await store.receive(\.conversationsLoaded) {
-            $0.conversations = seed
+            $0.conversations = expected
+        }
+        await store.receive(\.groupsLoaded)
+    }
+
+
+    @Test("Loading conversations deduplicates by id keeping the pinned copy")
+    func conversationsLoadedDeduplicates() async {
+        let id = UUID()
+        let unpinned = ChatConversation(id: id, title: "Unpinned", isPinned: false)
+        let pinned = ChatConversation(id: id, title: "Pinned", isPinned: true)
+        let recorder = Recorder([unpinned, pinned])
+        let store = makeStore(recorder: recorder)
+
+        await store.send(.sidebarToggleTapped) {
+            $0.isSidebarVisible = true
+        }
+        await store.receive(\.conversationsLoaded) {
+            $0.conversations = [pinned]
         }
         await store.receive(\.groupsLoaded)
     }
@@ -184,9 +206,10 @@ struct SidePanelSessionFeatureTests {
             state: .init(conversations: [target], activeConversationID: id)
         )
 
+        store.exhaustivity = .off
         await store.send(.conversationRenamed(id: id, title: "New"))
+        #expect(store.state.conversations.first?.title == "New")
         await store.receive(\.delegate.activeConversationRenamed)
-        await store.receive(\.conversationsLoaded)
         #expect(await recorder.renamed.map(\.title) == ["New"])
     }
 
@@ -200,10 +223,70 @@ struct SidePanelSessionFeatureTests {
             state: .init(conversations: [target], activeConversationID: UUID())
         )
 
+        store.exhaustivity = .off
         await store.send(.conversationRenamed(id: id, title: "New"))
-        await store.receive(\.conversationsLoaded)
+        #expect(store.state.conversations.first?.title == "New")
         #expect(await recorder.renamed.map(\.title) == ["New"])
     }
+
+
+    @Test("Renaming re-sorts conversations by updatedAt within pin tier")
+    func renameResortsUnpinnedFirst() async {
+        let olderDate = Date(timeIntervalSince1970: 1_000)
+        let newerDate = Date(timeIntervalSince1970: 2_000)
+        let older = ChatConversation(id: UUID(), title: "Older", updatedAt: olderDate)
+        let targetID = UUID()
+        let target = ChatConversation(id: targetID, title: "Target", updatedAt: newerDate)
+        let recorder = Recorder([older, target])
+        let store = makeStore(
+            recorder: recorder,
+            state: .init(conversations: [older, target])
+        )
+
+        store.exhaustivity = .off
+        await store.send(.conversationRenamed(id: targetID, title: "Renamed"))
+        #expect(store.state.conversations.map(\.title) == ["Renamed", "Older"])
+    }
+
+    @Test("Renaming updates all duplicate ids in memory")
+    func renameUpdatesDuplicateIds() async {
+        let id = UUID()
+        let first = ChatConversation(id: id, title: "Old A", isPinned: false)
+        let second = ChatConversation(id: id, title: "Old B", isPinned: true)
+        let recorder = Recorder([first, second])
+        let store = makeStore(
+            recorder: recorder,
+            state: .init(conversations: [first, second])
+        )
+
+        store.exhaustivity = .off
+        await store.send(.conversationRenamed(id: id, title: "Unified"))
+        #expect(store.state.conversations.allSatisfy { $0.id != id || $0.title == "Unified" })
+        #expect(store.state.filteredConversations.count == 1)
+        #expect(store.state.filteredConversations[0].title == "Unified")
+        #expect(store.state.filteredConversations[0].isPinned == true)
+    }
+
+    @Test("Renaming preserves pin state optimistically")
+    func renamePreservesPinState() async {
+        let unpinnedID = UUID()
+        let pinnedID = UUID()
+        let unpinned = conversation("Unpinned", id: unpinnedID)
+        let pinned = conversation("Pinned", id: pinnedID, pinned: true)
+        let recorder = Recorder([unpinned, pinned])
+        let store = makeStore(
+            recorder: recorder,
+            state: .init(conversations: [unpinned, pinned])
+        )
+
+        store.exhaustivity = .off
+        await store.send(.conversationRenamed(id: unpinnedID, title: "Renamed unpinned"))
+        #expect(store.state.conversations.first(where: { $0.id == unpinnedID })?.isPinned == false)
+
+        await store.send(.conversationRenamed(id: pinnedID, title: "Renamed pinned"))
+        #expect(store.state.conversations.first(where: { $0.id == pinnedID })?.isPinned == true)
+    }
+
 
     @Test("Deleting the active conversation delegates a clear")
     func deleteActiveDelegates() async {
@@ -215,9 +298,10 @@ struct SidePanelSessionFeatureTests {
             state: .init(conversations: [target], activeConversationID: id)
         )
 
+        store.exhaustivity = .off
         await store.send(.conversationDeleted(id))
+        #expect(store.state.conversations.isEmpty)
         await store.receive(\.delegate.activeConversationDeleted)
-        await store.receive(\.conversationsLoaded)
         await store.receive(\.groupsLoaded)
         #expect(await recorder.deleted == [id])
     }
@@ -232,8 +316,9 @@ struct SidePanelSessionFeatureTests {
             state: .init(conversations: [target], activeConversationID: UUID())
         )
 
+        store.exhaustivity = .off
         await store.send(.conversationDeleted(id))
-        await store.receive(\.conversationsLoaded)
+        #expect(store.state.conversations.isEmpty)
         await store.receive(\.groupsLoaded)
         #expect(await recorder.deleted == [id])
     }
@@ -248,8 +333,9 @@ struct SidePanelSessionFeatureTests {
             state: .init(conversations: [target], activeConversationID: UUID())
         )
 
+        store.exhaustivity = .off
         await store.send(.conversationDeleted(id))
-        await store.receive(\.conversationsLoaded)
+        #expect(store.state.conversations.isEmpty)
         await store.receive(\.groupsLoaded) {
             $0.availableGroups = ["Archive"]
         }
@@ -257,15 +343,16 @@ struct SidePanelSessionFeatureTests {
     }
 
     @Test("Grouping a conversation persists the group assignment")
-    func groupChangePersistsAndReloads() async throws {
+    func groupChangePersistsOptimistically() async throws {
         let target = conversation("To Group")
         let recorder = Recorder([target])
         let store = makeStore(recorder: recorder, state: .init(conversations: [target]))
 
+        store.exhaustivity = .off
         await store.send(.conversationGroupChanged(id: target.id, group: "Work")) {
             $0.expandedGroups.insert("Work")
         }
-        await store.receive(\.conversationsLoaded)
+        #expect(store.state.conversations.first?.groupName == "Work")
         await store.receive(\.groupsLoaded)
         #expect(await recorder.grouped.count == 1)
         #expect(await recorder.grouped.first?.id == target.id)
@@ -291,8 +378,9 @@ struct SidePanelSessionFeatureTests {
         let recorder = Recorder([target])
         let store = makeStore(recorder: recorder, state: .init(conversations: [target]))
 
+        store.exhaustivity = .off
         await store.send(.conversationGroupChanged(id: target.id, group: nil))
-        await store.receive(\.conversationsLoaded)
+        #expect(store.state.conversations.first?.groupName == nil)
         await store.receive(\.groupsLoaded)
         #expect(await recorder.grouped.count == 1)
         #expect(await recorder.grouped.first?.id == target.id)
