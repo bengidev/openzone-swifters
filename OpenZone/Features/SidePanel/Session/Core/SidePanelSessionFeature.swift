@@ -38,14 +38,21 @@ struct SidePanelSessionFeature {
         /// Group folders the user has expanded in the sidebar.
         var expandedGroups: Set<String> = []
 
-        /// Conversations after applying the search filter. Pinned-first ordering
-        /// from the client is preserved; sectioning happens in the view.
+        /// Conversations after applying the search filter and deduplicating by id.
+        /// Pinned-first ordering from the client is preserved; sectioning happens
+        /// in the view.
         var filteredConversations: [ChatConversation] {
             let query = historySearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !query.isEmpty else { return conversations }
-            return conversations.filter {
-                $0.title.localizedCaseInsensitiveContains(query)
+            let base = query.isEmpty
+                ? conversations
+                : conversations.filter { $0.title.localizedCaseInsensitiveContains(query) }
+            // Sort pinned-first so duplicate ids keep the pinned copy.
+            let sorted = base.sorted { lhs, rhs in
+                if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+                return lhs.updatedAt > rhs.updatedAt
             }
+            var seen = Set<UUID>()
+            return sorted.filter { seen.insert($0.id).inserted }
         }
 
         init(
@@ -130,17 +137,25 @@ struct SidePanelSessionFeature {
                 return .none
 
             case let .conversationPinToggled(conversation):
-                // Persist then reload to get the authoritative pinned-first
-                // ordering back from the client.
-                let history = self.chatHistory
-                let newValue = !conversation.isPinned
+                // Optimistic update: flip in memory immediately so the UI
+                // reflects the change without waiting for the persistence
+                // round-trip (SwiftData ModelContext isolation can otherwise
+                // cause a stale listConversations response). Derive the new
+                // pin value from state, not the action payload — the view may
+                // pass a stale snapshot when LazyVStack hasn't re-rendered yet.
+                guard let idx = state.conversations.firstIndex(where: { $0.id == conversation.id }) else {
+                    return .none
+                }
+                state.conversations[idx].isPinned.toggle()
+                let newValue = state.conversations[idx].isPinned
+                state.conversations.sort { lhs, rhs in
+                    if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+                    return lhs.updatedAt > rhs.updatedAt
+                }
+                // Persist fire-and-forget; no reload needed.
                 let id = conversation.id
-                return .run { send in
-                    try? await history.setPinned(id, newValue)
-                    let conversations = (try? await history.listConversations()) ?? []
-                    await send(.conversationsLoaded(conversations))
-                    let groups = (try? await history.listGroups()) ?? []
-                    await send(.groupsLoaded(groups))
+                return .run { _ in
+                    try? await self.chatHistory.setPinned(id, newValue)
                 }
 
             case let .conversationRenamed(id, title):
@@ -180,6 +195,12 @@ struct SidePanelSessionFeature {
                 )
 
             case let .conversationGroupChanged(id, group):
+                if let group {
+                    let trimmed = group.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        state.expandedGroups.insert(trimmed)
+                    }
+                }
                 let history = self.chatHistory
                 return .run { send in
                     try? await history.setGroup(id, group)

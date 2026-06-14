@@ -21,6 +21,7 @@ struct SidePanelSessionFeatureTests {
         var groups: [String]
         var pinned: [(id: UUID, value: Bool)] = []
         var renamed: [(id: UUID, title: String)] = []
+        var grouped: [(id: UUID, group: String?)] = []
         var deleted: [UUID] = []
 
         init(_ seed: [ChatConversation], groups: [String] = []) {
@@ -32,6 +33,7 @@ struct SidePanelSessionFeatureTests {
         func listGroups() -> [String] { groups }
         func setPinned(_ id: UUID, _ value: Bool) { pinned.append((id, value)) }
         func rename(_ id: UUID, _ title: String) { renamed.append((id, title)) }
+        func setGroup(_ id: UUID, _ group: String?) { grouped.append((id, group)) }
         func delete(_ id: UUID) { deleted.append(id) }
     }
 
@@ -44,7 +46,7 @@ struct SidePanelSessionFeatureTests {
             deleteConversation: { await recorder.delete($0) },
             setPinned: { await recorder.setPinned($0, $1) },
             renameConversation: { await recorder.rename($0, $1) },
-            setGroup: { _, _ in },
+            setGroup: { await recorder.setGroup($0, $1) },
             listGroups: { await recorder.listGroups() }
         )
     }
@@ -126,8 +128,8 @@ struct SidePanelSessionFeatureTests {
         await store.receive(\.delegate.openConversation)
     }
 
-    @Test("Pinning persists the toggle then reloads the authoritative order")
-    func pinPersistsAndReloads() async {
+    @Test("Pinning toggles state optimistically then persists fire-and-forget")
+    func pinOptimisticUpdate() async {
         let target = conversation("Pin me")
         let recorder = Recorder([target])
         let store = makeStore(
@@ -135,10 +137,41 @@ struct SidePanelSessionFeatureTests {
             state: .init(conversations: [target])
         )
 
+        store.exhaustivity = .off
         await store.send(.conversationPinToggled(target))
-        await store.receive(\.conversationsLoaded)
-        await store.receive(\.groupsLoaded)
+        #expect(store.state.conversations.first?.isPinned == true)
+        #expect(await recorder.pinned.count == 1)
         #expect(await recorder.pinned.map(\.value) == [true])
+    }
+
+    @Test("Unpinning toggles state optimistically then persists fire-and-forget")
+    func unpinOptimisticUpdate() async {
+        let target = conversation("Unpin me", pinned: true)
+        let recorder = Recorder([target])
+        let store = makeStore(
+            recorder: recorder,
+            state: .init(conversations: [target])
+        )
+
+        store.exhaustivity = .off
+        await store.send(.conversationPinToggled(target))
+        #expect(store.state.conversations.first?.isPinned == false)
+        #expect(await recorder.pinned.map(\.value) == [false])
+    }
+
+    @Test("Pinning re-sorts conversations pinned-first")
+    func pinResortsPinnedFirst() async {
+        let unpinned = conversation("Later", id: UUID())
+        let target = conversation("Pin me")
+        let recorder = Recorder([unpinned, target])
+        let store = makeStore(
+            recorder: recorder,
+            state: .init(conversations: [unpinned, target])
+        )
+
+        store.exhaustivity = .off
+        await store.send(.conversationPinToggled(target))
+        #expect(store.state.conversations.map(\.title) == ["Pin me", "Later"])
     }
 
     @Test("Renaming the active conversation delegates the new title")
@@ -229,9 +262,14 @@ struct SidePanelSessionFeatureTests {
         let recorder = Recorder([target])
         let store = makeStore(recorder: recorder, state: .init(conversations: [target]))
 
-        await store.send(.conversationGroupChanged(id: target.id, group: "Work"))
+        await store.send(.conversationGroupChanged(id: target.id, group: "Work")) {
+            $0.expandedGroups.insert("Work")
+        }
         await store.receive(\.conversationsLoaded)
         await store.receive(\.groupsLoaded)
+        #expect(await recorder.grouped.count == 1)
+        #expect(await recorder.grouped.first?.id == target.id)
+        #expect(await recorder.grouped.first?.group == "Work")
     }
 
     @Test("Group header toggle expands/collapses")
@@ -256,5 +294,33 @@ struct SidePanelSessionFeatureTests {
         await store.send(.conversationGroupChanged(id: target.id, group: nil))
         await store.receive(\.conversationsLoaded)
         await store.receive(\.groupsLoaded)
+        #expect(await recorder.grouped.count == 1)
+        #expect(await recorder.grouped.first?.id == target.id)
+        #expect(await recorder.grouped.first?.group == nil)
+    }
+
+    @Test("filteredConversations deduplicates by id keeping the pinned copy")
+    func filteredConversationsDeduplicatesPinnedFirst() {
+        let id = UUID()
+        let unpinned = ChatConversation(id: id, title: "Unpinned", isPinned: false)
+        let pinned = ChatConversation(id: id, title: "Pinned", isPinned: true)
+        let state = SidePanelSessionFeature.State(conversations: [unpinned, pinned])
+        let result = state.filteredConversations
+        #expect(result.count == 1)
+        #expect(result[0].title == "Pinned")
+        #expect(result[0].isPinned == true)
+    }
+
+    @Test("filteredConversations deduplication preserves search filtering")
+    func filteredConversationsDeduplicatesWithSearch() {
+        let id = UUID()
+        let first = ChatConversation(id: id, title: "Swift tips", isPinned: false)
+        let second = ChatConversation(id: id, title: "Swift tips dup", isPinned: true)
+        var state = SidePanelSessionFeature.State(conversations: [first, second])
+        state.historySearchQuery = "swift"
+        let result = state.filteredConversations
+        #expect(result.count == 1)
+        #expect(result[0].title == "Swift tips dup")
+        #expect(result[0].isPinned == true)
     }
 }

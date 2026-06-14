@@ -203,6 +203,18 @@ struct SidePanelSessionSidebarView: View {
         }
     }
 
+    /// Busts LazyVStack identity when pin/group state changes so rows move between
+    /// sections immediately instead of only after the drawer is reopened.
+    private var sessionListIdentity: String {
+        store.conversations
+            .map { "\($0.id.uuidString):\($0.isPinned):\($0.groupName ?? "")" }
+            .joined(separator: "|")
+    }
+
+    private func liveConversation(id: UUID) -> ChatConversation? {
+        store.conversations.first { $0.id == id }
+    }
+
     @ViewBuilder
     private var conversationListContent: some View {
         LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
@@ -214,7 +226,8 @@ struct SidePanelSessionSidebarView: View {
                 Section {
                     ForEach(section.conversations) { conversation in
                         Button {
-                            store.send(.conversationSelected(conversation))
+                            let live = liveConversation(id: conversation.id) ?? conversation
+                            store.send(.conversationSelected(live))
                         } label: {
                             conversationRow(
                                 conversation,
@@ -224,12 +237,14 @@ struct SidePanelSessionSidebarView: View {
                         .buttonStyle(.plain)
                         .contextMenu { rowMenu(conversation) }
                         .transition(.opacity.combined(with: .move(edge: .top)))
+                        .id("\(section.id)-\(conversation.id)")
                     }
                 } header: {
                     groupSectionHeader(section)
                 }
             }
         }
+        .id(sessionListIdentity)
     }
 
     @ViewBuilder
@@ -278,51 +293,54 @@ struct SidePanelSessionSidebarView: View {
 
     @ViewBuilder
     private func rowMenu(_ conversation: ChatConversation) -> some View {
+        let live = liveConversation(id: conversation.id) ?? conversation
         Button {
-            renameTarget = conversation
-            renameText = conversation.title
+            renameTarget = live
+            renameText = live.title
         } label: {
             Label("Rename", systemImage: "pencil")
         }
         Button {
-            store.send(.conversationPinToggled(conversation))
+            _ = withAnimation(.easeInOut(duration: 0.22)) {
+                store.send(.conversationPinToggled(live))
+            }
         } label: {
             Label(
-                conversation.isPinned ? "Unpin" : "Pin",
-                systemImage: conversation.isPinned ? "pin.slash" : "pin"
+                live.isPinned ? "Unpin" : "Pin",
+                systemImage: live.isPinned ? "pin.slash" : "pin"
             )
         }
         Menu {
             ForEach(store.availableGroups, id: \.self) { group in
                 Button(group) {
                     store.send(.conversationGroupChanged(
-                        id: conversation.id,
-                        group: conversation.groupName == group ? nil : group
+                        id: live.id,
+                        group: live.groupName == group ? nil : group
                     ))
                 }
             }
-            if let currentGroup = conversation.groupName {
+            if let currentGroup = live.groupName {
                 Button(role: .destructive) {
-                    store.send(.conversationGroupChanged(id: conversation.id, group: nil))
+                    store.send(.conversationGroupChanged(id: live.id, group: nil))
                 } label: {
                     Label("Remove from \(currentGroup)", systemImage: "folder.badge.minus")
                 }
             }
             Divider()
             Button {
-                newGroupTargetID = conversation.id
+                newGroupTargetID = live.id
                 newGroupText = ""
             } label: {
                 Label("New Group...", systemImage: "folder.badge.plus")
             }
         } label: {
             Label(
-                conversation.groupName == nil ? "Move to Group" : "Group: \(conversation.groupName!)",
+                live.groupName == nil ? "Move to Group" : "Group: \(live.groupName!)",
                 systemImage: "folder"
             )
         }
         Button(role: .destructive) {
-            store.send(.conversationDeleted(conversation.id))
+            store.send(.conversationDeleted(live.id))
         } label: {
             Label("Delete", systemImage: "trash")
         }
@@ -332,19 +350,20 @@ struct SidePanelSessionSidebarView: View {
         _ conversation: ChatConversation,
         isInGroup: Bool
     ) -> some View {
-        let isActive = store.activeConversationID == conversation.id
+        let live = liveConversation(id: conversation.id) ?? conversation
+        let isActive = store.activeConversationID == live.id
         return HStack(spacing: 8) {
-            if conversation.isPinned {
+            if live.isPinned {
                 Image(systemName: "pin.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(palette.textTertiary)
             }
-            if !isInGroup, conversation.groupName != nil {
+            if !isInGroup, live.groupName != nil {
                 Image(systemName: "folder.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(palette.accentSoft)
             }
-            Text(conversation.title)
+            Text(live.title)
                 .font(.system(size: 15, weight: isActive ? .semibold : .regular))
                 .foregroundStyle(palette.textPrimary)
                 .lineLimit(1)
@@ -352,7 +371,7 @@ struct SidePanelSessionSidebarView: View {
 
             Spacer(minLength: 8)
 
-            Text(SidePanelSessionSection.relativeLabel(for: conversation.updatedAt))
+            Text(SidePanelSessionSection.relativeLabel(for: live.updatedAt))
                 .font(.system(size: 12))
                 .foregroundStyle(palette.textTertiary)
                 .fixedSize()

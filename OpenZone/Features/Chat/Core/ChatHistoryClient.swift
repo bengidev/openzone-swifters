@@ -79,12 +79,16 @@ extension ChatHistoryClient {
                 // Pinned conversations float to the top; within each group the
                 // most-recently-updated comes first. Sectioning by recency is a
                 // presentation concern handled in the view, not here.
-                return try context.fetch(descriptor)
+                let mapped = try context.fetch(descriptor)
                     .map(Self.conversation(from:))
                     .sorted { lhs, rhs in
                         if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
                         return lhs.updatedAt > rhs.updatedAt
                     }
+                // Deduplicate by id keeping the first occurrence, which is
+                // now the pinned copy thanks to the sort above.
+                var seen = Set<UUID>()
+                return mapped.filter { seen.insert($0.id).inserted }
             },
             loadMessages: { @MainActor conversationID in
                 let context = ModelContext(modelContainer)
@@ -162,8 +166,16 @@ extension ChatHistoryClient {
             },
             setGroup: { @MainActor conversationID, groupName in
                 let context = ModelContext(modelContainer)
-                guard let entity = try? Self.fetchConversation(conversationID, in: context) else { return }
-                entity.groupName = groupName
+                guard let entity = try Self.fetchConversation(conversationID, in: context) else {
+                    return
+                }
+                if let groupName {
+                    let trimmed = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return }
+                    entity.groupName = trimmed
+                } else {
+                    entity.groupName = nil
+                }
                 try context.save()
             },
             listGroups: { @MainActor in
