@@ -61,6 +61,39 @@ struct ChatHistorySectionTests {
         #expect(titles == ["Today"])
     }
 
+    @Test("Pinned grouped conversations appear only in Pinned section")
+    func pinnedGroupedAppearsOnlyInPinned() {
+        let conversations = [
+            convo(title: "Pinned work", updatedDaysAgo: 0, isPinned: true, groupName: "Work"),
+            convo(title: "Today chat", updatedDaysAgo: 0)
+        ]
+        let sections = SidePanelSessionSection.grouped(
+            conversations,
+            now: now,
+            expandedGroups: ["Work"]
+        )
+        let titles = sections.map(\.title)
+        #expect(titles == ["Pinned", "Today"])
+        #expect(sections.first?.conversations.map(\.title) == ["Pinned work"])
+    }
+
+    @Test("Pinned conversations do not duplicate into group or recency sections")
+    func pinnedExcludedFromGroupAndRecency() {
+        let conversations = [
+            convo(title: "Pinned", updatedDaysAgo: 0, isPinned: true, groupName: "Work"),
+            convo(title: "Work chat", updatedDaysAgo: 0, groupName: "Work"),
+            convo(title: "Today chat", updatedDaysAgo: 0)
+        ]
+        let sections = SidePanelSessionSection.grouped(
+            conversations,
+            now: now,
+            expandedGroups: ["Work"]
+        )
+        let allTitles = sections.flatMap(\.conversations).map(\.title)
+        #expect(Set(allTitles) == Set(["Pinned", "Work chat", "Today chat"]))
+        #expect(allTitles.filter { $0 == "Pinned" }.count == 1)
+    }
+
     @Test("Collapsed groups can be force-expanded for search results")
     func forceExpandedGroupsExposeMatchingConversations() {
         let conversations = [

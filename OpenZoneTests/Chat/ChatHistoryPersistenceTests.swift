@@ -153,6 +153,39 @@ struct ChatHistoryPersistenceTests {
         #expect(try await client.loadMessages(convo.id).isEmpty)
     }
 
+
+    @Test("setGroup and listGroups round-trip through the live client")
+    func groupRoundTrip() async throws {
+        let container = try makeContainer()
+        let client = ChatHistoryClient.live(modelContainer: container)
+
+        let convo = conversation(title: "Grouped chat")
+        try await client.saveConversation(convo)
+        try await client.setGroup(convo.id, "Work")
+
+        let listed = try await client.listConversations()
+        #expect(listed.count == 1)
+        #expect(listed.first?.groupName == "Work")
+        #expect(try await client.listGroups() == ["Work"])
+
+        try await client.setGroup(convo.id, nil)
+        #expect(try await client.listConversations().first?.groupName == nil)
+        #expect(try await client.listGroups().isEmpty)
+    }
+
+    @Test("setGroup rejects whitespace-only group names")
+    func setGroupRejectsBlankNames() async throws {
+        let container = try makeContainer()
+        let client = ChatHistoryClient.live(modelContainer: container)
+
+        let convo = conversation(title: "Ungrouped")
+        try await client.saveConversation(convo)
+        try await client.setGroup(convo.id, "   ")
+
+        #expect(try await client.listConversations().first?.groupName == nil)
+        #expect(try await client.listGroups().isEmpty)
+    }
+
     // MARK: - Additive migration
 
     @Test("Additive migration: existing onboarding store gains chat entities")
