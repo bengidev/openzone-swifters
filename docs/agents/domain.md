@@ -1,10 +1,10 @@
 # Domain Docs
 
-This repo is **multi-context**: a `CONTEXT-MAP.md` at the root points at one `CONTEXT.md` per context.
+This repo is **multi-context**: a `CONTEXT-MAP.md` at the root points at one `*-CONTEXT.md` glossary per context under `docs/contexts/`.
 
 ## Before exploring, read these
 
-- **`CONTEXT-MAP.md`** at the repo root — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
+- **`CONTEXT-MAP.md`** at the repo root — it points at one `*-CONTEXT.md` per context under `docs/contexts/`. Read each one relevant to the topic.
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in.
 - **`docs/architecture/modules.md`** — read this before changing feature boundaries, shared UI/theme code, or TCA reducer/store structure.
 - **`docs/architecture/swift-6-strictness.md`** — read this before changing Swift code that touches concurrency, actor isolation, Sendability, effects, persistence clients, or memory-safety settings.
@@ -40,7 +40,7 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 
 ## Use the glossary's vocabulary
 
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in the relevant `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
+When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in the relevant `*-CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
 
 If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `real-engineer-grill-with-docs`).
 

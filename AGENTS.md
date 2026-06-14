@@ -12,4 +12,4 @@ Five canonical roles mapped 1:1 to label strings of the same name. See `docs/age
 
 ### Domain docs
 
-Multi-context: `CONTEXT-MAP.md` at the root points to per-context `CONTEXT.md` files. See `docs/agents/domain.md`.
+Multi-context: `CONTEXT-MAP.md` at the root points to per-context `*-CONTEXT.md` files under `docs/contexts/`. See `docs/agents/domain.md`.
