@@ -46,13 +46,7 @@ struct SidePanelSessionFeature {
             let base = query.isEmpty
                 ? conversations
                 : conversations.filter { $0.title.localizedCaseInsensitiveContains(query) }
-            // Sort pinned-first so duplicate ids keep the pinned copy.
-            let sorted = base.sorted { lhs, rhs in
-                if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
-                return lhs.updatedAt > rhs.updatedAt
-            }
-            var seen = Set<UUID>()
-            return sorted.filter { seen.insert($0.id).inserted }
+            return SidePanelSessionFeature.deduplicatedPinnedFirst(base)
         }
 
         init(
@@ -120,7 +114,7 @@ struct SidePanelSessionFeature {
                 return .none
 
             case let .conversationsLoaded(conversations):
-                state.conversations = conversations
+                state.conversations = Self.deduplicatedPinnedFirst(conversations)
                 return .none
 
             case let .conversationSelected(conversation):
@@ -143,15 +137,15 @@ struct SidePanelSessionFeature {
                 // cause a stale listConversations response). Derive the new
                 // pin value from state, not the action payload — the view may
                 // pass a stale snapshot when LazyVStack hasn't re-rendered yet.
-                guard let idx = state.conversations.firstIndex(where: { $0.id == conversation.id }) else {
-                    return .none
+                let matching = state.conversations.indices.filter {
+                    state.conversations[$0].id == conversation.id
                 }
-                state.conversations[idx].isPinned.toggle()
-                let newValue = state.conversations[idx].isPinned
-                state.conversations.sort { lhs, rhs in
-                    if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
-                    return lhs.updatedAt > rhs.updatedAt
+                guard let first = matching.first else { return .none }
+                let newValue = !state.conversations[first].isPinned
+                for idx in matching {
+                    state.conversations[idx].isPinned = newValue
                 }
+                state.conversations = Self.deduplicatedPinnedFirst(state.conversations)
                 // Persist fire-and-forget; no reload needed.
                 let id = conversation.id
                 return .run { _ in
@@ -161,15 +155,16 @@ struct SidePanelSessionFeature {
             case let .conversationRenamed(id, title):
                 let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmed.isEmpty else { return .none }
-                guard let idx = state.conversations.firstIndex(where: { $0.id == id }) else {
-                    return .none
+                let matching = state.conversations.indices.filter {
+                    state.conversations[$0].id == id
                 }
-                state.conversations[idx].title = trimmed
-                state.conversations[idx].updatedAt = Date()
-                state.conversations.sort { lhs, rhs in
-                    if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
-                    return lhs.updatedAt > rhs.updatedAt
+                guard !matching.isEmpty else { return .none }
+                let now = Date()
+                for idx in matching {
+                    state.conversations[idx].title = trimmed
+                    state.conversations[idx].updatedAt = now
                 }
+                state.conversations = Self.sortedPinnedFirst(state.conversations)
                 // Tell the parent so it can keep the open thread's title in sync.
                 let renameEffect: Effect<Action> = state.activeConversationID == id
                     ? .send(.delegate(.activeConversationRenamed(id: id, title: trimmed)))
@@ -182,7 +177,9 @@ struct SidePanelSessionFeature {
                 )
 
             case let .conversationDeleted(id):
-                let history = self.chatHistory
+                // Optimistic removal avoids a stale listConversations reload
+                // flipping pin state on unrelated rows.
+                state.conversations.removeAll { $0.id == id }
                 // If the deleted conversation is the one on screen, tell the
                 // parent to clear the active chat so the user isn't left viewing
                 // a gone thread.
@@ -192,27 +189,32 @@ struct SidePanelSessionFeature {
                 return .merge(
                     clearEffect,
                     .run { send in
-                        try? await history.deleteConversation(id)
-                        let conversations = (try? await history.listConversations()) ?? []
-                        await send(.conversationsLoaded(conversations))
-                        let groups = (try? await history.listGroups()) ?? []
+                        try? await self.chatHistory.deleteConversation(id)
+                        let groups = (try? await self.chatHistory.listGroups()) ?? []
                         await send(.groupsLoaded(groups))
                     }
                 )
 
             case let .conversationGroupChanged(id, group):
-                if let group {
+                let normalizedGroup: String? = {
+                    guard let group else { return nil }
                     let trimmed = group.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        state.expandedGroups.insert(trimmed)
-                    }
+                    return trimmed.isEmpty ? nil : trimmed
+                }()
+                if let normalizedGroup {
+                    state.expandedGroups.insert(normalizedGroup)
                 }
-                let history = self.chatHistory
+                let matching = state.conversations.indices.filter {
+                    state.conversations[$0].id == id
+                }
+                guard !matching.isEmpty else { return .none }
+                for idx in matching {
+                    state.conversations[idx].groupName = normalizedGroup
+                }
+                state.conversations = Self.sortedPinnedFirst(state.conversations)
                 return .run { send in
-                    try? await history.setGroup(id, group)
-                    let conversations = (try? await history.listConversations()) ?? []
-                    await send(.conversationsLoaded(conversations))
-                    let groups = (try? await history.listGroups()) ?? []
+                    try? await self.chatHistory.setGroup(id, group)
+                    let groups = (try? await self.chatHistory.listGroups()) ?? []
                     await send(.groupsLoaded(groups))
                 }
 
@@ -232,5 +234,19 @@ struct SidePanelSessionFeature {
                 return .none
             }
         }
+    }
+
+    private static func sortedPinnedFirst(_ conversations: [ChatConversation]) -> [ChatConversation] {
+        conversations.sorted { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+            return lhs.updatedAt > rhs.updatedAt
+        }
+    }
+
+    /// Pinned-first sort then keep one row per id (pinned copy wins).
+    private static func deduplicatedPinnedFirst(_ conversations: [ChatConversation]) -> [ChatConversation] {
+        let sorted = sortedPinnedFirst(conversations)
+        var seen = Set<UUID>()
+        return sorted.filter { seen.insert($0.id).inserted }
     }
 }
