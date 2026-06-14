@@ -206,13 +206,13 @@ struct SidePanelSessionSidebarView: View {
     /// Busts LazyVStack identity when pin/group state changes so rows move between
     /// sections immediately instead of only after the drawer is reopened.
     private var sessionListIdentity: String {
-        store.conversations
-            .map { "\($0.id.uuidString):\($0.isPinned):\($0.groupName ?? "")" }
+        store.filteredConversations
+            .map { "\($0.id):\($0.title):\($0.isPinned):\($0.groupName ?? ""):\($0.updatedAt.timeIntervalSinceReferenceDate)" }
             .joined(separator: "|")
     }
 
     private func liveConversation(id: UUID) -> ChatConversation? {
-        store.conversations.first { $0.id == id }
+        store.filteredConversations.first { $0.id == id }
     }
 
     @ViewBuilder

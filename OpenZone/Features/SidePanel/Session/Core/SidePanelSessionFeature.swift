@@ -161,17 +161,23 @@ struct SidePanelSessionFeature {
             case let .conversationRenamed(id, title):
                 let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmed.isEmpty else { return .none }
-                let history = self.chatHistory
+                guard let idx = state.conversations.firstIndex(where: { $0.id == id }) else {
+                    return .none
+                }
+                state.conversations[idx].title = trimmed
+                state.conversations[idx].updatedAt = Date()
+                state.conversations.sort { lhs, rhs in
+                    if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+                    return lhs.updatedAt > rhs.updatedAt
+                }
                 // Tell the parent so it can keep the open thread's title in sync.
                 let renameEffect: Effect<Action> = state.activeConversationID == id
                     ? .send(.delegate(.activeConversationRenamed(id: id, title: trimmed)))
                     : .none
                 return .merge(
                     renameEffect,
-                    .run { send in
-                        try? await history.renameConversation(id, trimmed)
-                        let conversations = (try? await history.listConversations()) ?? []
-                        await send(.conversationsLoaded(conversations))
+                    .run { _ in
+                        try? await self.chatHistory.renameConversation(id, trimmed)
                     }
                 )
 

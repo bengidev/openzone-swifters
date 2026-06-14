@@ -184,9 +184,10 @@ struct SidePanelSessionFeatureTests {
             state: .init(conversations: [target], activeConversationID: id)
         )
 
+        store.exhaustivity = .off
         await store.send(.conversationRenamed(id: id, title: "New"))
+        #expect(store.state.conversations.first?.title == "New")
         await store.receive(\.delegate.activeConversationRenamed)
-        await store.receive(\.conversationsLoaded)
         #expect(await recorder.renamed.map(\.title) == ["New"])
     }
 
@@ -200,8 +201,45 @@ struct SidePanelSessionFeatureTests {
             state: .init(conversations: [target], activeConversationID: UUID())
         )
 
+        store.exhaustivity = .off
         await store.send(.conversationRenamed(id: id, title: "New"))
-        await store.receive(\.conversationsLoaded)
+        #expect(store.state.conversations.first?.title == "New")
+        #expect(await recorder.renamed.map(\.title) == ["New"])
+    }
+
+    @Test("Renaming preserves pin state optimistically")
+    func renamePreservesPinState() async {
+        let unpinnedID = UUID()
+        let pinnedID = UUID()
+        let unpinned = conversation("Unpinned", id: unpinnedID)
+        let pinned = conversation("Pinned", id: pinnedID, pinned: true)
+        let recorder = Recorder([unpinned, pinned])
+        let store = makeStore(
+            recorder: recorder,
+            state: .init(conversations: [unpinned, pinned])
+        )
+
+        store.exhaustivity = .off
+        await store.send(.conversationRenamed(id: unpinnedID, title: "Renamed unpinned"))
+        #expect(store.state.conversations.first(where: { $0.id == unpinnedID })?.isPinned == false)
+
+        await store.send(.conversationRenamed(id: pinnedID, title: "Renamed pinned"))
+        #expect(store.state.conversations.first(where: { $0.id == pinnedID })?.isPinned == true)
+    }
+
+    @Test("Renaming updates title optimistically without reload")
+    func renameOptimisticWithoutReload() async {
+        let id = UUID()
+        let target = conversation("Old", id: id)
+        let recorder = Recorder([target])
+        let store = makeStore(
+            recorder: recorder,
+            state: .init(conversations: [target])
+        )
+
+        store.exhaustivity = .off
+        await store.send(.conversationRenamed(id: id, title: "New"))
+        #expect(store.state.conversations.first?.title == "New")
         #expect(await recorder.renamed.map(\.title) == ["New"])
     }
 
